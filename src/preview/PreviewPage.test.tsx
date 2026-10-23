@@ -1,15 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { render, screen, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
-import { PreviewPage } from './PreviewPage'
+import { createMemoryRouter, RouterProvider } from 'react-router'
+import { previewRoutes } from './previewRoutes'
 
+/** O dashboard é renderizado dentro do PreviewLayout (sidebar + faixa da prévia). */
 function renderPreview() {
-  return render(
-    <MemoryRouter initialEntries={['/preview']}>
-      <PreviewPage />
-    </MemoryRouter>,
-  )
+  return render(<RouterProvider router={createMemoryRouter([previewRoutes], { initialEntries: ['/preview'] })} />)
 }
 
 describe('PreviewPage', () => {

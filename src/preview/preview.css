@@ -153,3 +153,26 @@
   .pv-topbar, .pv-view { padding-left: 16px; padding-right: 16px; }
   .pv-actions { margin-left: 0; }
 }
+
+/* ------------------------------------------------- faixa da prévia (layout) */
+.pv-band {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 32px; background: var(--surface); border-bottom: 1px solid var(--areia);
+  font-size: 12.5px;
+}
+.pv-band-t { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--nevoa); letter-spacing: .02em; }
+.pv-band-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--t-amber); flex: none; }
+.pv-viewas { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pv-viewas-l { color: var(--nevoa); }
+.pv-seg { display: inline-flex; border: 1px solid var(--areia-2); border-radius: var(--r-md); overflow: hidden; }
+.pv-seg button {
+  background: var(--surface); border: none; padding: 5px 11px; font-size: 12.5px; font-weight: 500;
+  color: var(--tinta); cursor: pointer;
+}
+.pv-seg button + button { border-left: 1px solid var(--areia-2); }
+.pv-seg button:hover { background: var(--surface-2); }
+.pv-seg button[aria-pressed="true"] { background: var(--vivo-soft); color: var(--vivo); font-weight: 600; }
+@media (max-width: 560px) {
+  .pv-band { padding: 8px 16px; }
+  .pv-viewas { margin-left: 0; }
+}

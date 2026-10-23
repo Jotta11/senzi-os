@@ -1,16 +1,16 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AuthGate } from '@/auth/AuthGate'
 import { ConfigPage } from '@/features/config/ConfigPage'
-import { PreviewPage } from '@/preview/PreviewPage'
+import { previewRoutes } from '@/preview/previewRoutes'
 import { AppShell } from '@/shell/AppShell'
 import { ComingSoon } from '@/shell/ComingSoon'
 import { NotFound } from '@/shell/NotFound'
 import { NAV } from '@/shell/nav'
 import { RequirePerm } from '@/shell/RequirePerm'
 
-/** Rotas do Senzi OS. `/preview` é pública (prévia visual com dados fictícios); o resto exige login. */
+/** Rotas do Senzi OS. `/preview/*` é pública (prévia visual com dados fictícios em memória); o resto exige login. */
 export const appRoutes: RouteObject[] = [
-  { path: '/preview', element: <PreviewPage /> },
+  previewRoutes,
   {
     element: <AuthGate />,
     children: [

@@ -1,30 +1,18 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router'
-import { Sidebar } from '@/shell/Sidebar'
 import { Badge, Button, Card, Icon, buttonClass, type IconName, type Tone } from '@/ui'
 import './preview.css'
 
 /* =====================================================================
    Prévia visual estática (dados fictícios) — dashboard + agenda.
    Serve para aprovar cores e layout antes de construir as telas reais.
+   Renderizada dentro do PreviewLayout (sidebar + faixa da prévia).
    ===================================================================== */
 
 const HOJE = 23 // sexta-feira, 23/10/2026
 const MES = 'outubro de 2026'
 
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-
-const NAV: { to: string; icon: IconName; label: string; count?: number }[] = [
-  { to: '/', icon: 'dashboard', label: 'Dashboard' },
-  { to: '/agenda', icon: 'agenda', label: 'Agenda', count: 6 },
-  { to: '/reservas', icon: 'reservas', label: 'Reservas', count: 18 },
-  { to: '/acervo', icon: 'acervo', label: 'Acervo', count: 142 },
-  { to: '/clientes', icon: 'clientes', label: 'Clientes', count: 311 },
-  { to: '/operacao', icon: 'operacao', label: 'Operação', count: 7 },
-  { to: '/financeiro', icon: 'financeiro', label: 'Financeiro' },
-  { to: '/inteligencia', icon: 'inteligencia', label: 'Inteligência' },
-  { to: '/config', icon: 'config', label: 'Configurações' },
-]
 
 const ALERTAS: { tone: Tone; icon: IconName; title: string; detail: string; to: string }[] = [
   { tone: 'red', icon: 'alerta', title: 'Devolução atrasada', detail: 'Marina Albuquerque · SZ-0417 · 2 dias', to: '/reservas' },
@@ -105,75 +93,53 @@ const STATUS: { tone: Tone; label: string }[] = [
 
 export function PreviewPage() {
   return (
-    <div className="sb-app">
-      <Rail />
-      <main className="pv-main">
-        <header className="pv-topbar">
-          <div>
-            <p className="eyebrow">Prévia visual · dados fictícios</p>
-            <h1 className="display">Hoje</h1>
-            <p className="pv-sub">Sexta-feira, 23/10/2026</p>
-          </div>
-          <div className="pv-actions">
-            <Button icon="prova">Agendar prova</Button>
-            <Button icon="clientes">Nova cliente</Button>
-            <Button variant="primary" icon="plus">Nova reserva</Button>
-          </div>
-        </header>
-
-        <div className="pv-view">
-          <Alertas />
-
-          <section className="pv-agenda-block" aria-label="Agenda de hoje e calendário">
-            <AgendaHoje />
-            <MiniCalendario />
-          </section>
-
-          <div className="pv-grid-2">
-            <Faturamento />
-            <CicloOperacional />
-          </div>
-
-          <AgendaSemana />
-
-          <Card title="Tons de status" meta={<span className="muted tiny">sempre com rótulo de texto</span>}>
-            <div className="pv-badges">
-              {STATUS.map((s) => (
-                <Badge key={s.tone} tone={s.tone}>
-                  {s.label}
-                </Badge>
-              ))}
-            </div>
-            <div className="pv-buttons">
-              <Button variant="primary">Primário</Button>
-              <Button>Secundário</Button>
-              <Button variant="ghost">Discreto</Button>
-              <Button variant="danger" icon="lixo">Cancelar reserva</Button>
-              <a href="#tons">Link de texto</a>
-            </div>
-          </Card>
+    <div className="pv-main">
+      <header className="pv-topbar">
+        <div>
+          <p className="eyebrow">Dashboard</p>
+          <h1 className="display">Hoje</h1>
+          <p className="pv-sub">Sexta-feira, 23/10/2026</p>
         </div>
-      </main>
-    </div>
-  )
-}
+        <div className="pv-actions">
+          <Button icon="prova">Agendar prova</Button>
+          <Button icon="clientes">Nova cliente</Button>
+          <Button variant="primary" icon="plus">Nova reserva</Button>
+        </div>
+      </header>
 
-function Rail() {
-  return (
-    <Sidebar
-      search
-      activePath="/"
-      items={NAV}
-      footer={
-        <>
-          <span className="sb-av" aria-hidden="true">JS</span>
-          <span className="sb-who">
-            <b>Júlia Senzi</b>
-            <span>Administrador</span>
-          </span>
-        </>
-      }
-    />
+      <div className="pv-view">
+        <Alertas />
+
+        <section className="pv-agenda-block" aria-label="Agenda de hoje e calendário">
+          <AgendaHoje />
+          <MiniCalendario />
+        </section>
+
+        <div className="pv-grid-2">
+          <Faturamento />
+          <CicloOperacional />
+        </div>
+
+        <AgendaSemana />
+
+        <Card title="Tons de status" meta={<span className="muted tiny">sempre com rótulo de texto</span>}>
+          <div className="pv-badges">
+            {STATUS.map((s) => (
+              <Badge key={s.tone} tone={s.tone}>
+                {s.label}
+              </Badge>
+            ))}
+          </div>
+          <div className="pv-buttons">
+            <Button variant="primary">Primário</Button>
+            <Button>Secundário</Button>
+            <Button variant="ghost">Discreto</Button>
+            <Button variant="danger" icon="lixo">Cancelar reserva</Button>
+            <a href="#tons">Link de texto</a>
+          </div>
+        </Card>
+      </div>
+    </div>
   )
 }
 

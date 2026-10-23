@@ -1,15 +1,3 @@
-.cfg-tabs {
-  display: flex; gap: 2px; border-bottom: 1px solid var(--areia);
-  margin: 20px 0 18px; overflow-x: auto;
-}
-.cfg-tabs [role="tab"] {
-  background: none; border: none; border-bottom: 2px solid transparent;
-  padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--nevoa);
-  cursor: pointer; margin-bottom: -1px; white-space: nowrap;
-}
-.cfg-tabs [role="tab"]:hover { color: var(--tinta); }
-.cfg-tabs [role="tab"][aria-selected="true"] { color: var(--vivo); border-bottom-color: var(--vivo); }
-
 .cfg-stack { display: flex; flex-direction: column; gap: 16px; }
 .cfg-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
 .cfg-form .cfg-actions { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; }
@@ -34,10 +22,6 @@
 }
 .cfg-pager { justify-content: flex-end; padding: 10px 12px; font-size: 12.5px; color: var(--nevoa); }
 .cfg-group { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--nevoa); }
-.sr-only {
-  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
-}
 .cfg-table select, .cfg-pager select {
   background: var(--surface); border: 1px solid var(--areia-2); border-radius: var(--r-md);
   padding: 5px 8px; font-size: 12.5px; color: var(--tinta);

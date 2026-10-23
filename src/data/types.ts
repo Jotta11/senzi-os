@@ -1,0 +1,267 @@
+/**
+ * Tipos de domínio do Acervo e de Clientes, vistos pelas telas.
+ * As telas só conhecem estes tipos e a interface `DataSource` (./source.ts);
+ * a implementação (memória agora, banco no Plano 2B) fica por trás.
+ * Datas puras em `aaaa-mm-dd`; instantes em ISO 8601.
+ */
+
+export type SizeEquiv = 'PP' | 'P' | 'M' | 'G' | 'GG' | 'U'
+export type GarmentLength = 'curto' | 'midi' | 'longo'
+export type FitRuns = 'menor' | 'fiel' | 'maior'
+export type FabricStretch = 'nenhum' | 'leve' | 'alto'
+
+/** Os 11 estados da peça (o `pre_reservado` do protótipo não existe aqui). */
+export type GarmentState =
+  | 'disponivel'
+  | 'reservado'
+  | 'retirado'
+  | 'em_uso'
+  | 'aguardando_devolucao'
+  | 'higienizacao'
+  | 'inspecao'
+  | 'ajuste'
+  | 'manutencao'
+  | 'bloqueado'
+  | 'baixado'
+
+/** Filtro de estado da lista. `todos` é o único que inclui peças baixadas. */
+export type StateGroup = 'todos' | 'disponivel' | 'reservado' | 'em_uso' | 'ciclo' | 'bloqueado'
+
+export type PhotoKind = 'frente' | 'costas' | 'lateral' | 'detalhe' | 'editorial' | 'manequim' | 'saida' | 'devolucao' | 'dano' | 'manutencao'
+
+export type BlockKind = 'locacao' | 'higienizacao' | 'inspecao' | 'ajuste' | 'manutencao' | 'bloqueio_manual' | 'editorial'
+
+export type Category = { slug: string; name: string; cleaningDays: number }
+
+export type GarmentMeasurement = {
+  bustCm: number | null
+  waistCm: number | null
+  hipCm: number | null
+  shoulderCm: number | null
+  totalLengthCm: number | null
+  hemAllowanceCm: number | null
+  stretch: FabricStretch | null
+}
+
+export type GarmentPhoto = { id: string; kind: PhotoKind; url: string; isCover: boolean }
+
+/** Compromisso na agenda da peça (`from`/`to` inclusivos, `aaaa-mm-dd`). Só bloqueios ativos. */
+export type GarmentBlock = { id: string; kind: BlockKind; from: string; to: string; note: string | null }
+
+export type GarmentHistoryEntry = { at: string; from: GarmentState | null; to: GarmentState; reason: string; userName: string }
+
+export type Garment = {
+  id: string
+  code: string
+  name: string
+  categorySlug: string
+  categoryName: string
+  brandName: string | null
+  labelSize: string
+  sizeEquiv: SizeEquiv
+  colorPrimary: string
+  colorHex: string
+  fabric: string
+  length: GarmentLength
+  neckline: string
+  sleeve: string
+  style: string
+  occasions: string[]
+  fitNotes: string
+  state: GarmentState
+  rentalPrice: number
+  /** Custos: `null` quando a fonte não os entrega (no banco, sem `acervo.cost`). As telas ainda checam `can('acervo.cost')`. */
+  acquisitionCost: number | null
+  retailReference: number | null
+  /** Dias de higienização próprios da peça; `null` = padrão da categoria. */
+  cleaningDays: number | null
+  location: string
+  /** Caimento observado. */
+  fitRuns: FitRuns | null
+  bustComfortCm: number | null
+  waistMaxCm: number | null
+  hipMaxCm: number | null
+  hemHeelCm: number | null
+  commonAlteration: string | null
+  measurement: GarmentMeasurement
+  photos: GarmentPhoto[]
+  /** Ordenados por início. */
+  blocks: GarmentBlock[]
+  /** Mais recente primeiro. */
+  history: GarmentHistoryEntry[]
+}
+
+export type GarmentFilters = {
+  /** Código, nome, cor ou tecido — sem acento e sem diferenciar maiúsculas. */
+  q?: string
+  /** Slug da categoria; vazio/undefined = todas. */
+  cat?: string | null
+  /** Sem valor = qualquer estado exceto `baixado`; `todos` inclui as baixadas. */
+  stateGroup?: StateGroup
+  size?: SizeEquiv | null
+}
+
+export type PageRequest = { limit: number; offset: number }
+export type PageResult<T> = { items: T[]; total: number }
+
+export type GarmentInput = {
+  name: string
+  categorySlug: string
+  brandName: string | null
+  labelSize: string
+  sizeEquiv: SizeEquiv
+  colorPrimary: string
+  colorHex: string
+  fabric: string
+  length: GarmentLength
+  neckline: string
+  sleeve: string
+  style: string
+  occasions: string[]
+  fitNotes: string
+  rentalPrice: number
+  acquisitionCost: number | null
+  retailReference: number | null
+  cleaningDays: number | null
+  location: string
+}
+
+export type FitInput = Pick<Garment, 'fitRuns' | 'bustComfortCm' | 'waistMaxCm' | 'hipMaxCm' | 'hemHeelCm' | 'commonAlteration'>
+
+/* ------------------------------------------------------------------ clientes */
+
+export type LeadSource = 'indicacao' | 'instagram' | 'passante' | 'evento' | 'google' | 'outro'
+export type ContactChannel = 'presencial' | 'whatsapp' | 'instagram' | 'telefone'
+export type FavoriteSource = 'manual' | 'prova'
+export type CustomerSort = 'nome' | 'gasto' | 'locacoes' | 'recentes'
+
+export type CustomerMeasurement = {
+  measuredAt: string
+  usualSize: SizeEquiv | null
+  bustCm: number | null
+  waistCm: number | null
+  hipCm: number | null
+  heightCm: number | null
+  shoulderCm: number | null
+  shoeSize: string | null
+  preferredLength: GarmentLength | null
+  source: 'manual' | 'modelo_ideal'
+  sourceGarmentId: string | null
+}
+
+export type CustomerPreferences = {
+  preferredColors: string[]
+  avoidedColors: string[]
+  preferredLengths: GarmentLength[]
+  sleeve: string | null
+  neckline: string | null
+}
+
+/** Observação de atendimento ("memória"). */
+export type CustomerNote = { id: string; content: string; channel: ContactChannel; pinned: boolean; at: string; authorName: string }
+
+export type CustomerFavorite = { garmentId: string; source: FavoriteSource; note: string | null; at: string }
+
+export type CustomerStats = { rentals: number; spent: number; nextEvent: string | null }
+
+export type Customer = {
+  id: string
+  code: string
+  fullName: string
+  /** Só dígitos, com DDD. */
+  phone: string
+  instagram: string | null
+  email: string | null
+  birthDate: string
+  /** Só dígitos. */
+  cpf: string
+  city: string | null
+  state: string | null
+  leadSource: LeadSource | null
+  vip: boolean
+  /** Observações gerais do cadastro (campo do formulário). */
+  notes: string | null
+  idealGarmentId: string | null
+  createdAt: string
+  /** Versões de medidas, mais recente primeiro (`[0]` é a atual). */
+  measurements: CustomerMeasurement[]
+  preferences: CustomerPreferences
+  /** Observações de atendimento, mais recente primeiro. */
+  interactions: CustomerNote[]
+  favorites: CustomerFavorite[]
+  stats: CustomerStats
+}
+
+export type CustomerMeasurementInput = Partial<Omit<CustomerMeasurement, 'measuredAt'>>
+
+export type CustomerInput = {
+  fullName: string
+  /** Com ou sem máscara. */
+  phone: string
+  birthDate: string
+  /** Com ou sem máscara. */
+  cpf: string
+  instagram?: string | null
+  email?: string | null
+  city?: string | null
+  state?: string | null
+  leadSource?: LeadSource | null
+  vip?: boolean
+  notes?: string | null
+  idealGarmentId?: string | null
+  /** Se tiver algum valor, cria uma versão de medidas (`modelo_ideal` quando há `idealGarmentId`). */
+  measurement?: CustomerMeasurementInput
+  preferences?: Partial<CustomerPreferences>
+}
+
+export type IdealMeasurements = {
+  usualSize: SizeEquiv
+  bustCm: number | null
+  waistCm: number | null
+  hipCm: number | null
+  shoulderCm: number | null
+  preferredLength: GarmentLength
+}
+
+export type Recommendation = { garment: Garment; score: number; reasons: string[] }
+
+/* -------------------------------------------------------------------- erros */
+
+/** Códigos de erro — os mesmos das RPCs do Plano 2B (mensagens pt-BR em `src/lib/errorMessages.ts`). */
+export type SourceErrorCode =
+  | 'NOME_OBRIGATORIO'
+  | 'VALOR_LOCACAO_OBRIGATORIO'
+  | 'PERIODO_INVALIDO'
+  | 'CONFLITO_AGENDA'
+  | 'NOME_CLIENTE_OBRIGATORIO'
+  | 'TELEFONE_INVALIDO'
+  | 'NASCIMENTO_INVALIDO'
+  | 'CPF_INVALIDO'
+  | 'CPF_DUPLICADO'
+  | 'EMAIL_INVALIDO'
+  | 'OBSERVACAO_OBRIGATORIA'
+  | 'PARAMETRO_INVALIDO'
+  | 'NAO_ENCONTRADO'
+
+export type SourceIssue = { code: SourceErrorCode; field?: string }
+
+/**
+ * Erro de regra de negócio. `message` é o próprio código, então `errorMessage(err)` já devolve o texto pt-BR.
+ * `field` aponta o campo do formulário; `issues` traz todos os problemas de uma validação (o primeiro = `code`/`field`);
+ * `hint` dá detalhe (ex.: período em conflito "dd/mm/aaaa – dd/mm/aaaa").
+ */
+export class SourceError extends Error {
+  readonly code: SourceErrorCode
+  readonly field?: string
+  readonly hint?: string
+  readonly issues?: SourceIssue[]
+
+  constructor(code: SourceErrorCode, opts: { field?: string; hint?: string; issues?: SourceIssue[] } = {}) {
+    super(code)
+    this.name = 'SourceError'
+    this.code = code
+    this.field = opts.field
+    this.hint = opts.hint
+    this.issues = opts.issues
+  }
+}

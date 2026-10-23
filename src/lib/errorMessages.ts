@@ -12,6 +12,19 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTORIZACAO_INVALIDA: 'Administrador ou PIN inválido',
   PIN_BLOQUEADO: 'Muitas tentativas. Tente de novo em 15 minutos.',
   MOTIVO_OBRIGATORIO: 'Informe o motivo',
+  // Acervo e Clientes (Plano 2B; a prévia em memória usa os mesmos códigos)
+  NOME_OBRIGATORIO: 'Informe o nome ou modelo da peça.',
+  VALOR_LOCACAO_OBRIGATORIO: 'Informe o valor da locação.',
+  PERIODO_INVALIDO: 'A data final deve ser igual ou posterior à inicial.',
+  CONFLITO_AGENDA: 'A peça já tem compromisso nesse período.',
+  NOME_CLIENTE_OBRIGATORIO: 'Informe o nome completo da cliente.',
+  TELEFONE_INVALIDO: 'Informe um telefone com DDD.',
+  NASCIMENTO_INVALIDO: 'Informe a data de nascimento (não pode ser no futuro).',
+  CPF_INVALIDO: 'CPF inválido.',
+  CPF_DUPLICADO: 'Já existe uma cliente com este CPF.',
+  EMAIL_INVALIDO: 'E-mail inválido.',
+  OBSERVACAO_OBRIGATORIA: 'Escreva a observação.',
+  NAO_ENCONTRADO: 'Registro não encontrado.',
 }
 
 export const GENERIC_ERROR = 'Algo deu errado. Tente novamente.'
