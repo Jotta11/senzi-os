@@ -1,0 +1,29 @@
+Dashboard: Alertas em cima - cada box leva a sua pagina respectiva - agenda expandir box-  box calendario (direita)
+- Faturamento (Manter e adicionar botão que leva para a pagina do financeiro completo)
+- Ciclo operacional (Manter e adicionar botão que leva para a pagina de operação)
+
+Agenda: - Mostrar a principio 4 dias no kanban só, os outro dias scrollar para o lado 
+- Jogar domingo pra ultimo dia
+- Botão Novo Compromisso - Data, Horário, Cliente e Observação
+    - Flag “Interno” para compromissos da empresa 
+
+Reservas:
+- Geração de contratos (aguardar template) 
+- Gerar PDF de OS de aluguel (para envio no WhatsApp) 
+- Remover pré-reserva
+
+Cliente
+- Modelo ideal - lista de vestidos do acerto -> escolho o vestido -> preencher as medidas da cliente com base nas medidas do vestido 
+- Manter campos abertos para preenchimento
+- Campos obrigatórios: Nome, Telefone, Aniversário e CPF 
+- RecomendaçÕes com base nas peças alugadas 
+
+Financeiro 
+- Controle geral interno (Submenu dentro de financeiro - Contas a Pagar e Contas a Receber, Categorias) 
+
+Configurações
+- Controle por perfil (2 perfis base Administrador e Atendimento) 
+- Auditoria
+
+Fluxo do sistema:
+Agenda prova -> Prova -> Cadastra Cliente -> Cria reserva -> Cria contrato -> Envia contrato -> Confirma reserva -> Envia confirmação de reserva -> Envia pra ajuste -> Retirada de peça -> Devolução de peça -> Inspeção -> Manutenção -> Volta acervo.
