@@ -3,6 +3,7 @@ import { AuthGate } from '@/auth/AuthGate'
 import { PreviewPage } from '@/preview/PreviewPage'
 import { AppShell } from '@/shell/AppShell'
 import { ComingSoon } from '@/shell/ComingSoon'
+import { NotFound } from '@/shell/NotFound'
 import { NAV } from '@/shell/nav'
 import { RequirePerm } from '@/shell/RequirePerm'
 
@@ -14,14 +15,17 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         element: <AppShell />,
-        children: NAV.map((n) => ({
+        children: [
+          ...NAV.map((n) => ({
           path: n.path,
           element: (
             <RequirePerm perm={n.perm}>
               <ComingSoon title={n.label} />
             </RequirePerm>
           ),
-        })),
+          })),
+          { path: '*', element: <NotFound /> },
+        ],
       },
     ],
   },

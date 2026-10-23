@@ -6,8 +6,9 @@ import './shell.css'
 export type SidebarItem = { to: string; icon: IconName; label: string; count?: number }
 
 /** Sidebar Cranberry compartilhada pelo app e pela prévia. Trilho de ícones ≤1024px, barra no topo ≤560px. */
-export function Sidebar({ items, search, footer }: { items: SidebarItem[]; search?: boolean; footer?: ReactNode }) {
-  const { pathname } = useLocation()
+export function Sidebar({ items, search, footer, activePath }: { items: SidebarItem[]; search?: boolean; footer?: ReactNode; activePath?: string }) {
+  const location = useLocation()
+  const pathname = activePath ?? location.pathname
   const isActive = (to: string) => (to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`))
   return (
     <aside className="sb-rail">

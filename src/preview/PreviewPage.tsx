@@ -15,7 +15,7 @@ const MES = 'outubro de 2026'
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
 const NAV: { to: string; icon: IconName; label: string; count?: number }[] = [
-  { to: '/preview', icon: 'dashboard', label: 'Dashboard' },
+  { to: '/', icon: 'dashboard', label: 'Dashboard' },
   { to: '/agenda', icon: 'agenda', label: 'Agenda', count: 6 },
   { to: '/reservas', icon: 'reservas', label: 'Reservas', count: 18 },
   { to: '/acervo', icon: 'acervo', label: 'Acervo', count: 142 },
@@ -162,6 +162,7 @@ function Rail() {
   return (
     <Sidebar
       search
+      activePath="/"
       items={NAV}
       footer={
         <>

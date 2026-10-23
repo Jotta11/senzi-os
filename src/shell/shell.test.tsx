@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -75,5 +77,29 @@ describe('shell', () => {
     expect(screen.getByText('Ana Souza')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }))
     expect(authMock.signOut).toHaveBeenCalled()
+  })
+
+  it('sidebar mostra a marca Senzi', () => {
+    setup('admin')
+    expect(screen.getByText('Senzi')).toBeInTheDocument()
+  })
+
+  it('rota desconhecida mostra Página não encontrada com link para /', () => {
+    setup('admin', '/nada-aqui')
+    expect(screen.getByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Voltar ao início' })).toHaveAttribute('href', '/')
+  })
+
+  it('item ativo no CSS: fundo Beige sólido, texto e ícone Cranberry, sem declarações duplicadas', () => {
+    const css = readFileSync(resolve(__dirname, 'shell.css'), 'utf8')
+    const rule = (sel: string) => {
+      const m = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter((x) => x[1]!.trim() === sel)
+      expect(m).toHaveLength(1)
+      return m[0]![2]!.split(';').map((d) => d.trim()).filter(Boolean)
+    }
+    const ativo = rule('.sb-nav a[aria-current="page"]')
+    expect(ativo.filter((d) => d.startsWith('color:'))).toEqual(['color: var(--cranberry)'])
+    expect(ativo.filter((d) => d.startsWith('background:'))).toEqual(['background: var(--beige)'])
+    expect(rule('.sb-nav a[aria-current="page"] svg')).toEqual(['color: var(--cranberry)'])
   })
 })

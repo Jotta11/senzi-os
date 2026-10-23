@@ -36,10 +36,10 @@
 }
 .sb-nav a:hover { background: var(--rail-hover); text-decoration: none; }
 .sb-nav a svg { flex: none; color: var(--beige-dim); }
-.sb-nav a[aria-current="page"] { background: rgba(254, 239, 220, .12); box-shadow: inset 3px 0 0 var(--beige); color: var(--beige); color: var(--cranberry); font-weight: 600; }
-.sb-nav a[aria-current="page"] svg { color: var(--beige); }
+.sb-nav a[aria-current="page"] { background: var(--beige); color: var(--cranberry); font-weight: 600; }
+.sb-nav a[aria-current="page"] svg { color: var(--cranberry); }
 .sb-count { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--beige-dim); font-variant-numeric: tabular-nums; }
-.sb-nav a[aria-current="page"] .sb-count { color: var(--beige); }
+.sb-nav a[aria-current="page"] .sb-count { color: var(--cranberry); }
 
 .sb-foot {
   margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--rail-line);

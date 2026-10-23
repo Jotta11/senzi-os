@@ -62,6 +62,11 @@ describe('PreviewPage', () => {
     expect(vistos).toBeGreaterThan(0)
   })
 
+  it('Dashboard aparece como item ativo na sidebar', () => {
+    renderPreview()
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('tem os atalhos de Faturamento e Ciclo operacional', () => {
     renderPreview()
     expect(screen.getByRole('link', { name: /ver financeiro completo/i })).toHaveAttribute('href', '/financeiro')
