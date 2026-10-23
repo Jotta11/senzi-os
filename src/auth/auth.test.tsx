@@ -16,22 +16,30 @@ vi.mock('@/lib/supabase', () => sbMock)
 
 type Row = { id: string; full_name: string; email: string; role: string; is_active: boolean } | null
 
-function fakeClient(opts: { session?: boolean; row?: Row; perms?: string[]; signInError?: { message: string; code?: string } | null }) {
+function fakeClient(opts: { session?: boolean; row?: Row; perms?: string[]; signInError?: { message: string; code?: string } | null; fetchRow?: () => Promise<{ data: Row; error: unknown }>; getSession?: () => Promise<unknown> }) {
+  let cb: (event: string, session: unknown) => void = () => {}
+  const fetchRow = vi.fn(opts.fetchRow ?? (() => Promise.resolve({ data: opts.row ?? null, error: null })))
   const client = {
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: opts.session ? { user: { id: 'u1' } } : null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-      signInWithPassword: vi.fn().mockResolvedValue({ error: opts.signInError ?? null }),
+      getSession: vi.fn(opts.getSession ?? (() => Promise.resolve({ data: { session: opts.session ? { user: { id: 'u1' } } : null } }))),
+      onAuthStateChange: vi.fn((f: typeof cb) => {
+        cb = f
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      }),
+      signInWithPassword: vi.fn(() => {
+        if (!opts.signInError) cb('SIGNED_IN', { user: { id: 'u1' } })
+        return Promise.resolve({ error: opts.signInError ?? null })
+      }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn(() => ({
-      select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.row ?? null, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: fetchRow }) }),
     })),
     rpc: vi.fn().mockResolvedValue({ data: opts.perms ?? [], error: null }),
   }
   sbMock.getSupabase.mockReturnValue(client)
-  return client
+  return Object.assign(client, { emit: (e: string, sess: unknown) => cb(e, sess), fetchRow })
 }
 
 function renderApp() {
@@ -129,5 +137,69 @@ describe('auth', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.can('cliente.view')).toBe(true)
     expect(result.current.can('config.users')).toBe(false)
+  })
+
+  const active: Row = { id: 'u1', full_name: 'Ana', email: 'a@b.com', role: 'atendimento', is_active: true }
+  const sess = { user: { id: 'u1' } }
+
+  it('SIGNED_IN reemitido com falha de rede mantém o usuário logado', async () => {
+    const c = fakeClient({ session: true, row: active })
+    renderApp()
+    expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+    c.fetchRow.mockResolvedValue({ data: null, error: { message: 'network' } })
+    c.emit('SIGNED_IN', { user: { id: 'u2' } })
+    await waitFor(() => expect(c.fetchRow).toHaveBeenCalledTimes(2))
+    expect(c.auth.signOut).not.toHaveBeenCalled()
+    expect(screen.getByText('conteúdo do app')).toBeInTheDocument()
+  })
+
+  it('SIGNED_IN do mesmo usuário já logado não refaz a busca', async () => {
+    const c = fakeClient({ session: true, row: active })
+    renderApp()
+    await screen.findByText('conteúdo do app')
+    c.emit('SIGNED_IN', sess)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(c.fetchRow).toHaveBeenCalledTimes(1)
+  })
+
+  it('primeira carga com erro mostra aviso, não faz signOut e permite tentar de novo', async () => {
+    let fail = true
+    const c = fakeClient({
+      session: true,
+      fetchRow: () => Promise.resolve(fail ? { data: null, error: { message: 'x' } } : { data: active, error: null }),
+    })
+    renderApp()
+    expect(await screen.findByText('Não foi possível carregar seu perfil. Tente novamente.')).toBeInTheDocument()
+    expect(c.auth.signOut).not.toHaveBeenCalled()
+    fail = false
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+  })
+
+  it('SIGNED_OUT durante busca pendente termina signed_out', async () => {
+    let resolve: (v: { data: Row; error: null }) => void = () => {}
+    const c = fakeClient({ session: true, fetchRow: () => new Promise((r) => (resolve = r)) })
+    renderApp()
+    await waitFor(() => expect(c.fetchRow).toHaveBeenCalled())
+    c.emit('SIGNED_OUT', null)
+    resolve({ data: active, error: null })
+    expect(await screen.findByLabelText('E-mail')).toBeInTheDocument()
+    expect(screen.queryByText('conteúdo do app')).not.toBeInTheDocument()
+  })
+
+  it('login dispara exatamente uma busca de app_user', async () => {
+    const c = fakeClient({ session: false, row: active })
+    renderApp()
+    await userEvent.type(await screen.findByLabelText('E-mail'), 'a@b.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'segredo')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+    expect(c.fetchRow).toHaveBeenCalledTimes(1)
+  })
+
+  it('getSession rejeitado cai em signed_out sem rejeição não tratada', async () => {
+    fakeClient({ getSession: () => Promise.reject(new Error('boom')) })
+    renderApp()
+    expect(await screen.findByLabelText('E-mail')).toBeInTheDocument()
   })
 })

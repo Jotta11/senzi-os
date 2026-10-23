@@ -13,6 +13,9 @@ export type AuthValue = {
   user: AppUser | null
   /** Aviso a exibir no login (ex.: acesso desativado). */
   notice: string | null
+  /** Falha ao carregar o perfil na primeira carga (sem derrubar a sessão). */
+  loadError: string | null
+  retry(): Promise<void>
   signIn(email: string, password: string): Promise<void>
   signOut(): Promise<void>
 }
