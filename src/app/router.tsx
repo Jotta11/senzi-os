@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AuthGate } from '@/auth/AuthGate'
+import { ConfigPage } from '@/features/config/ConfigPage'
 import { PreviewPage } from '@/preview/PreviewPage'
 import { AppShell } from '@/shell/AppShell'
 import { ComingSoon } from '@/shell/ComingSoon'
@@ -17,12 +18,12 @@ export const appRoutes: RouteObject[] = [
         element: <AppShell />,
         children: [
           ...NAV.map((n) => ({
-          path: n.path,
-          element: (
-            <RequirePerm perm={n.perm}>
-              <ComingSoon title={n.label} />
-            </RequirePerm>
-          ),
+            path: n.path,
+            element: (
+              <RequirePerm perm={n.perm}>
+                {n.path === '/config' ? <ConfigPage /> : <ComingSoon title={n.label} />}
+              </RequirePerm>
+            ),
           })),
           { path: '*', element: <NotFound /> },
         ],

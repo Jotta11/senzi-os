@@ -1,0 +1,9 @@
+.exc-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(28, 26, 24, .38);
+  display: grid; place-items: center; padding: 16px;
+}
+.exc-dialog { width: min(440px, 100%); box-shadow: var(--shadow-3); }
+.exc-dialog form { display: flex; flex-direction: column; gap: 14px; }
+.exc-dialog h2 { font-size: 28px; font-weight: 400; line-height: 1.1; }
+.exc-actions { justify-content: flex-end; }

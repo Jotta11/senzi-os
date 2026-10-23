@@ -23,8 +23,9 @@ export default defineConfig({
         test: {
           name: 'db',
           environment: 'node',
-          include: ['tests/db/**/*.test.ts'],
+          include: ['tests/db/**/*.test.ts', 'supabase/functions/**/*.test.ts'],
           testTimeout: 30000,
+          hookTimeout: 30000,
           globals: true,
         },
       },
