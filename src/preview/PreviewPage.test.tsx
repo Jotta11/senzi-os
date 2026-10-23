@@ -42,6 +42,21 @@ describe('PreviewPage', () => {
     expect(coluna).toMatch(/scroll-snap-align:\s*start/)
   })
 
+  it('sidebar mantém nome acessível em todos os itens (inclusive no trilho de ícones)', () => {
+    renderPreview()
+    const nav = screen.getByRole('navigation', { name: /navegação principal/i })
+    for (const label of ['Dashboard', 'Agenda', 'Reservas', 'Acervo', 'Clientes', 'Operação', 'Financeiro', 'Inteligência', 'Configurações']) {
+      expect(within(nav).getByRole('link', { name: label })).toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: /buscar/i })).toBeInTheDocument()
+
+    // nos breakpoints compactos, rótulos somem só visualmente — nunca com display:none
+    const css = readFileSync(resolve(__dirname, 'preview.css'), 'utf8')
+    for (const m of css.matchAll(/([^{}]*)\{([^}]*)\}/g)) {
+      if (/\.pv-nav-label|\.pv-search span/.test(m[1])) expect(m[2]).not.toMatch(/display:\s*none/)
+    }
+  })
+
   it('tem os atalhos de Faturamento e Ciclo operacional', () => {
     renderPreview()
     expect(screen.getByRole('link', { name: /ver financeiro completo/i })).toHaveAttribute('href', '/financeiro')

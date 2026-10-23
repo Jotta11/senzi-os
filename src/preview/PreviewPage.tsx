@@ -164,17 +164,28 @@ function Rail() {
         <span className="pv-mark">Senzi</span>
         <span className="pv-os">OS</span>
       </div>
-      <button type="button" className="pv-search">
+      <button type="button" className="pv-search" aria-label="Buscar">
         <Icon name="busca" size={15} />
         <span>Buscar…</span>
         <kbd>⌘K</kbd>
       </button>
       <nav className="pv-nav" aria-label="Navegação principal">
         {NAV.map((n, i) => (
-          <Link key={n.to} to={n.to} className={i === 0 ? 'on' : undefined} aria-current={i === 0 ? 'page' : undefined}>
+          <Link
+            key={n.to}
+            to={n.to}
+            className={i === 0 ? 'on' : undefined}
+            aria-current={i === 0 ? 'page' : undefined}
+            aria-label={n.label}
+            title={n.label}
+          >
             <Icon name={n.icon} size={16} />
             <span className="pv-nav-label">{n.label}</span>
-            {n.count != null && <span className="pv-count">{n.count}</span>}
+            {n.count != null && (
+              <span className="pv-count" aria-hidden="true">
+                {n.count}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

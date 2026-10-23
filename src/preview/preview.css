@@ -205,7 +205,12 @@
   .pv-app { grid-template-columns: 68px minmax(0, 1fr); }
   .pv-brand { padding: 20px 0 16px; justify-content: center; }
   .pv-mark { font-size: 22px; }
-  .pv-os, .pv-search span, .pv-search kbd, .pv-nav-label, .pv-count, .pv-who { display: none; }
+  .pv-os, .pv-search kbd, .pv-count, .pv-who { display: none; }
+  /* rótulos somem só visualmente: o nome acessível continua (aria-label + texto) */
+  .pv-search span, .pv-nav-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
   .pv-search { margin: 0 10px 14px; width: calc(100% - 20px); justify-content: center; }
   .pv-nav { padding: 0 8px; }
   .pv-nav a { justify-content: center; padding: 10px 0; }
