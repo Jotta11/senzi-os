@@ -6,7 +6,6 @@ const alias = { '@': fileURLToPath(new URL('./src', import.meta.url)) }
 
 export default defineConfig({
   test: {
-    passWithNoTests: true,
     projects: [
       {
         plugins: [react()],
