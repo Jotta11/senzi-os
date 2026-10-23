@@ -4,7 +4,7 @@
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... pnpm bootstrap:admin -- --email ana@senzi.com.br --name "Ana Souza"
  *
  * Lê só SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY do ambiente do terminal — nunca o
- * `.env` do front nem variáveis VITE_* (a chave service_role não pode ir para o front).
+ * `.env.local` do front nem variáveis VITE_* (a chave service_role não pode ir para o front).
  * A senha vem de `--password` ou é pedida no terminal (sem eco). Roda com o
  * type stripping nativo do Node ≥ 22.18 / 24.
  */
@@ -44,7 +44,7 @@ async function main() {
   const url = process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) {
-    fail('defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente do terminal (não use o .env do front).')
+    fail('defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente do terminal (não use o .env.local do front).')
   }
 
   const email = values.email?.trim().toLowerCase()

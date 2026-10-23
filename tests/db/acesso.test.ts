@@ -139,12 +139,10 @@ describe('acesso: perfis, permissões e RLS', () => {
       expect(rows.map((r) => r.id).sort()).toEqual([admin, atend].sort())
     })
 
-    it('atendimento não consegue se promover (update afeta 0 linhas)', async () => {
-      const affected = await asUser(db, atend, async (tx) => {
-        const res = await tx.query(`update public.app_user set role = 'admin' where id = $1`, [atend])
-        return res.affectedRows
-      })
-      expect(affected).toBe(0)
+    it('atendimento não consegue se promover (update direto de role → permission denied)', async () => {
+      await expect(
+        asUser(db, atend, (tx) => tx.query(`update public.app_user set role = 'admin' where id = $1`, [atend])),
+      ).rejects.toThrow(/permission denied/)
       const { rows } = await db.query<{ role: string }>('select role from public.app_user where id = $1', [atend])
       expect(rows[0].role).toBe('atendimento')
     })
@@ -164,6 +162,17 @@ describe('acesso: perfis, permissões e RLS', () => {
         asUser(db, admin, (tx) =>
           tx.query(`update public.app_user set role = 'atendimento' where id = $1`, [admin]),
         ),
+      ).rejects.toThrow(/permission denied/)
+    })
+
+    it('defesa em profundidade: o trigger recusa auto-rebaixamento mesmo sem passar pelo grant', async () => {
+      // Superusuário (como service_role/SQL direto) com a sessão do próprio admin.
+      await createUser(db, { email: 'duda@senzi.test', full_name: 'Duda', role: 'admin' })
+      await expect(
+        db.transaction(async (tx) => {
+          await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: admin })])
+          await tx.query(`update public.app_user set role = 'atendimento' where id = $1`, [admin])
+        }),
       ).rejects.toThrow('AUTO_REBAIXAMENTO')
     })
   })
