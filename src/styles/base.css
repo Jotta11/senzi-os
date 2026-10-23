@@ -1,0 +1,141 @@
+/* =====================================================================
+   SENZI OS — Base e componentes
+   Portado do protótipo para a paleta Senzi. Modo único claro.
+   ===================================================================== */
+
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  /* textura de papel: beige → areia clara, vertical e sutil */
+  background-color: var(--papel);
+  background-image: linear-gradient(180deg, #FEEFDC 0%, #F1E2CC 100%);
+  background-attachment: fixed;
+  color: var(--tinta);
+  font-family: var(--f-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; text-wrap: balance; letter-spacing: -.012em; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--vivo); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--vivo); outline-offset: 2px; border-radius: 3px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+::selection { background: var(--vivo-soft); color: var(--tinta); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ------------------------------------------------------------ tipografia */
+.display { font-family: var(--f-display); font-weight: 400; letter-spacing: -.01em; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.eyebrow {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--nevoa);
+}
+.muted { color: var(--nevoa); }
+.tiny { font-size: 12px; }
+
+/* --------------------------------------------------------------- botões */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  padding: 7px 13px; border-radius: var(--r-md); border: 1px solid var(--areia-2);
+  background: var(--surface); color: var(--tinta); font-size: 13px; font-weight: 550;
+  cursor: pointer; transition: background .12s, border-color .12s, transform .06s;
+  white-space: nowrap; text-decoration: none;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--nevoa); text-decoration: none; }
+.btn:active { transform: translateY(.5px); }
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--vivo); border-color: var(--vivo); color: var(--on-vivo); }
+.btn-primary:hover { background: var(--vivo-hover); border-color: var(--vivo-hover); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--nevoa); }
+.btn-ghost:hover { background: var(--vivo-soft); border-color: transparent; color: var(--vivo); }
+.btn-danger { color: var(--t-red); border-color: var(--t-red-line); background: var(--t-red-bg); }
+.btn-danger:hover { border-color: var(--t-red); background: var(--t-red-bg); }
+.btn-sm { padding: 4px 9px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.icon-btn {
+  background: none; border: 1px solid transparent; cursor: pointer;
+  color: var(--nevoa); border-radius: var(--r-sm); padding: 5px;
+  display: grid; place-items: center;
+}
+.icon-btn:hover { background: var(--vivo-soft); color: var(--vivo); }
+
+/* ---------------------------------------------------------------- cards */
+.card {
+  background: var(--surface); border: 1px solid var(--areia);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-1);
+  min-width: 0;
+}
+.card-h {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--areia);
+}
+.card-h h3 { font-size: 14px; }
+.card-h .actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.card-b { padding: 16px; }
+.card-b.flush { padding: 0; }
+
+/* ---------------------------------------------------------------- badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2.5px 8px 2.5px 6px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.35; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+.badge.green  { color: var(--t-green);  background: var(--t-green-bg);  border-color: var(--t-green-line); }
+.badge.wine   { color: var(--t-wine);   background: var(--t-wine-bg);   border-color: var(--t-wine-line); }
+.badge.amber  { color: var(--t-amber);  background: var(--t-amber-bg);  border-color: var(--t-amber-line); }
+.badge.indigo { color: var(--t-indigo); background: var(--t-indigo-bg); border-color: var(--t-indigo-line); }
+.badge.teal   { color: var(--t-teal);   background: var(--t-teal-bg);   border-color: var(--t-teal-line); }
+.badge.ochre  { color: var(--t-ochre);  background: var(--t-ochre-bg);  border-color: var(--t-ochre-line); }
+.badge.stone  { color: var(--t-stone);  background: var(--t-stone-bg);  border-color: var(--t-stone-line); }
+.badge.red    { color: var(--t-red);    background: var(--t-red-bg);    border-color: var(--t-red-line); }
+
+/* ------------------------------------------------------------ formulário */
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > label { font-size: 11.5px; font-weight: 600; color: var(--nevoa); }
+.field input, .field select, .field textarea {
+  background: var(--surface); border: 1px solid var(--areia-2); border-radius: var(--r-md);
+  padding: 7px 9px; font-size: 13px; width: 100%; color: var(--tinta);
+  transition: border-color .12s, box-shadow .12s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--vivo); box-shadow: 0 0 0 3px var(--vivo-soft);
+}
+.field input:disabled, .field select:disabled, .field textarea:disabled {
+  background: var(--papel); border-color: var(--areia); color: var(--nevoa); cursor: not-allowed;
+}
+.field textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
+.field .hint { font-size: 11px; color: var(--nevoa); }
+.field .error { font-size: 11.5px; font-weight: 600; color: var(--t-red); }
+.field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--t-red); }
+
+/* --------------------------------------------------------------- alerta */
+.note {
+  border-radius: var(--r-md); padding: 10px 12px; font-size: 12.5px;
+  display: flex; gap: 9px; align-items: flex-start; line-height: 1.45; border: 1px solid;
+}
+.note svg { flex: none; margin-top: 1px; }
+.note.red   { color: var(--t-red);   background: var(--t-red-bg);   border-color: var(--t-red-line); }
+.note.amber { color: var(--t-amber); background: var(--t-amber-bg); border-color: var(--t-amber-line); }
+.note.green { color: var(--t-green); background: var(--t-green-bg); border-color: var(--t-green-line); }
+
+/* ----------------------------------------------------------- layout util */
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.spread { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+hr.sep { border: none; border-top: 1px solid var(--areia); margin: 0; }

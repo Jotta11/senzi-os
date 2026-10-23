@@ -1,0 +1,57 @@
+/* =====================================================================
+   SENZI OS — Tokens
+   Modo único claro. Paleta oficial da marca + tons de status
+   dessaturados (viés quente) para conviver com o beige/cranberry.
+   Todo par texto/fundo aqui é ≥ 4.5:1 (ver src/lib/contrast.test.ts).
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* — paleta da marca (exata) — */
+  --cranberry: #3F1116; /* cor principal · sidebar */
+  --beige:     #FEEFDC; /* principal clara · texto da sidebar */
+  --vivo:      #6E2027; /* links, foco, botão primário, estados — nunca grandes áreas */
+  --papel:     #FBF3E8; /* fundo de áreas grandes */
+  --areia:     #E1D1B9; /* divisores, molduras, campos inativos, bordas de tabela */
+  --tinta:     #1C1A18; /* texto principal */
+  --nevoa:     #6F645B; /* apenas texto secundário */
+  --surface:   #FFFFFF; /* cards */
+
+  /* — derivados (superfícies e estados) — */
+  --papel-2:      #F1E2CC; /* fim do gradiente de textura */
+  --surface-2:    #FCF8F2; /* hover discreto, cabeçalho de tabela */
+  --areia-2:      #CDBA9C; /* borda de campo / hover de borda */
+  --vivo-hover:   #571920;
+  --vivo-soft:    #F6E7E3; /* fundo do item ativo, anel de foco */
+  --vivo-line:    #E2C3BE;
+  --on-vivo:      #FFFFFF;
+  --rail-hover:   #561C22; /* hover na sidebar */
+  --rail-on:      #FEEFDC; /* item ativo na sidebar (fundo) */
+  --rail-line:    #5A2329;
+  --beige-dim:    #E9CFC0; /* texto secundário na sidebar (≥ 4.5 sobre cranberry) */
+
+  /* — tons de status (texto / fundo / borda) — */
+  --t-green:  #3D6046;  --t-green-bg:  #E8EDDF;  --t-green-line:  #C6D3BC;
+  --t-wine:   #7A2A3A;  --t-wine-bg:   #F6E6E3;  --t-wine-line:   #E5C7C3;
+  --t-amber:  #7F5414;  --t-amber-bg:  #F8EBD3;  --t-amber-line:  #E8D1A6;
+  --t-indigo: #43507F;  --t-indigo-bg: #E6E7EE;  --t-indigo-line: #C9CCDC;
+  --t-teal:   #2E5F60;  --t-teal-bg:   #E0ECE8;  --t-teal-line:   #BFD6D1;
+  --t-ochre:  #74532A;  --t-ochre-bg:  #F2E7D6;  --t-ochre-line:  #DCC8A8;
+  --t-stone:  #5F574F;  --t-stone-bg:  #EEE7DD;  --t-stone-line:  #D9CDBE;
+  --t-red:    #963326;  --t-red-bg:    #F8E3DC;  --t-red-line:    #EBC4B9;
+
+  /* — sombras (tingidas de tinta quente) — */
+  --shadow-1: 0 1px 2px rgba(28, 26, 24, .05), 0 1px 1px rgba(28, 26, 24, .03);
+  --shadow-2: 0 4px 16px rgba(28, 26, 24, .08), 0 1px 2px rgba(28, 26, 24, .05);
+  --shadow-3: 0 24px 64px rgba(28, 26, 24, .18), 0 2px 8px rgba(28, 26, 24, .10);
+
+  /* — raios e medidas — */
+  --r-sm: 4px; --r-md: 7px; --r-lg: 12px; --r-xl: 18px;
+  --rail: 236px;
+
+  /* — tipografia — */
+  --f-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --f-ui: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
