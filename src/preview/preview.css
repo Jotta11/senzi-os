@@ -2,62 +2,6 @@
    Prévia visual — shell (sidebar Cranberry) + dashboard + agenda
    ===================================================================== */
 
-.pv-app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
-
-/* ---------------------------------------------------------------- rail */
-.pv-rail {
-  background: var(--cranberry);
-  color: var(--beige);
-  display: flex; flex-direction: column;
-  position: sticky; top: 0; height: 100vh; overflow-y: auto;
-}
-.pv-brand { padding: 24px 20px 18px; display: flex; align-items: baseline; gap: 8px; }
-.pv-mark { font-family: var(--f-display); font-size: 28px; line-height: 1; letter-spacing: .02em; color: var(--beige); }
-.pv-os {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .16em;
-  color: var(--cranberry); background: var(--beige);
-  padding: 3px 5px; border-radius: 3px;
-}
-.pv-search {
-  margin: 0 14px 16px; display: flex; align-items: center; gap: 7px;
-  background: var(--rail-hover); border: 1px solid var(--rail-line);
-  border-radius: var(--r-md); padding: 7px 9px; cursor: pointer;
-  color: var(--beige-dim); font-size: 13px; text-align: left; width: calc(100% - 28px);
-}
-.pv-search:hover { border-color: var(--beige-dim); }
-.pv-search kbd {
-  margin-left: auto; font-family: var(--f-mono); font-size: 10px;
-  border: 1px solid var(--rail-line); border-radius: 3px; padding: 1px 4px; color: var(--beige-dim);
-}
-.pv-rail :focus-visible { outline-color: var(--beige); }
-
-.pv-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
-.pv-nav a {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: var(--r-md);
-  color: var(--beige); font-size: 13.5px; font-weight: 500;
-  transition: background .12s, color .12s;
-}
-.pv-nav a:hover { background: var(--rail-hover); text-decoration: none; }
-.pv-nav a svg { flex: none; color: var(--beige-dim); }
-.pv-nav a.on { background: var(--beige); color: var(--cranberry); font-weight: 600; }
-.pv-nav a.on svg { color: var(--cranberry); }
-.pv-count { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--beige-dim); font-variant-numeric: tabular-nums; }
-.pv-nav a.on .pv-count { color: var(--cranberry); }
-
-.pv-rail-foot {
-  margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--rail-line);
-  display: flex; align-items: center; gap: 10px;
-}
-.pv-av {
-  width: 30px; height: 30px; border-radius: 50%; flex: none;
-  background: var(--beige); color: var(--cranberry);
-  display: grid; place-items: center; font-size: 11px; font-weight: 700;
-}
-.pv-who { min-width: 0; }
-.pv-who b { display: block; font-size: 12.5px; font-weight: 600; }
-.pv-who span { display: block; font-size: 11px; color: var(--beige-dim); }
-
 /* ---------------------------------------------------------------- main */
 .pv-main { min-width: 0; display: flex; flex-direction: column; }
 .pv-topbar {
@@ -202,35 +146,10 @@
 }
 @media (max-width: 1024px) {
   /* tablet: sidebar vira trilho de ícones, ainda em Cranberry */
-  .pv-app { grid-template-columns: 68px minmax(0, 1fr); }
-  .pv-brand { padding: 20px 0 16px; justify-content: center; }
-  .pv-mark { font-size: 22px; }
-  .pv-os, .pv-search kbd, .pv-count, .pv-who { display: none; }
-  /* rótulos somem só visualmente: o nome acessível continua (aria-label + texto) */
-  .pv-search span, .pv-nav-label {
-    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
-  }
-  .pv-search { margin: 0 10px 14px; width: calc(100% - 20px); justify-content: center; }
-  .pv-nav { padding: 0 8px; }
-  .pv-nav a { justify-content: center; padding: 10px 0; }
-  .pv-rail-foot { justify-content: center; padding: 14px 0; }
   .pv-grid-2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .pv-agenda-block { grid-template-columns: 1fr; }
   .pv-topbar, .pv-view { padding-left: 16px; padding-right: 16px; }
   .pv-actions { margin-left: 0; }
-}
-@media (max-width: 560px) {
-  .pv-app { grid-template-columns: 1fr; }
-  .pv-rail {
-    position: sticky; top: 0; height: auto; z-index: 10;
-    flex-direction: row; align-items: center; overflow-x: auto; padding: 6px 8px;
-  }
-  .pv-brand { padding: 0 8px; }
-  .pv-search { display: none; }
-  .pv-nav { flex-direction: row; padding: 0; }
-  .pv-nav a { padding: 8px 10px; }
-  .pv-rail-foot { display: none; }
 }

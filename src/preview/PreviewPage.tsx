@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router'
+import { Sidebar } from '@/shell/Sidebar'
 import { Badge, Button, Card, Icon, buttonClass, type IconName, type Tone } from '@/ui'
 import './preview.css'
 
@@ -104,7 +105,7 @@ const STATUS: { tone: Tone; label: string }[] = [
 
 export function PreviewPage() {
   return (
-    <div className="pv-app">
+    <div className="sb-app">
       <Rail />
       <main className="pv-main">
         <header className="pv-topbar">
@@ -159,46 +160,19 @@ export function PreviewPage() {
 
 function Rail() {
   return (
-    <aside className="pv-rail">
-      <div className="pv-brand">
-        <span className="pv-mark">Senzi</span>
-        <span className="pv-os">OS</span>
-      </div>
-      <button type="button" className="pv-search" aria-label="Buscar">
-        <Icon name="busca" size={15} />
-        <span>Buscar…</span>
-        <kbd>⌘K</kbd>
-      </button>
-      <nav className="pv-nav" aria-label="Navegação principal">
-        {NAV.map((n, i) => (
-          <Link
-            key={n.to}
-            to={n.to}
-            className={i === 0 ? 'on' : undefined}
-            aria-current={i === 0 ? 'page' : undefined}
-            aria-label={n.label}
-            title={n.label}
-          >
-            <Icon name={n.icon} size={16} />
-            <span className="pv-nav-label">{n.label}</span>
-            {n.count != null && (
-              <span className="pv-count" aria-hidden="true">
-                {n.count}
-              </span>
-            )}
-          </Link>
-        ))}
-      </nav>
-      <div className="pv-rail-foot">
-        <span className="pv-av" aria-hidden="true">
-          JS
-        </span>
-        <span className="pv-who">
-          <b>Júlia Senzi</b>
-          <span>Administrador</span>
-        </span>
-      </div>
-    </aside>
+    <Sidebar
+      search
+      items={NAV}
+      footer={
+        <>
+          <span className="sb-av" aria-hidden="true">JS</span>
+          <span className="sb-who">
+            <b>Júlia Senzi</b>
+            <span>Administrador</span>
+          </span>
+        </>
+      }
+    />
   )
 }
 

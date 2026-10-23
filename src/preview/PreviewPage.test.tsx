@@ -51,10 +51,15 @@ describe('PreviewPage', () => {
     expect(screen.getByRole('button', { name: /buscar/i })).toBeInTheDocument()
 
     // nos breakpoints compactos, rótulos somem só visualmente — nunca com display:none
-    const css = readFileSync(resolve(__dirname, 'preview.css'), 'utf8')
+    const css = readFileSync(resolve(__dirname, '../shell/shell.css'), 'utf8')
+    let vistos = 0
     for (const m of css.matchAll(/([^{}]*)\{([^}]*)\}/g)) {
-      if (/\.pv-nav-label|\.pv-search span/.test(m[1])) expect(m[2]).not.toMatch(/display:\s*none/)
+      if (/\.sb-nav-label|\.sb-search span/.test(m[1])) {
+        vistos++
+        expect(m[2]).not.toMatch(/display:\s*none/)
+      }
     }
+    expect(vistos).toBeGreaterThan(0)
   })
 
   it('tem os atalhos de Faturamento e Ciclo operacional', () => {
