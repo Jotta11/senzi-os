@@ -35,7 +35,7 @@
 ### Task 1: Modo demonstração (PGlite no navegador)
 
 **Files:**
-- Create: `src/lib/demo/demoDb.ts`, `src/lib/demo/demoClient.ts`, `src/lib/demo/demoAuth.ts`, `src/lib/demo/demoStorage.ts`, `src/lib/demo/demoFunctions.ts`, `src/lib/demo/migrations.ts`, `tests/db/demoClient.test.ts`, `src/shell/DemoBanner.tsx`, `supabase/seed/demo_users.sql`
+- Create: `src/lib/demo/demoDb.ts`, `src/lib/demo/demoClient.ts`, `src/lib/demo/demoAuth.ts`, `src/lib/demo/demoStorage.ts`, `src/lib/demo/demoFunctions.ts`, `src/lib/demo/migrations.ts`, `tests/db/demoClient.test.ts`, `src/shell/DemoBanner.tsx`, `supabase/seed/00_demo_users.sql`
 - Modify: `src/lib/supabase.ts`, `src/auth/LoginPage.tsx`, `src/shell/AppShell.tsx`, `vitest.config.ts`, `package.json`
 
 **Interfaces:**
@@ -52,7 +52,7 @@
   - Método não suportado lança `demo: <nome> não suportado`.
   - Recriação: mudar o hash simulado → `demoWasReset()` true e dados semeados presentes.
 - [ ] **Step 2:** `pnpm test:db tests/db/demoClient.test.ts` → FAIL.
-- [ ] **Step 3:** Implementar. `migrations.ts` usa `import.meta.glob('/supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true })` (idem shim e seed). `demo_users.sql` cria os 2 usuários em `auth.users`/`app_user` e o PIN do admin. PGlite carregado com `import()` dinâmico (fora do bundle principal). Login demo: na `LoginPage`, quando `isDemo()`, mostrar dois botões "Entrar como Administrador" / "Entrar como Atendimento" acima do formulário; o demo começa deslogado. `DemoBanner` fixo no topo do conteúdo: "Modo demonstração — os dados ficam só neste navegador." + botão "Restaurar dados de exemplo" (confirma e recria). Se `demoWasReset()`, toast "Os dados de demonstração foram recriados (o sistema foi atualizado)."
+- [ ] **Step 3:** Implementar. `migrations.ts` usa `import.meta.glob('/supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true })` (idem shim e seed). `00_demo_users.sql` cria os 2 usuários em `auth.users`/`app_user` e o PIN do admin. PGlite carregado com `import()` dinâmico (fora do bundle principal). Login demo: na `LoginPage`, quando `isDemo()`, mostrar dois botões "Entrar como Administrador" / "Entrar como Atendimento" acima do formulário; o demo começa deslogado. `DemoBanner` fixo no topo do conteúdo: "Modo demonstração — os dados ficam só neste navegador." + botão "Restaurar dados de exemplo" (confirma e recria). Se `demoWasReset()`, toast "Os dados de demonstração foram recriados (o sistema foi atualizado)."
 - [ ] **Step 4:** `pnpm test:db tests/db/demoClient.test.ts` → PASS; `pnpm test && pnpm typecheck && pnpm lint && pnpm build` → verde. `pnpm build && pnpm preview`, abrir `/`, entrar como Administrador → shell com o menu; Configurações lista os 2 usuários.
 - [ ] **Step 5: Commit** `feat: modo demonstração com Postgres no navegador`
 
