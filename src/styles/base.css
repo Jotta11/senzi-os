@@ -11,10 +11,8 @@ html { color-scheme: light; }
 body {
   margin: 0;
   min-height: 100vh;
-  /* textura de papel: beige → areia clara, vertical e sutil */
+  /* fundo liso em Papel (aprovado pelo João; o gradiente beige era chamativo) */
   background-color: var(--papel);
-  background-image: linear-gradient(180deg, #FEEFDC 0%, #F1E2CC 100%);
-  background-attachment: fixed;
   color: var(--tinta);
   font-family: var(--f-ui);
   font-size: 14px;

@@ -19,7 +19,6 @@
   --surface:   #FFFFFF; /* cards */
 
   /* — derivados (superfícies e estados) — */
-  --papel-2:      #F1E2CC; /* fim do gradiente de textura */
   --surface-2:    #FCF8F2; /* hover discreto, cabeçalho de tabela */
   --areia-2:      #CDBA9C; /* borda de campo / hover de borda */
   --vivo-hover:   #571920;
