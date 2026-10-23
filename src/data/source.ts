@@ -8,6 +8,8 @@ import type {
   CustomerSort,
   FitInput,
   Garment,
+  GarmentCounts,
+  GarmentEconomics,
   GarmentFilters,
   GarmentInput,
   GarmentMeasurement,
@@ -30,6 +32,12 @@ export interface DataSource {
   listBrands(): Promise<string[]>
   /** Ordenado por código. */
   searchGarments(f: GarmentFilters, page: PageRequest): Promise<PageResult<Garment>>
+  /** Quantas peças cada chip de estado traria com os demais filtros (busca, categoria, tamanho). */
+  garmentCounts(f: Omit<GarmentFilters, 'stateGroup'>): Promise<GarmentCounts>
+  /** Receita, locações e payback das peças pedidas (ids inexistentes são ignorados). Só com `acervo.cost`. */
+  garmentEconomics(ids: string[]): Promise<GarmentEconomics[]>
+  /** Σ custo de aquisição das peças ativas (sem baixadas). Só com `acervo.cost`. */
+  acervoInvestment(): Promise<number>
   /** `null` se não existe. */
   getGarment(id: string): Promise<Garment | null>
   createGarment(input: GarmentInput): Promise<Garment>

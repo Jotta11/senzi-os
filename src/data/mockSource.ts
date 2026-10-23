@@ -13,6 +13,7 @@ import {
   type CustomerMeasurement,
   type CustomerMeasurementInput,
   type Garment,
+  type GarmentFilters,
   type GarmentState,
   type Recommendation,
   type SourceIssue,
@@ -87,6 +88,14 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
     g.history.unshift({ at: new Date().toISOString(), from: g.state, to, reason, userName: userName() })
     g.state = to
   }
+  /** Peças que casam com busca, categoria e tamanho (o estado fica por conta de quem chama). */
+  const matching = (f: Omit<GarmentFilters, 'stateGroup'>) => {
+    const q = normalize(f.q)
+    return db.garments
+      .filter((g) => !f.cat || g.categorySlug === f.cat)
+      .filter((g) => !f.size || g.sizeEquiv === f.size)
+      .filter((g) => !q || [g.code, g.name, g.colorPrimary, g.fabric].some((s) => normalize(s).includes(q)))
+  }
   const covering = (g: Garment, day: string) => g.blocks.some((b) => b.kind === 'bloqueio_manual' && b.from <= day && day <= b.to)
 
   function checkCustomer(input: Partial<CustomerInput>, partial: boolean, selfId?: string) {
@@ -139,16 +148,42 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
 
     searchGarments: (f, page) =>
       run(() => {
-        const q = normalize(f.q)
         const group = f.stateGroup
-        const all = db.garments
+        const all = matching(f)
           .filter((g) => (group === 'todos' ? true : group ? STATE_GROUP_STATES[group].includes(g.state) : g.state !== 'baixado'))
-          .filter((g) => !f.cat || g.categorySlug === f.cat)
-          .filter((g) => !f.size || g.sizeEquiv === f.size)
-          .filter((g) => !q || [g.code, g.name, g.colorPrimary, g.fabric].some((s) => normalize(s).includes(q)))
           .sort((a, b) => a.code.localeCompare(b.code))
         return { items: all.slice(page.offset, page.offset + page.limit), total: all.length }
       }),
+
+    garmentCounts: (f) =>
+      run(() => {
+        const base = matching(f)
+        const n = (states: GarmentState[]) => base.filter((g) => states.includes(g.state)).length
+        return {
+          todos: base.length,
+          ativas: base.filter((g) => g.state !== 'baixado').length,
+          disponivel: n(STATE_GROUP_STATES.disponivel),
+          reservado: n(STATE_GROUP_STATES.reservado),
+          em_uso: n(STATE_GROUP_STATES.em_uso),
+          ciclo: n(STATE_GROUP_STATES.ciclo),
+          bloqueado: n(STATE_GROUP_STATES.bloqueado),
+        }
+      }),
+
+    garmentEconomics: (ids) =>
+      run(() =>
+        ids.flatMap((id) => {
+          const g = db.garments.find((x) => x.id === id)
+          if (!g) return []
+          const rentals = db.rentals[id] ?? 0
+          const revenue = rentals * g.rentalPrice
+          const cost = g.acquisitionCost
+          return [{ garmentId: id, rentals, revenue, acquisitionCost: cost, payback: cost ? revenue / cost : null, paidBack: !!cost && revenue >= cost }]
+        }),
+      ),
+
+    acervoInvestment: () =>
+      run(() => db.garments.filter((g) => g.state !== 'baixado').reduce((s, g) => s + (g.acquisitionCost ?? 0), 0)),
 
     getGarment: (id) => run(() => db.garments.find((g) => g.id === id) ?? null),
 

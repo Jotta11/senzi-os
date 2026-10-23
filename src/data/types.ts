@@ -101,6 +101,22 @@ export type GarmentFilters = {
   size?: SizeEquiv | null
 }
 
+/** Contagem por grupo de estado (`todos` inclui baixadas) + `ativas` (tudo menos baixadas = lista padrão). Sem custos. */
+export type GarmentCounts = Record<StateGroup, number> & { ativas: number }
+
+/**
+ * Economia unitária da peça — só para quem tem `acervo.cost` (no banco, RPC protegida).
+ * `payback` = receita ÷ custo de aquisição (`null` sem custo); `paidBack` = receita ≥ custo.
+ */
+export type GarmentEconomics = {
+  garmentId: string
+  rentals: number
+  revenue: number
+  acquisitionCost: number | null
+  payback: number | null
+  paidBack: boolean
+}
+
 export type PageRequest = { limit: number; offset: number }
 export type PageResult<T> = { items: T[]; total: number }
 

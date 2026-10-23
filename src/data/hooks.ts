@@ -1,6 +1,7 @@
 /**
  * Hooks TanStack Query sobre a `DataSource` do contexto. As telas usam só estes hooks (ou `useDataSource()`).
- * Chaves: ['categories'], ['brands'], ['garments', filtros, página], ['garment', id],
+ * Chaves: ['categories'], ['brands'], ['garments', filtros, página], ['garments', 'counts', filtros],
+ * ['garments', 'economics', ids], ['garments', 'investment'], ['garment', id],
  * ['customers', q, ordem, página], ['customer', id], ['recommendations', id, limite], ['ideal', garmentId].
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
@@ -25,6 +26,9 @@ export const dataKeys = {
   brands: ['brands'] as const,
   garments: ['garments'] as const,
   garmentSearch: (f: GarmentFilters, page: PageRequest) => ['garments', f, page] as const,
+  garmentCounts: (f: Omit<GarmentFilters, 'stateGroup'>) => ['garments', 'counts', f] as const,
+  garmentEconomics: (ids: string[]) => ['garments', 'economics', ids] as const,
+  acervoInvestment: ['garments', 'investment'] as const,
   garment: (id: string) => ['garment', id] as const,
   customers: ['customers'] as const,
   customerSearch: (q: string, sort: CustomerSort, page: PageRequest) => ['customers', q, sort, page] as const,
@@ -52,6 +56,33 @@ export function useGarmentSearch(filters: GarmentFilters, page: PageRequest) {
     queryFn: () => src.searchGarments(filters, page),
     placeholderData: keepPreviousData,
   })
+}
+
+/** Contagem por grupo de estado (chips) com os demais filtros. */
+export function useGarmentCounts(filters: Omit<GarmentFilters, 'stateGroup'>) {
+  const src = useDataSource()
+  return useQuery({
+    queryKey: dataKeys.garmentCounts(filters),
+    queryFn: () => src.garmentCounts(filters),
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Receita/payback das peças. Passe `enabled = can('acervo.cost')`: sem a permissão, a fonte nunca é chamada. */
+export function useGarmentEconomics(ids: string[], enabled: boolean) {
+  const src = useDataSource()
+  return useQuery({
+    queryKey: dataKeys.garmentEconomics(ids),
+    queryFn: () => src.garmentEconomics(ids),
+    enabled: enabled && ids.length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Σ custo de aquisição do acervo ativo. Passe `enabled = can('acervo.cost')`. */
+export function useAcervoInvestment(enabled: boolean) {
+  const src = useDataSource()
+  return useQuery({ queryKey: dataKeys.acervoInvestment, queryFn: () => src.acervoInvestment(), enabled })
 }
 
 /** `data === null` → não encontrada. */
