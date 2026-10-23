@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getSupabase } from '@/lib/supabase'
-import { MSG_DEACTIVATED, MSG_PROFILE, SignInError } from './authErrors'
+import {
+  MSG_DEACTIVATED,
+  MSG_NO_CLIENT,
+  MSG_PASSWORD_UPDATE,
+  MSG_PROFILE,
+  passwordUpdateMessage,
+  SignInError,
+} from './authErrors'
 import { AuthContext, type AppUser, type AuthValue } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -11,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [recovery, setRecovery] = useState(false)
   const userRef = useRef<AppUser | null>(null)
   /** Contador de requisições: resultado de uma busca antiga (stale) é descartado. */
   const reqRef = useRef(0)
@@ -50,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Resultado definitivo sem linha legível (RLS zera tudo para inativo) ou inativo: desativado.
       if (!data || !data.is_active) {
         setNotice(MSG_DEACTIVATED)
+        setRecovery(false)
         applyUser(null)
         setLoadError(null)
         setStatus('signed_out')
@@ -86,27 +95,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sincroniza com o sistema externo (sessão do Supabase); o setState ocorre após await.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void resolveSession()
+    // Fora do callback para não travar o cliente do Supabase.
+    const later = (id: string) =>
+      setTimeout(() => {
+        if (alive) void loadUser(id)
+      }, 0)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!alive) return
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
+        if (event === 'PASSWORD_RECOVERY') setRecovery(true)
         const id = session.user.id
         if (userRef.current?.id === id || pendingRef.current === id) return
-        // Fora do callback para não travar o cliente do Supabase.
-        setTimeout(() => {
-          if (alive) void loadUser(id)
-        }, 0)
+        later(id)
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Reconfere o perfil a cada renovação do token: desativação no meio da sessão
+        // cai no caminho de "acesso desativado". Uma busca por evento, sem laço.
+        const id = session.user.id
+        if (userRef.current?.id === id && pendingRef.current !== id) later(id)
       } else if (event === 'SIGNED_OUT') {
         reqRef.current++
         pendingRef.current = null
+        setRecovery(false)
         applyUser(null)
         setLoadError(null)
         setStatus('signed_out')
         queryClient.clear()
       }
     })
+    // my_permissions vazio com sessão aberta: provável desativação (has_perm zera tudo
+    // para inativo). Reconfere o perfil uma vez por resultado vazio; usuário ainda ativo
+    // continua logado e nada é refeito até um novo resultado.
+    const unsubCache = queryClient.getQueryCache().subscribe((e) => {
+      if (
+        e.type === 'updated' &&
+        e.action.type === 'success' &&
+        e.query.queryKey[0] === 'my_permissions' &&
+        Array.isArray(e.action.data) &&
+        e.action.data.length === 0
+      ) {
+        const id = userRef.current?.id
+        if (id && pendingRef.current !== id) later(id)
+      }
+    })
     return () => {
       alive = false
       sub.subscription.unsubscribe()
+      unsubCache()
     }
   }, [supabase, loadUser, resolveSession, applyUser, queryClient])
 
@@ -124,10 +158,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [supabase],
   )
 
+  const updatePassword = useCallback(
+    async (password: string) => {
+      if (!supabase) throw new Error(MSG_NO_CLIENT)
+      let error: { code?: string; message?: string } | null
+      try {
+        ;({ error } = await supabase.auth.updateUser({ password }))
+      } catch {
+        throw new Error(MSG_PASSWORD_UPDATE)
+      }
+      if (error) throw new Error(passwordUpdateMessage(error))
+    },
+    [supabase],
+  )
+
+  const finishRecovery = useCallback(() => setRecovery(false), [])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     reqRef.current++
     pendingRef.current = null
+    setRecovery(false)
     await supabase.auth.signOut()
     applyUser(null)
     setStatus('signed_out')
@@ -140,8 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [resolveSession])
 
   const value = useMemo(
-    () => ({ status, user, notice, loadError, signIn, signOut, retry }),
-    [status, user, notice, loadError, signIn, signOut, retry],
+    () => ({ status, user, notice, loadError, signIn, signOut, retry, recovery, updatePassword, finishRecovery }),
+    [status, user, notice, loadError, signIn, signOut, retry, recovery, updatePassword, finishRecovery],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

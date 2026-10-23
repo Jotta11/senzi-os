@@ -32,6 +32,7 @@ function fakeClient(opts: { session?: boolean; row?: Row; perms?: string[]; sign
       }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
+      updateUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
     },
     from: vi.fn(() => ({
       select: () => ({ eq: () => ({ maybeSingle: fetchRow }) }),
@@ -42,10 +43,15 @@ function fakeClient(opts: { session?: boolean; row?: Row; perms?: string[]; sign
   return Object.assign(client, { emit: (e: string, sess: unknown) => cb(e, sess), fetchRow })
 }
 
-function renderApp() {
+function PermsProbe() {
+  const { perms } = usePermissions()
+  return <p>conteúdo do app ({perms.size} permissões)</p>
+}
+
+function renderApp(opts: { probe?: boolean } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(
-    [{ element: <AuthGate />, children: [{ path: '/', element: <p>conteúdo do app</p> }] }],
+    [{ element: <AuthGate />, children: [{ path: '/', element: opts.probe ? <PermsProbe /> : <p>conteúdo do app</p> }] }],
     { initialEntries: ['/'] },
   )
   return render(
@@ -201,5 +207,142 @@ describe('auth', () => {
     fakeClient({ getSession: () => Promise.reject(new Error('boom')) })
     renderApp()
     expect(await screen.findByLabelText('E-mail')).toBeInTheDocument()
+  })
+
+  describe('desativação no meio da sessão (I3)', () => {
+    const inactive: Row = { ...active!, is_active: false }
+
+    it('my_permissions vazio com sessão ativa refaz a checagem e desloga o desativado', async () => {
+      let calls = 0
+      const c = fakeClient({
+        session: true,
+        perms: [],
+        fetchRow: () => Promise.resolve({ data: ++calls === 1 ? active : inactive, error: null }),
+      })
+      renderApp({ probe: true })
+      expect(await screen.findByText('Seu acesso foi desativado. Fale com um administrador.')).toBeInTheDocument()
+      expect(c.fetchRow).toHaveBeenCalledTimes(2)
+      expect(c.auth.signOut).toHaveBeenCalled()
+    })
+
+    it('my_permissions vazio para usuário ainda ativo não entra em laço', async () => {
+      const c = fakeClient({ session: true, row: active, perms: [] })
+      renderApp({ probe: true })
+      expect(await screen.findByText('conteúdo do app (0 permissões)')).toBeInTheDocument()
+      await waitFor(() => expect(c.fetchRow).toHaveBeenCalledTimes(2))
+      await new Promise((r) => setTimeout(r, 50))
+      expect(c.fetchRow).toHaveBeenCalledTimes(2)
+      expect(c.auth.signOut).not.toHaveBeenCalled()
+      expect(screen.getByText('conteúdo do app (0 permissões)')).toBeInTheDocument()
+    })
+
+    it('com permissões, não refaz a checagem', async () => {
+      const c = fakeClient({ session: true, row: active, perms: ['dashboard.view'] })
+      renderApp({ probe: true })
+      expect(await screen.findByText('conteúdo do app (1 permissões)')).toBeInTheDocument()
+      await new Promise((r) => setTimeout(r, 30))
+      expect(c.fetchRow).toHaveBeenCalledTimes(1)
+    })
+
+    it('TOKEN_REFRESHED refaz a checagem e desloga o desativado', async () => {
+      const c = fakeClient({ session: true, row: active })
+      renderApp()
+      expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+      c.fetchRow.mockResolvedValue({ data: inactive, error: null })
+      c.emit('TOKEN_REFRESHED', sess)
+      expect(await screen.findByText('Seu acesso foi desativado. Fale com um administrador.')).toBeInTheDocument()
+      expect(c.fetchRow).toHaveBeenCalledTimes(2)
+    })
+
+    it('TOKEN_REFRESHED com falha de rede mantém o usuário logado', async () => {
+      const c = fakeClient({ session: true, row: active })
+      renderApp()
+      await screen.findByText('conteúdo do app')
+      c.fetchRow.mockResolvedValue({ data: null, error: { message: 'network' } })
+      c.emit('TOKEN_REFRESHED', sess)
+      await waitFor(() => expect(c.fetchRow).toHaveBeenCalledTimes(2))
+      expect(c.auth.signOut).not.toHaveBeenCalled()
+      expect(screen.getByText('conteúdo do app')).toBeInTheDocument()
+    })
+  })
+
+  describe('redefinição de senha (I4)', () => {
+    async function openRecovery() {
+      const c = fakeClient({ session: true, row: active })
+      renderApp()
+      await screen.findByText('conteúdo do app')
+      c.emit('PASSWORD_RECOVERY', sess)
+      expect(await screen.findByRole('heading', { name: 'Definir nova senha' })).toBeInTheDocument()
+      return c
+    }
+
+    it('PASSWORD_RECOVERY mostra a tela, valida e chama updateUser; depois segue para o app', async () => {
+      const c = await openRecovery()
+      const nova = screen.getByLabelText('Nova senha')
+      const conf = screen.getByLabelText('Confirmar nova senha')
+      const salvar = screen.getByRole('button', { name: 'Salvar nova senha' })
+
+      await userEvent.type(nova, 'curta')
+      await userEvent.type(conf, 'curta')
+      await userEvent.click(salvar)
+      expect(await screen.findByText('A senha deve ter pelo menos 8 caracteres.')).toBeInTheDocument()
+
+      await userEvent.clear(nova)
+      await userEvent.clear(conf)
+      await userEvent.type(nova, 'a'.repeat(73))
+      await userEvent.type(conf, 'a'.repeat(73))
+      await userEvent.click(salvar)
+      expect(await screen.findByText('A senha deve ter no máximo 72 caracteres.')).toBeInTheDocument()
+
+      await userEvent.clear(nova)
+      await userEvent.clear(conf)
+      await userEvent.type(nova, 'senha-nova-1')
+      await userEvent.type(conf, 'senha-nova-2')
+      await userEvent.click(salvar)
+      expect(await screen.findByText('As senhas não conferem.')).toBeInTheDocument()
+      expect(c.auth.updateUser).not.toHaveBeenCalled()
+
+      await userEvent.clear(conf)
+      await userEvent.type(conf, 'senha-nova-1')
+      await userEvent.click(salvar)
+      expect(c.auth.updateUser).toHaveBeenCalledWith({ password: 'senha-nova-1' })
+      expect(await screen.findByText('Senha alterada com sucesso.')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+      expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+    })
+
+    it('erro do updateUser aparece em pt-BR e mantém a tela', async () => {
+      const c = await openRecovery()
+      c.auth.updateUser.mockResolvedValue({ data: {}, error: { message: 'New password should be different', code: 'same_password' } } as never)
+      await userEvent.type(screen.getByLabelText('Nova senha'), 'senha-nova-1')
+      await userEvent.type(screen.getByLabelText('Confirmar nova senha'), 'senha-nova-1')
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar nova senha' }))
+      expect(await screen.findByText('A nova senha deve ser diferente da atual.')).toBeInTheDocument()
+      c.auth.updateUser.mockRejectedValue(new Error('rede'))
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar nova senha' }))
+      expect(await screen.findByText('Não foi possível alterar a senha. Tente novamente.')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Definir nova senha' })).toBeInTheDocument()
+    })
+  })
+
+  describe('esqueci minha senha: falhas (I4)', () => {
+    it('resetPasswordForEmail rejeitado mostra erro em pt-BR', async () => {
+      const c = fakeClient({ session: false })
+      c.auth.resetPasswordForEmail.mockRejectedValue(new Error('rede'))
+      renderApp()
+      await userEvent.type(await screen.findByLabelText('E-mail'), 'a@b.com')
+      await userEvent.click(screen.getByRole('button', { name: 'Esqueci minha senha' }))
+      expect(await screen.findByText('Não foi possível enviar o e-mail de redefinição. Tente novamente.')).toBeInTheDocument()
+      expect(screen.queryByRole('status')).toBeNull()
+    })
+
+    it('sem cliente Supabase não informa sucesso', async () => {
+      sbMock.getSupabase.mockReturnValue(null)
+      renderApp()
+      await userEvent.type(await screen.findByLabelText('E-mail'), 'a@b.com')
+      await userEvent.click(screen.getByRole('button', { name: 'Esqueci minha senha' }))
+      expect(await screen.findByText('Conexão não configurada.')).toBeInTheDocument()
+      expect(screen.queryByText(/você receberá as instruções/)).toBeNull()
+    })
   })
 })

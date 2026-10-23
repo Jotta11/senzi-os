@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Perm } from '@/auth/permissions'
 import { appRoutes } from '@/app/router'
 
-const authMock = vi.hoisted(() => ({ signOut: vi.fn(), user: null as unknown, perms: [] as string[], loading: false }))
+const authMock = vi.hoisted(() => ({ signOut: vi.fn(), refetch: vi.fn(), user: null as unknown, perms: [] as string[], loading: false, error: false }))
 vi.mock('@/lib/env', () => ({ getEnv: () => ({ url: 'http://x', anonKey: 'k' }) }))
 vi.mock('@/auth/useAuth', () => ({
   useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
@@ -17,6 +17,8 @@ vi.mock('@/auth/usePermissions', () => ({
     can: (p: Perm) => authMock.perms.includes(p),
     perms: new Set(authMock.perms),
     isLoading: authMock.loading,
+    isError: authMock.error,
+    refetch: authMock.refetch,
   }),
 }))
 
@@ -34,7 +36,9 @@ const navLinks = () => within(screen.getByRole('navigation', { name: /navegaçã
 
 beforeEach(() => {
   authMock.signOut.mockReset()
+  authMock.refetch.mockReset()
   authMock.loading = false
+  authMock.error = false
 })
 
 describe('shell', () => {
@@ -62,6 +66,15 @@ describe('shell', () => {
     setup('atendimento', '/config')
     expect(screen.queryByText('Acesso restrito')).toBeNull()
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('falha ao carregar permissões mostra erro com Tentar novamente, não Acesso restrito', async () => {
+    authMock.error = true
+    setup('atendimento', '/config')
+    expect(screen.queryByText('Acesso restrito')).toBeNull()
+    expect(screen.getByText('Não foi possível carregar suas permissões.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(authMock.refetch).toHaveBeenCalled()
   })
 
   it('item ativo tem aria-current=page e a rota mostra Em construção', () => {

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Card, Field } from '@/ui'
 import { getSupabase } from '@/lib/supabase'
+import { MSG_NO_CLIENT } from './authErrors'
 import { useAuth } from './useAuth'
 import './auth.css'
 
@@ -33,10 +34,21 @@ export function LoginPage() {
       setError('Informe seu e-mail para redefinir a senha.')
       return
     }
-    const { error: err } = (await getSupabase()?.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/`,
-    })) ?? { error: null }
-    if (err) setError('Não foi possível enviar o e-mail de redefinição. Tente novamente.')
+    const supabase = getSupabase()
+    if (!supabase) {
+      setError(MSG_NO_CLIENT)
+      return
+    }
+    let failed: boolean
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/`,
+      })
+      failed = !!err
+    } catch {
+      failed = true
+    }
+    if (failed) setError('Não foi possível enviar o e-mail de redefinição. Tente novamente.')
     else setInfo('Se o e-mail estiver cadastrado, você receberá as instruções para redefinir a senha.')
   }
 

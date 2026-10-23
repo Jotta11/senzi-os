@@ -16,6 +16,12 @@ export type AuthValue = {
   /** Falha ao carregar o perfil na primeira carga (sem derrubar a sessão). */
   loadError: string | null
   retry(): Promise<void>
+  /** Sessão aberta por link de redefinição de senha (evento PASSWORD_RECOVERY). */
+  recovery: boolean
+  /** Grava a nova senha; lança Error com mensagem pt-BR. */
+  updatePassword(password: string): Promise<void>
+  /** Sai da tela de nova senha e segue para o app. */
+  finishRecovery(): void
   signIn(email: string, password: string): Promise<void>
   signOut(): Promise<void>
 }
