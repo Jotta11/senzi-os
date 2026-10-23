@@ -17,15 +17,22 @@ const admin = createClient(url, serviceKey, { auth: { persistSession: false, aut
 Deno.serve((req) =>
   handleAdminUsers(req, {
     async getCaller(token) {
+      // JWT inválido/expirado → null (401). Demais falhas lançam (500).
       const { data, error } = await admin.auth.getUser(token)
-      if (error || !data.user) return null
+      if (error || !data.user) {
+        if (error && (error.status ?? 0) >= 500) throw error
+        return null
+      }
       // has_perm avaliado com o token do chamador (auth.uid() = ele; inativo → false).
       const asCaller = createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
         global: { headers: { Authorization: `Bearer ${token}` } },
       })
       const { data: can, error: permError } = await asCaller.rpc('has_perm', { p: 'config.users' })
-      if (permError) throw permError
+      if (permError) {
+        console.error('admin-users: has_perm falhou', { code: permError.code, message: permError.message })
+        throw permError
+      }
       return { id: data.user.id, canManageUsers: can === true }
     },
 

@@ -4,7 +4,7 @@ import { PERMISSIONS, type Perm } from '@/auth/permissions'
 import { getSupabase } from '@/lib/supabase'
 import { errorMessage } from '@/lib/errorMessages'
 import { Button, Card, Field } from '@/ui'
-import { ROLE_LABEL, updateUser, usersKey, useUsers, type Role } from './queries'
+import { fetchUserAccess, ROLE_LABEL, updateUser, usersKey, useUsers, type Role } from './queries'
 
 type State = 'herdado' | 'concedido' | 'revogado'
 
@@ -79,14 +79,18 @@ export function PermissionsTab() {
     return set
   }, [defaults.data, user])
 
+  // REPLACE: salvar sem os overrides atuais carregados apagaria os existentes.
+  const canSave = !!user && overrides.isSuccess && defaults.isSuccess && !busy
+
   async function save() {
-    if (!user) return
+    if (!user || !canSave) return
     setMsg(null)
     setBusy(true)
     const payload: Record<string, boolean> = {}
     for (const [k, s] of Object.entries(draft)) if (s !== 'herdado') payload[k] = s === 'concedido'
     try {
-      await updateUser(user, payload)
+      const fresh = await fetchUserAccess(user.id)
+      await updateUser(fresh, payload)
       await qc.invalidateQueries({ queryKey: ['config', 'overrides', user.id] })
       setEdits({})
       setMsg({ ok: true, text: 'Permissões salvas.' })
@@ -131,11 +135,25 @@ export function PermissionsTab() {
           meta={<span className="muted tiny">Perfil: {ROLE_LABEL[user.role]}</span>}
           flush
           actions={
-            <Button variant="primary" size="sm" onClick={save} disabled={busy || overrides.isLoading}>
+            <Button variant="primary" size="sm" onClick={save} disabled={!canSave}>
               Salvar permissões
             </Button>
           }
         >
+          {(overrides.isError || defaults.isError) && (
+            <div className="note red" role="alert" style={{ margin: 12, alignItems: 'center' }}>
+              <span>Não foi possível carregar as permissões deste usuário.</span>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (overrides.isError) void overrides.refetch()
+                  if (defaults.isError) void defaults.refetch()
+                }}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          )}
           {msg && (
             <p className={`note ${msg.ok ? 'green' : 'red'}`} role={msg.ok ? 'status' : 'alert'} style={{ margin: 12 }}>
               {msg.text}
@@ -172,6 +190,7 @@ export function PermissionsTab() {
                         <select
                           id={id}
                           value={draft[key] ?? 'herdado'}
+                          disabled={!overrides.isSuccess}
                           onChange={(e) => setEdits((d) => ({ ...d, [key]: e.target.value as State }))}
                         >
                           <option value="herdado">Herdado do perfil ({roleHas.has(key) ? 'permitido' : 'não permitido'})</option>

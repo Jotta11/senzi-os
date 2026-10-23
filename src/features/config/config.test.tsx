@@ -32,6 +32,10 @@ function setup(opts: { role?: 'admin' | 'atendimento'; perms?: string[]; from?: 
     from: (q) => {
       const custom = opts.from?.(q)
       if (custom) return custom
+      if (q.table === 'app_user' && q.single) {
+        const id = q.eq.find(([c]) => c === 'id')?.[1]
+        return { data: [ANA, BIA].find((u) => u.id === id) ?? null, error: null }
+      }
       if (q.table === 'app_user') return { data: [ANA, BIA], error: null }
       if (q.table === 'role_permission') return { data: [{ role: 'atendimento', permission_key: 'dashboard.view' }, { role: 'atendimento', permission_key: 'cliente.view' }], error: null }
       if (q.table === 'user_permission_override') return { data: [], error: null }
@@ -197,6 +201,54 @@ describe('Permissões por usuário', () => {
     expect(await screen.findByText('Permissões salvas.')).toBeInTheDocument()
   })
 
+  it('falha ao carregar os overrides: alerta, Salvar desabilitado e nada é gravado', async () => {
+    let failing = true
+    const c = setup({
+      from: (q) =>
+        q.table === 'user_permission_override'
+          ? failing
+            ? { data: null, error: { message: 'network' } }
+            : { data: overrides, error: null }
+          : undefined,
+    })
+    await userEvent.click(tab('Permissões'))
+    await userEvent.selectOptions(await screen.findByLabelText('Usuário'), 'u2')
+    expect(await screen.findByText('Não foi possível carregar as permissões deste usuário.')).toBeInTheDocument()
+    const salvar = screen.getByRole('button', { name: 'Salvar permissões' })
+    expect(salvar).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Ver o painel do dia' })).toBeDisabled()
+    await userEvent.click(salvar)
+    expect(c.rpc).not.toHaveBeenCalledWith('admin_update_user', expect.anything())
+
+    failing = false
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Ver o painel do dia' })).toHaveValue('revogado'))
+    expect(screen.getByRole('button', { name: 'Salvar permissões' })).toBeEnabled()
+    expect(screen.queryByText('Não foi possível carregar as permissões deste usuário.')).toBeNull()
+  })
+
+  it('salvar usa perfil e status lidos do banco na hora, não do cache da lista', async () => {
+    const c = setup({
+      from: (q) =>
+        q.table === 'app_user' && q.single ? { data: { id: 'u2', role: 'admin', is_active: true }, error: null } : undefined,
+    })
+    await userEvent.click(tab('Permissões'))
+    await userEvent.selectOptions(await screen.findByLabelText('Usuário'), 'u2')
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Ver a agenda' }), 'concedido')
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar permissões' }))
+    await waitFor(() =>
+      expect(c.rpc).toHaveBeenCalledWith('admin_update_user', {
+        p_user_id: 'u2',
+        p_role: 'admin',
+        p_is_active: true,
+        p_overrides: { 'agenda.view': true },
+      }),
+    )
+    const fresh = c.queries.find((q) => q.table === 'app_user' && q.single)!
+    expect(fresh.select).toBe('id, role, is_active')
+    expect(fresh.eq).toContainEqual(['id', 'u2'])
+  })
+
   it('erro AUTO_REBAIXAMENTO ao salvar as próprias permissões aparece em pt-BR', async () => {
     setup({ rpc: (fn) => (fn === 'admin_update_user' ? { data: null, error: { message: 'AUTO_REBAIXAMENTO' } } : undefined) })
     await userEvent.click(tab('Permissões'))
@@ -231,13 +283,26 @@ describe('PIN', () => {
     expect(c.rpc).not.toHaveBeenCalledWith('set_my_pin', expect.anything())
   })
 
-  it('PIN_INVALIDO do banco aparece em pt-BR', async () => {
+  it('PIN_INVALIDO do banco aparece em pt-BR e limpa os dois campos', async () => {
     setup({ rpc: (fn) => (fn === 'set_my_pin' ? { data: null, error: { message: 'PIN_INVALIDO' } } : undefined) })
     await userEvent.click(tab('PIN'))
     await userEvent.type(screen.getByLabelText('Novo PIN'), '12')
     await userEvent.type(screen.getByLabelText('Confirmar PIN'), '12')
     await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
     expect(await screen.findByText('O PIN deve ter de 4 a 6 dígitos.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Novo PIN')).toHaveValue('')
+    expect(screen.getByLabelText('Confirmar PIN')).toHaveValue('')
+  })
+
+  it('falha de rede no set_my_pin também limpa os campos', async () => {
+    setup({ rpc: (fn) => { if (fn === 'set_my_pin') throw new Error('network'); return undefined } })
+    await userEvent.click(tab('PIN'))
+    await userEvent.type(screen.getByLabelText('Novo PIN'), '1234')
+    await userEvent.type(screen.getByLabelText('Confirmar PIN'), '1234')
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
+    expect(await screen.findByText('Algo deu errado. Tente novamente.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Novo PIN')).toHaveValue('')
+    expect(screen.getByLabelText('Confirmar PIN')).toHaveValue('')
   })
 })
 

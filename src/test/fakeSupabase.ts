@@ -11,6 +11,8 @@ export type FakeQuery = {
   in: [string, unknown[]][]
   order: [string, unknown][]
   range?: [number, number]
+  /** `.maybeSingle()`/`.single()` foi chamado. */
+  single?: boolean
 }
 
 type Handlers = {
@@ -44,6 +46,14 @@ export function fakeSupabase(handlers: Handlers) {
       },
       order(col: string, opts?: unknown) {
         q.order.push([col, opts])
+        return builder
+      },
+      maybeSingle() {
+        q.single = true
+        return builder
+      },
+      single() {
+        q.single = true
         return builder
       },
       range(a: number, b: number) {

@@ -54,6 +54,7 @@ describe('AuthorizeExceptionDialog', () => {
     const { client, onAuthorized } = setup(() => ({ data: { ok: true, id: 'auth-9' }, error: null }))
     await fill()
     await vi.waitFor(() => expect(onAuthorized).toHaveBeenCalledWith('auth-9'))
+    await vi.waitFor(() => expect(screen.getByLabelText('PIN')).toHaveValue(''))
     expect(client.rpc).toHaveBeenCalledWith('authorize_exception', {
       p_admin_email: 'carla@senzi.com.br',
       p_pin: '4321',
@@ -82,6 +83,22 @@ describe('AuthorizeExceptionDialog', () => {
     setup(() => ({ data: null, error: { message: 'MOTIVO_OBRIGATORIO' } }))
     await fill('x')
     expect(await screen.findByText('Informe o motivo')).toBeInTheDocument()
+  })
+
+  it('erro lançado pela RPC também limpa o PIN', async () => {
+    setup(() => ({ data: null, error: { message: 'SEM_PERMISSAO' } }))
+    await fill()
+    expect(await screen.findByText('Você não tem permissão para esta ação.')).toBeInTheDocument()
+    expect(screen.getByLabelText('PIN')).toHaveValue('')
+  })
+
+  it('falha de rede limpa o PIN e mostra mensagem genérica', async () => {
+    setup(() => {
+      throw new Error('network')
+    })
+    await fill()
+    expect(await screen.findByText('Algo deu errado. Tente novamente.')).toBeInTheDocument()
+    expect(screen.getByLabelText('PIN')).toHaveValue('')
   })
 
   it('motivo em branco é barrado antes de chamar o banco', async () => {

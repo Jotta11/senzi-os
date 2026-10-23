@@ -44,3 +44,16 @@ export async function updateUser(u: { id: string; role: Role; is_active: boolean
   })
   if (error) throw error
 }
+
+/**
+ * Perfil e status atuais lidos do banco na hora (não do cache da lista), para que
+ * salvar permissões não reverta uma mudança de perfil/status feita por outro admin.
+ */
+export async function fetchUserAccess(id: string): Promise<{ id: string; role: Role; is_active: boolean }> {
+  const sb = getSupabase()
+  if (!sb) throw new Error('SEM_CONEXAO')
+  const { data, error } = await sb.from('app_user').select('id, role, is_active').eq('id', id).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('USUARIO_NAO_ENCONTRADO')
+  return data as { id: string; role: Role; is_active: boolean }
+}

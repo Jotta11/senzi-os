@@ -78,11 +78,12 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
         onAuthorized(result.id)
         return
       }
-      setPin('')
       setError(errorMessage(result?.error ?? ''))
     } catch {
       setError(errorMessage(null))
     } finally {
+      // O PIN nunca fica no estado depois de uma tentativa, qualquer que seja o desfecho.
+      setPin('')
       setBusy(false)
     }
   }

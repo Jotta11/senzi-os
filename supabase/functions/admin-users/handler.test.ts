@@ -7,6 +7,7 @@ function deps(over: Partial<AdminUsersDeps> = {}): AdminUsersDeps {
     createAuthUser: vi.fn(async () => 'new-id'),
     insertAppUser: vi.fn(async () => {}),
     deleteAuthUser: vi.fn(async () => {}),
+    logError: vi.fn(),
     ...over,
   }
 }
@@ -45,6 +46,16 @@ describe('handleAdminUsers', () => {
     expect((await res.json()).error).toBe('Sessão inválida. Entre novamente.')
   })
 
+  it('falha ao checar a permissão (getCaller lança) → 500 genérico e log sem token', async () => {
+    const d = deps({ getCaller: vi.fn(async () => { throw Object.assign(new Error('rpc caiu'), { code: 'PGRST000' }) }) })
+    const res = await handleAdminUsers(req(valid), d)
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Não foi possível verificar suas permissões. Tente novamente.')
+    expect(d.logError).toHaveBeenCalledWith(expect.any(String), { code: 'PGRST000', message: 'rpc caiu' })
+    expect(JSON.stringify(vi.mocked(d.logError!).mock.calls)).not.toMatch(/tok|segredo123/)
+    expect(d.createAuthUser).not.toHaveBeenCalled()
+  })
+
   it('chamador sem permissão → 403 e nada é criado', async () => {
     const d = deps({ getCaller: vi.fn(async () => ({ id: 'x', canManageUsers: false })) })
     const res = await handleAdminUsers(req(valid), d)
@@ -65,6 +76,19 @@ describe('handleAdminUsers', () => {
     const res = await handleAdminUsers(req({ ...valid, password: '1234567' }), deps())
     expect(res.status).toBe(400)
     expect((await res.json()).error).toBe('A senha deve ter ao menos 8 caracteres.')
+  })
+
+  it('senha com mais de 72 caracteres → 400 em pt-BR', async () => {
+    const d = deps()
+    const res = await handleAdminUsers(req({ ...valid, password: 'a'.repeat(73) }), d)
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('A senha deve ter no máximo 72 caracteres.')
+    expect(d.createAuthUser).not.toHaveBeenCalled()
+  })
+
+  it('senha com exatamente 72 caracteres é aceita', async () => {
+    const res = await handleAdminUsers(req({ ...valid, password: 'a'.repeat(72) }), deps())
+    expect(res.status).toBe(201)
   })
 
   it('perfil fora de admin/atendimento → 400', async () => {
@@ -121,6 +145,26 @@ describe('handleAdminUsers', () => {
     expect(res.status).toBe(500)
     expect((await res.json()).error).toBe('Não foi possível criar o usuário. Tente novamente.')
     expect(d.deleteAuthUser).toHaveBeenCalledWith('new-id')
+  })
+
+  it('rollback que falha registra o id do usuário órfão no log', async () => {
+    const d = deps({
+      insertAppUser: vi.fn(async () => { throw new Error('boom') }),
+      deleteAuthUser: vi.fn(async () => { throw new Error('auth fora do ar') }),
+    })
+    const res = await handleAdminUsers(req(valid), d)
+    expect(res.status).toBe(500)
+    expect(d.logError).toHaveBeenCalledWith(expect.stringMatching(/órfão/), expect.objectContaining({ orphan_auth_user_id: 'new-id' }))
+    expect(JSON.stringify(vi.mocked(d.logError!).mock.calls)).not.toMatch(/segredo123|tok/)
+  })
+
+  it('sem logError injetado, usa console.error', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const d = deps({ insertAppUser: vi.fn(async () => { throw new Error('boom') }), deleteAuthUser: vi.fn(async () => { throw new Error('x') }) })
+    delete d.logError
+    await handleAdminUsers(req(valid), d)
+    expect(spy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ orphan_auth_user_id: 'new-id' }))
+    spy.mockRestore()
   })
 
   it('e-mail duplicado em app_user também desfaz o auth e responde 409', async () => {

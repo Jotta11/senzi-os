@@ -24,13 +24,14 @@ export function PinTab() {
     try {
       const { error } = await sb.rpc('set_my_pin', { p_pin: pin })
       if (error) throw error
-      setPin('')
-      setConfirm('')
       setMsg({ ok: true, text: 'PIN salvo.' })
       await qc.invalidateQueries({ queryKey: ['active_admins'] })
     } catch (err) {
       setMsg({ ok: false, text: errorMessage(err) })
     } finally {
+      // Sucesso ou falha: os PINs não ficam no estado.
+      setPin('')
+      setConfirm('')
       setBusy(false)
     }
   }
