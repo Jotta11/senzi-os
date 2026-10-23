@@ -66,3 +66,12 @@ export async function createUser(db: PGlite, user: NewUser): Promise<string> {
   )
   return row.id
 }
+
+/** Executa `fn` numa transação como o papel `anon` (cliente sem login). */
+export async function asAnon<T>(db: PGlite, fn: (tx: Transaction) => Promise<T>): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.query('set local role anon')
+    await tx.query(`select set_config('request.jwt.claims', '{}', true)`)
+    return fn(tx)
+  })
+}

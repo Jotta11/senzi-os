@@ -1,6 +1,6 @@
 import type { PGlite, Transaction } from '@electric-sql/pglite'
 import { PERMISSIONS } from '../../src/auth/permissions'
-import { asUser, createTestDb, createUser } from './harness'
+import { asAnon, asUser, createTestDb, createUser } from './harness'
 
 async function hasPerm(tx: Transaction, perm: string): Promise<boolean> {
   const { rows } = await tx.query<{ ok: boolean }>('select public.has_perm($1) as ok', [perm])
@@ -113,7 +113,7 @@ describe('acesso: perfis, permissões e RLS', () => {
         is_active: false,
       })
       expect(await asUser(db, inativo, (tx) => hasPerm(tx, 'dashboard.view'))).toBe(false)
-      const rows = await asUser(db, inativo, async (tx) => (await tx.query('select * from public.app_user')).rows)
+      const rows = await asUser(db, inativo, async (tx) => (await tx.query('select id from public.app_user')).rows)
       expect(rows).toHaveLength(0)
       const perms = await asUser(db, inativo, async (tx) => (await tx.query('select * from public.my_permissions()')).rows)
       expect(perms).toHaveLength(0)
@@ -223,6 +223,102 @@ describe('acesso: perfis, permissões e RLS', () => {
 
       await asUser(db, admin, (tx) => updateUser(tx, atend, 'atendimento', false))
       expect(await asUser(db, atend, (tx) => hasPerm(tx, 'dashboard.view'))).toBe(false)
+    })
+  })
+
+  describe('ajustes (20261023000150)', () => {
+    it('my_permissions documenta a equivalência da fórmula', async () => {
+      const { rows } = await db.query<{ src: string }>(
+        `select prosrc as src from pg_proc where proname = 'my_permissions'`,
+      )
+      expect(rows[0].src).toMatch(/exclusiv/i)
+    })
+
+    it('guarda do último admin usa trava consultiva, não "for update" em ordem', async () => {
+      const { rows } = await db.query<{ src: string }>(
+        `select prosrc as src from pg_proc where proname = 'app_user_guard_admins'`,
+      )
+      expect(rows[0].src).toContain('pg_advisory_xact_lock')
+      expect(rows[0].src).not.toMatch(/for\s+update/i)
+    })
+
+    it('apagar o último admin ativo (cascata de auth.users) → ULTIMO_ADMIN', async () => {
+      await expect(db.query('delete from auth.users where id = $1', [admin])).rejects.toThrow('ULTIMO_ADMIN')
+      await expect(db.query('delete from public.app_user where id = $1', [admin])).rejects.toThrow(
+        'ULTIMO_ADMIN',
+      )
+    })
+
+    it('apagar um admin quando há outro ativo é permitido', async () => {
+      await createUser(db, { email: 'duda@senzi.test', full_name: 'Duda', role: 'admin' })
+      await db.query('delete from auth.users where id = $1', [admin])
+      const { rows } = await db.query('select 1 from public.app_user where id = $1', [admin])
+      expect(rows).toHaveLength(0)
+    })
+
+    it('apagar atendimento é permitido', async () => {
+      await db.query('delete from auth.users where id = $1', [atend])
+      const { rows } = await db.query('select 1 from public.app_user where id = $1', [atend])
+      expect(rows).toHaveLength(0)
+    })
+
+    it('remover de si mesmo a concessão de config.users com {} → AUTO_REBAIXAMENTO', async () => {
+      await grantOverride(db, atend, 'config.users', true)
+      await expect(asUser(db, atend, (tx) => updateUser(tx, atend, 'atendimento', true, {}))).rejects.toThrow(
+        'AUTO_REBAIXAMENTO',
+      )
+      expect(await asUser(db, atend, (tx) => hasPerm(tx, 'config.users'))).toBe(true)
+    })
+
+    it('chave de override desconhecida → PARAMETRO_INVALIDO', async () => {
+      await expect(
+        asUser(db, admin, (tx) => updateUser(tx, atend, 'atendimento', true, { 'nao.existe': true })),
+      ).rejects.toThrow('PARAMETRO_INVALIDO')
+    })
+
+    it('anon não lê tabelas nem chama has_perm/admin_update_user', async () => {
+      for (const t of ['app_user', 'permission', 'role_permission', 'user_permission_override']) {
+        await expect(asAnon(db, (tx) => tx.query(`select 1 from public.${t}`)), t).rejects.toThrow(
+          /permission denied/,
+        )
+      }
+      await expect(asAnon(db, (tx) => tx.query(`select public.has_perm('config.users')`))).rejects.toThrow(
+        /permission denied/,
+      )
+      await expect(
+        asAnon(db, (tx) => tx.query(`select public.admin_update_user($1, 'admin', true, null)`, [atend])),
+      ).rejects.toThrow(/permission denied/)
+    })
+
+    it('authenticated não altera pin_hash nem insere override diretamente', async () => {
+      await expect(
+        asUser(db, admin, (tx) => tx.query(`update public.app_user set pin_hash = 'x' where id = $1`, [atend])),
+      ).rejects.toThrow(/permission denied/)
+      await expect(
+        asUser(db, admin, (tx) =>
+          tx.query(
+            `insert into public.user_permission_override (user_id, permission_key, granted) values ($1, 'config.users', true)`,
+            [atend],
+          ),
+        ),
+      ).rejects.toThrow(/permission denied/)
+    })
+
+    it('authenticated não lê pin_hash (nem de si mesmo)', async () => {
+      await expect(
+        asUser(db, admin, (tx) => tx.query(`select pin_hash from public.app_user`)),
+      ).rejects.toThrow(/permission denied/)
+      const rows = await asUser(
+        db,
+        admin,
+        async (tx) =>
+          (
+            await tx.query(
+              `select id, full_name, email, role, is_active, created_at, updated_at from public.app_user`,
+            )
+          ).rows,
+      )
+      expect(rows).toHaveLength(2)
     })
   })
 
