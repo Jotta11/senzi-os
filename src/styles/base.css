@@ -11,8 +11,8 @@ html { color-scheme: light; }
 body {
   margin: 0;
   min-height: 100vh;
-  /* fundo liso em Papel (aprovado pelo João; o gradiente beige era chamativo) */
-  background-color: var(--papel);
+  /* fundo liso e suave (pedido do João: Papel ainda era chamativo) */
+  background-color: var(--fundo);
   color: var(--tinta);
   font-family: var(--f-ui);
   font-size: 14px;

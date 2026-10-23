@@ -12,7 +12,8 @@
   --cranberry: #3F1116; /* cor principal · sidebar */
   --beige:     #FEEFDC; /* principal clara · texto da sidebar */
   --vivo:      #6E2027; /* links, foco, botão primário, estados — nunca grandes áreas */
-  --papel:     #FBF3E8; /* fundo de áreas grandes */
+  --papel:     #FBF3E8; /* superfícies de marca (papel) */
+  --fundo:     #F8F5F0; /* fundo da aplicação · off-white quase neutro, mais suave que o Papel */
   --areia:     #E1D1B9; /* divisores, molduras, campos inativos, bordas de tabela */
   --tinta:     #1C1A18; /* texto principal */
   --nevoa:     #6F645B; /* apenas texto secundário */
