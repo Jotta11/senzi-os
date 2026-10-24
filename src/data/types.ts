@@ -142,7 +142,8 @@ export type GarmentInput = {
   location: string
 }
 
-export type FitInput = Pick<Garment, 'fitRuns' | 'bustComfortCm' | 'waistMaxCm' | 'hipMaxCm' | 'hemHeelCm' | 'commonAlteration'>
+/** Caimento observado (FitModal) — inclui a observação de caimento da ficha. */
+export type FitInput = Pick<Garment, 'fitRuns' | 'bustComfortCm' | 'waistMaxCm' | 'hipMaxCm' | 'hemHeelCm' | 'commonAlteration' | 'fitNotes'>
 
 /* ------------------------------------------------------------------ clientes */
 

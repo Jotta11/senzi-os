@@ -3,8 +3,9 @@
  * e pelos formulários (que podem validar antes de enviar).
  */
 import { isValidCPF } from '@/lib/cpf'
+import { errorMessage } from '@/lib/errorMessages'
 import { onlyDigits } from '@/lib/format'
-import type { CustomerInput, GarmentInput, SourceIssue } from './types'
+import type { CustomerInput, FitInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -19,7 +20,60 @@ export function garmentIssues(input: Partial<GarmentInput>, partial = false): So
     const v = input[k]
     if (v != null && !(Number.isFinite(v) && v >= 0)) out.push({ code: 'PARAMETRO_INVALIDO', field: k })
   }
+  const c = input.cleaningDays
+  if (c != null && !(Number.isInteger(c) && c >= 0 && c <= CLEANING_MAX)) out.push({ code: 'PARAMETRO_INVALIDO', field: 'cleaningDays' })
   return out
+}
+
+/** Limite de fotos por peça (prévia e banco). */
+export const MAX_PHOTOS = 10
+
+/** Dias de higienização próprios da peça: 0–15 (protótipo). */
+export const CLEANING_MAX = 15
+
+/** Faixas aceitas (cm) para caimento e medidas da peça — formulário e fonte usam as mesmas. */
+export const CM_RANGES: Record<string, readonly [number, number]> = {
+  bustComfortCm: [0, 300],
+  waistMaxCm: [0, 300],
+  hipMaxCm: [0, 300],
+  hemHeelCm: [0, 20],
+  bustCm: [0, 300],
+  waistCm: [0, 300],
+  hipCm: [0, 300],
+  shoulderCm: [0, 300],
+  totalLengthCm: [0, 300],
+  hemAllowanceCm: [0, 20],
+}
+
+function rangeIssues(input: Record<string, unknown>): SourceIssue[] {
+  const out: SourceIssue[] = []
+  for (const [k, v] of Object.entries(input)) {
+    const r = CM_RANGES[k]
+    if (!r || v == null) continue
+    if (!(typeof v === 'number' && Number.isFinite(v) && v >= r[0] && v <= r[1])) out.push({ code: 'PARAMETRO_INVALIDO', field: k })
+  }
+  return out
+}
+
+/** Problemas do caimento observado (só os campos enviados). */
+export function fitIssues(input: Partial<FitInput>): SourceIssue[] {
+  return rangeIssues(input)
+}
+
+/** Problemas das medidas da peça (só os campos enviados). */
+export function measurementIssues(input: Partial<GarmentMeasurement>): SourceIssue[] {
+  return rangeIssues(input)
+}
+
+/** Mensagem pt-BR de um problema para mostrar no campo (faixas de cm, custos, dias de higienização). */
+export function issueMessage(issue: SourceIssue): string {
+  if (issue.code === 'PARAMETRO_INVALIDO' && issue.field) {
+    const r = CM_RANGES[issue.field]
+    if (r) return `Informe um valor entre ${r[0]} e ${r[1]} cm.`
+    if (issue.field === 'acquisitionCost' || issue.field === 'retailReference') return 'Informe um valor igual ou maior que zero.'
+    if (issue.field === 'cleaningDays') return `Informe de 0 a ${CLEANING_MAX} dias (ou deixe em branco para herdar da categoria).`
+  }
+  return errorMessage(issue.code)
 }
 
 /**

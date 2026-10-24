@@ -119,6 +119,8 @@ img { max-width: 100%; }
   background: var(--papel); border-color: var(--areia); color: var(--nevoa); cursor: not-allowed;
 }
 .field textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
+/* exemplo, não valor: mais claro que o texto digitado */
+.field ::placeholder { color: color-mix(in srgb, var(--nevoa) 62%, var(--surface)); opacity: 1; }
 .field .hint { font-size: 11px; color: var(--nevoa); }
 .field .error { font-size: 11.5px; font-weight: 600; color: var(--t-red); }
 .field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--t-red); }
@@ -132,6 +134,9 @@ img { max-width: 100%; }
 .note.red   { color: var(--t-red);   background: var(--t-red-bg);   border-color: var(--t-red-line); }
 .note.amber { color: var(--t-amber); background: var(--t-amber-bg); border-color: var(--t-amber-line); }
 .note.green { color: var(--t-green); background: var(--t-green-bg); border-color: var(--t-green-line); }
+.note.info  { color: var(--tinta);   background: var(--surface-2);  border-color: var(--areia); }
+.note.info svg { color: var(--nevoa); }
+.note b { font-weight: 650; }
 
 /* ----------------------------------------------------------- layout util */
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -171,7 +176,10 @@ hr.sep { border: none; border-top: 1px solid var(--areia); margin: 0; }
 .modal-md { max-width: 620px; }
 .modal-lg { max-width: 880px; }
 .modal-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--areia); }
+.modal:focus { outline: none; }
+.modal-tt { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .modal-h h2 { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.1; }
+.modal-sub { font-size: 12.5px; color: var(--nevoa); }
 .modal-h .icon-btn { margin-left: auto; }
 .modal-b { padding: 18px; overflow-y: auto; }
 .modal-f { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--areia); }

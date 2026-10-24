@@ -329,4 +329,26 @@ describe('mockSource — clientes', () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a))
     expect(await src.recommend(mariana.id, 3)).toHaveLength(3)
   })
+
+  it('caimento, medidas, higienização e fotos: faixas e limites (PARAMETRO_INVALIDO no campo)', async () => {
+    const src = newSource()
+    const g = await garmentByCode(src, 'SZ-0107')
+    const field = async (p: Promise<unknown>) => {
+      const e = await p.then(() => null, (err: unknown) => err)
+      expect(e).toBeInstanceOf(SourceError)
+      return (e as SourceError).field
+    }
+    expect(await field(src.updateFit(g.id, { bustComfortCm: 301 }))).toBe('bustComfortCm')
+    expect(await field(src.updateFit(g.id, { hemHeelCm: 21 }))).toBe('hemHeelCm')
+    expect(await field(src.updateFit(g.id, { waistMaxCm: -1 }))).toBe('waistMaxCm')
+    expect((await src.updateFit(g.id, { hemHeelCm: 20, fitNotes: 'Ok' })).hemHeelCm).toBe(20)
+    expect(await field(src.updateMeasurement(g.id, { hemAllowanceCm: 25 }))).toBe('hemAllowanceCm')
+    expect(await field(src.updateMeasurement(g.id, { totalLengthCm: 400 }))).toBe('totalLengthCm')
+    expect(await field(src.updateGarment(g.id, { cleaningDays: 16 }))).toBe('cleaningDays')
+
+    expect(await field(src.addPhoto(g.id, new Blob(['x'], { type: 'application/pdf' }), 'frente'))).toBe('file')
+    for (let i = 0; i < 10; i++) await src.addPhoto(g.id, new Blob(['x'], { type: 'image/png' }), 'frente')
+    expect(await field(src.addPhoto(g.id, new Blob(['x'], { type: 'image/png' }), 'frente'))).toBe('photos')
+    expect((await src.getGarment(g.id))!.photos).toHaveLength(10)
+  })
 })

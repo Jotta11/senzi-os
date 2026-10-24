@@ -8,6 +8,7 @@ import { brl } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, Chips, DataTable, EmptyState, SearchInput, type ChipOption, type Column } from '@/ui'
 import { GarmentCard } from './GarmentCard'
+import { GarmentForm } from './GarmentForm'
 import './acervo.css'
 
 export const PAGE_SIZE = 24
@@ -44,7 +45,8 @@ const times = (n: number) => `${n.toLocaleString('pt-BR', { minimumFractionDigit
  * Acervo — lista (protótipo `UI.VIEWS.acervo`). Filtros na URL (`?q=&cat=&st=&tam=`), Galeria/Lista em
  * `localStorage` (`?view=lista|galeria` força um modo sem gravar), 24 por página com "Carregar mais".
  * Custos (investidos, Receita, Payback) só com `acervo.cost` — sem ela a fonte nem é consultada.
- * "Nova peça" (`acervo.create`) põe `?nova=1` na URL; o formulário que lê esse parâmetro vem na Task 3.
+ * "Nova peça" (`acervo.create`) põe `?nova=1` na URL, que abre o formulário (fechar tira o parâmetro; cadastrar
+ * navega para a ficha da peça nova).
  */
 export function AcervoListPage() {
   const { can } = usePermissions()
@@ -120,6 +122,7 @@ export function AcervoListPage() {
   ]
   const sizeOptions: ChipOption<string>[] = [{ value: '', label: 'Todos' }, ...SIZE_FILTERS.map((z) => ({ value: z, label: z }))]
 
+  const creating = params.get('nova') === '1' && can('acervo.create')
   const loading = !search.data
   const toGarment = (g: Garment) => href(`/acervo/${g.id}`)
 
@@ -227,6 +230,8 @@ export function AcervoListPage() {
           </div>
         )}
       </div>
+
+      <GarmentForm open={creating} onClose={() => setParam('nova', null)} onCreated={(g) => navigate(toGarment(g))} />
     </div>
   )
 }
@@ -273,7 +278,8 @@ function columns(canCost: boolean, econ: Map<string, GarmentEconomics>, to: (g: 
         align: 'right',
         render: (g) => {
           const e = econ.get(g.id)
-          if (!e || e.payback == null) return '—'
+          // sem locações não há payback a mostrar ("0,0×" sugeria um cálculo que não existe)
+          if (!e || e.payback == null || e.rentals === 0) return '—'
           return <span className={e.paidBack ? 'ac-paid' : undefined}>{times(e.payback)}</span>
         },
       },

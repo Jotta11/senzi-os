@@ -18,7 +18,7 @@ import {
   type Recommendation,
   type SourceIssue,
 } from './types'
-import { customerIssues, garmentIssues } from './validation'
+import { customerIssues, fitIssues, garmentIssues, MAX_PHOTOS, measurementIssues } from './validation'
 
 export type MockSourceOptions = {
   /** Latência simulada em ms (padrão 150; use 0 nos testes). */
@@ -248,11 +248,19 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
         return g
       }),
 
-    updateFit: (id, input) => run(() => Object.assign(garment(id), input)),
+    updateFit: (id, input) =>
+      run(() => {
+        const g = garment(id)
+        const issues = fitIssues(input)
+        if (issues.length) fail(issues)
+        return Object.assign(g, input)
+      }),
 
     updateMeasurement: (id, input) =>
       run(() => {
         const g = garment(id)
+        const issues = measurementIssues(input)
+        if (issues.length) fail(issues)
         g.measurement = { ...g.measurement, ...input }
         return g
       }),
@@ -260,6 +268,8 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
     addPhoto: (id, file, kind) =>
       run(() => {
         const g = garment(id)
+        if (!file.type.startsWith('image/')) fail([{ code: 'PARAMETRO_INVALIDO', field: 'file' }])
+        if (g.photos.length >= MAX_PHOTOS) fail([{ code: 'PARAMETRO_INVALIDO', field: 'photos' }])
         const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `blob:preview/${newId('foto')}`
         g.photos.push({ id: newId('foto'), kind, url, isCover: g.photos.length === 0 })
         return g

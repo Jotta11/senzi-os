@@ -45,6 +45,34 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(abrir).toHaveFocus()
   })
+
+  it('clicar em texto do modal não solta o foco: Escape fecha e Tab continua preso', async () => {
+    const user = userEvent.setup()
+    render(<ModalHarness />)
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+    const dialog = screen.getByRole('dialog', { name: 'Nova peça' })
+    await user.click(screen.getByRole('heading', { name: 'Nova peça' }))
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    await user.tab({ shift: true })
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    await user.click(screen.getByRole('heading', { name: 'Nova peça' }))
+    await user.tab()
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    await user.click(screen.getByRole('heading', { name: 'Nova peça' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('trava a rolagem da página enquanto aberto e restaura ao fechar', async () => {
+    const user = userEvent.setup()
+    document.body.style.overflow = 'auto'
+    render(<ModalHarness />)
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+    expect(document.body.style.overflow).toBe('hidden')
+    await user.keyboard('{Escape}')
+    expect(document.body.style.overflow).toBe('auto')
+    document.body.style.overflow = ''
+  })
 })
 
 describe('Tabs', () => {

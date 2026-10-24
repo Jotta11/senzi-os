@@ -1,0 +1,219 @@
+/* =====================================================================
+   Acervo — ficha da peça (protótipo `garmentDetail`/`calendarPane`)
+   Mesma linguagem da lista: cards brancos com borda Areia, tons de
+   status dessaturados; o Cranberry Vivo só em links, foco e "hoje".
+   ===================================================================== */
+
+.gp-head { align-items: flex-end; }
+.gp-back {
+  display: inline-flex; align-items: center; gap: 3px; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--nevoa);
+}
+.gp-back:hover { color: var(--vivo); text-decoration: none; }
+.gp-head .ac-sub { font-family: var(--f-mono); font-size: 12px; letter-spacing: .02em; }
+
+.gp-profile { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; align-items: start; }
+.gp-main { min-width: 0; }
+.gp-main .tabs { margin-top: 0; }
+.gp-stack { display: flex; flex-direction: column; gap: 16px; }
+.gp-stack-sm { display: flex; flex-direction: column; gap: 13px; }
+.gp-h-note { min-width: 0; }
+
+/* ------------------------------------------------------- cartão lateral */
+.gp-side { overflow: hidden; position: sticky; top: 20px; }
+.gp-side-ph {
+  aspect-ratio: 3 / 4; overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 38%, rgba(255, 255, 255, .7), transparent 70%),
+    color-mix(in srgb, var(--tint, var(--areia)) 11%, var(--surface-2));
+  border-bottom: 1px solid color-mix(in srgb, var(--tint, var(--areia)) 14%, var(--areia));
+}
+.gp-side-ph .silhouette { width: 100%; height: 100%; border-radius: 0; padding: 22px 18px 6px; }
+.gp-side-ph .silhouette > rect { fill: transparent; }
+.gp-side-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gp-side-b { padding: 16px; display: flex; flex-direction: column; gap: 13px; }
+.gp-price { font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.gp-kv { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.gp-kv > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
+.gp-kv.wide > div { grid-template-columns: 180px minmax(0, 1fr); }
+.gp-kv dt { color: var(--nevoa); }
+.gp-kv dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.gp-color { display: inline-flex; align-items: center; gap: 6px; }
+.gp-color i { width: 11px; height: 11px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(28, 26, 24, .2); }
+.gp-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 24px; }
+
+/* ------------------------------------------------------------ calendário */
+.gp-cal-b { display: flex; flex-direction: column; gap: 20px; }
+.gp-strip-h { margin-bottom: 7px; }
+.gp-strip { display: flex; gap: 2px; }
+.gp-strip .s { flex: 1; min-width: 3px; height: 28px; border-radius: 2px; background: var(--surface-2); }
+.gp-strip .s:first-child { border-radius: 5px 2px 2px 5px; }
+.gp-strip .s:last-child { border-radius: 2px 5px 5px 2px; }
+.gp-strip-f { margin-top: 5px; }
+
+.gp-months { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.gp-month-t { margin-bottom: 8px; }
+.gp-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.gp-cal .dow {
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--nevoa); text-align: center; padding-bottom: 4px;
+}
+.gp-cal .d {
+  aspect-ratio: 1 / .82; min-width: 0; border-radius: var(--r-sm); border: 1px solid var(--areia);
+  background: var(--surface); padding: 3px 5px; display: flex; flex-direction: column; gap: 1px; overflow: hidden;
+}
+.gp-cal .d.pad { background: transparent; border-color: transparent; }
+.gp-cal .d .n { font-size: 11px; font-weight: 600; color: var(--nevoa); font-variant-numeric: tabular-nums; }
+.gp-cal .d .tag { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; line-height: 1.3; }
+
+/* tons compartilhados por calendário, faixa, legenda e linha do tempo */
+.gp-cal .d[data-tone="green"]  { background: var(--t-green-bg);  border-color: var(--t-green-line); }
+.gp-cal .d[data-tone="wine"]   { background: var(--t-wine-bg);   border-color: var(--t-wine-line); }
+.gp-cal .d[data-tone="amber"]  { background: var(--t-amber-bg);  border-color: var(--t-amber-line); }
+.gp-cal .d[data-tone="indigo"] { background: var(--t-indigo-bg); border-color: var(--t-indigo-line); }
+.gp-cal .d[data-tone="teal"]   { background: var(--t-teal-bg);   border-color: var(--t-teal-line); }
+.gp-cal .d[data-tone="ochre"]  { background: var(--t-ochre-bg);  border-color: var(--t-ochre-line); }
+.gp-cal .d[data-tone="stone"]  { background: var(--t-stone-bg);  border-color: var(--t-stone-line); }
+.gp-cal .d[data-tone="green"]  :is(.tag, .n) { color: var(--t-green); }
+.gp-cal .d[data-tone="wine"]   :is(.tag, .n) { color: var(--t-wine); }
+.gp-cal .d[data-tone="amber"]  :is(.tag, .n) { color: var(--t-amber); }
+.gp-cal .d[data-tone="indigo"] :is(.tag, .n) { color: var(--t-indigo); }
+.gp-cal .d[data-tone="teal"]   :is(.tag, .n) { color: var(--t-teal); }
+.gp-cal .d[data-tone="ochre"]  :is(.tag, .n) { color: var(--t-ochre); }
+.gp-cal .d[data-tone="stone"]  :is(.tag, .n) { color: var(--t-stone); }
+.gp-cal .d.today { box-shadow: inset 0 0 0 1.5px var(--vivo); }
+.gp-cal .d.today .n { color: var(--vivo); }
+
+.gp-strip .s[data-tone="green"],  .gp-legend i[data-tone="green"]  { background: var(--t-green-line); }
+.gp-strip .s[data-tone="wine"],   .gp-legend i[data-tone="wine"]   { background: var(--t-wine-line); }
+.gp-strip .s[data-tone="amber"],  .gp-legend i[data-tone="amber"]  { background: var(--t-amber-line); }
+.gp-strip .s[data-tone="indigo"], .gp-legend i[data-tone="indigo"] { background: var(--t-indigo-line); }
+.gp-strip .s[data-tone="teal"],   .gp-legend i[data-tone="teal"]   { background: var(--t-teal-line); }
+.gp-strip .s[data-tone="ochre"],  .gp-legend i[data-tone="ochre"]  { background: var(--t-ochre-line); }
+.gp-strip .s[data-tone="stone"],  .gp-legend i[data-tone="stone"]  { background: var(--t-stone-line); }
+
+.gp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 11.5px; color: var(--nevoa); }
+.gp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.gp-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.gp-sec-t { margin-bottom: 8px; }
+.gp-tbl { border: 1px solid var(--areia); border-radius: var(--r-md); overflow: hidden; }
+.gp-td-period { font-size: 12px; white-space: nowrap; }
+.gp-td-ref { font-size: 12.5px; color: var(--tinta); }
+.gp-none { font-size: 13px; }
+
+/* ----------------------------------------------------------------- fotos */
+.gp-ph-actions { flex-wrap: wrap; }
+.gp-select {
+  background: var(--surface); border: 1px solid var(--areia-2); border-radius: var(--r-md);
+  padding: 4px 8px; font-size: 12px; color: var(--tinta);
+}
+.gp-select:focus { outline: none; border-color: var(--vivo); box-shadow: 0 0 0 3px var(--vivo-soft); }
+label.btn { cursor: pointer; }
+label.btn:focus-within { outline: 2px solid var(--vivo); outline-offset: 2px; }
+label.btn.is-disabled { opacity: .45; cursor: not-allowed; }
+.gp-ph-b { display: flex; flex-direction: column; gap: 14px; }
+.gp-ph-empty { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 8px; }
+.gp-ph-sil { width: 150px; opacity: .55; }
+.gp-ph-sil .silhouette > rect { fill: transparent; }
+.gp-ph-empty .empty-state { align-items: flex-start; text-align: left; padding: 16px 8px; }
+.gp-photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.gp-photo { border: 1px solid var(--areia); border-radius: var(--r-md); overflow: hidden; background: var(--surface); display: flex; flex-direction: column; }
+.gp-photo.is-cover { border-color: var(--vivo-line); box-shadow: 0 0 0 2px var(--vivo-soft); }
+.gp-photo-img { position: relative; aspect-ratio: 3 / 4; background: var(--surface-2); }
+.gp-photo-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gp-photo-cover { position: absolute; left: 8px; top: 8px; }
+.gp-photo-f { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 6px 6px 10px; border-top: 1px solid var(--areia); min-height: 38px; }
+.gp-photo-btns { display: inline-flex; align-items: center; gap: 2px; }
+
+/* ------------------------------------------------------- linha do tempo */
+.gp-tline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gp-tline .ev { display: grid; grid-template-columns: 86px 16px minmax(0, 1fr); gap: 10px; align-items: start; }
+.gp-tline .dt { font-family: var(--f-mono); font-size: 11px; color: var(--nevoa); padding-top: 9px; }
+.gp-tline .ln { position: relative; display: flex; justify-content: center; align-self: stretch; }
+.gp-tline .ln::before { content: ""; position: absolute; top: 0; bottom: 0; width: 1px; background: var(--areia); }
+.gp-tline .ev:first-child .ln::before { top: 13px; }
+.gp-tline .ev:last-child .ln::before { bottom: auto; height: 13px; }
+.gp-tline .ev:only-child .ln::before { display: none; }
+.gp-tline .ln i { position: relative; width: 8px; height: 8px; border-radius: 50%; margin-top: 13px; background: var(--areia-2); box-shadow: 0 0 0 3px var(--surface); }
+.gp-tline i[data-tone="green"]  { background: var(--t-green); }
+.gp-tline i[data-tone="wine"]   { background: var(--t-wine); }
+.gp-tline i[data-tone="amber"]  { background: var(--t-amber); }
+.gp-tline i[data-tone="indigo"] { background: var(--t-indigo); }
+.gp-tline i[data-tone="teal"]   { background: var(--t-teal); }
+.gp-tline i[data-tone="ochre"]  { background: var(--t-ochre); }
+.gp-tline i[data-tone="stone"]  { background: var(--t-stone); }
+.gp-tline .bd { padding: 7px 0 11px; font-size: 13px; display: flex; flex-direction: column; }
+.gp-tline .t2 { font-weight: 550; }
+.gp-tline .n2 { font-size: 12px; color: var(--nevoa); }
+
+/* ------------------------------------------------------------ financeiro */
+.gp-fin { display: flex; flex-direction: column; gap: 16px; }
+.gp-fin-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--areia); border-radius: var(--r-md); }
+.gp-fin-tiles > div { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.gp-fin-tiles > div + div { border-left: 1px solid var(--areia); }
+.gp-fin-tiles b { font-size: 30px; font-weight: 400; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gp-fin-lines { margin: 0; display: flex; flex-direction: column; gap: 9px; font-size: 13px; }
+.gp-fin-lines dd { margin: 0; font-weight: 600; }
+.gp-fin-result dt { font-weight: 600; }
+.gp-fin-result dd { font-size: 22px; font-weight: 400; }
+.gp-pos { color: var(--t-green); }
+.gp-neg { color: var(--t-red); }
+
+/* -------------------------------------------------------------- medidas */
+.gp-measures {
+  margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px;
+  background: var(--areia); border: 1px solid var(--areia); border-radius: var(--r-md); overflow: hidden;
+}
+.gp-measures > div { background: var(--surface); padding: 11px 13px; display: flex; flex-direction: column; gap: 2px; }
+.gp-measures dt { font-size: 11px; color: var(--nevoa); font-weight: 500; }
+.gp-measures dd { margin: 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ formulários */
+.gp-form { display: flex; flex-direction: column; gap: 14px; }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.fgrid.g3c { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fgrid .full { grid-column: 1 / -1; }
+.gf-tone-row { display: flex; align-items: center; gap: 10px; }
+.field.gf-tone input[type="color"] {
+  width: 52px; height: 34px; padding: 3px; border: 1px solid var(--areia-2); border-radius: var(--r-md);
+  background: var(--surface); cursor: pointer; flex: none;
+}
+
+/* ----------------------------------------------------------- esqueleto */
+.gp-skel { padding: 26px 32px; display: grid; grid-template-columns: 300px 1fr; gap: 22px; animation: ac-pulse 1.4s ease-in-out infinite; }
+.gp-skel i { display: block; height: 420px; border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--areia); }
+.gp-skel-card { min-height: 280px; }
+
+/* ----------------------------------------------------------- responsivo */
+@media (max-width: 1180px) {
+  .gp-profile { grid-template-columns: 260px minmax(0, 1fr); gap: 18px; }
+  .gp-measures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* tablet: cartão lateral vira faixa horizontal no topo, conteúdo em uma coluna */
+@media (max-width: 1024px) {
+  .gp-profile { grid-template-columns: minmax(0, 1fr); }
+  .gp-side { position: static; display: grid; grid-template-columns: 200px minmax(0, 1fr); }
+  .gp-side-ph { aspect-ratio: auto; min-height: 100%; border-bottom: none; border-right: 1px solid color-mix(in srgb, var(--tint, var(--areia)) 14%, var(--areia)); }
+  .gp-side-b .gp-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
+  .gp-side-b .gp-kv > div { grid-template-columns: 92px minmax(0, 1fr); }
+  .gp-skel { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .gp-two { grid-template-columns: 1fr; }
+  .gp-months { grid-template-columns: 1fr; }
+  .gp-measures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fgrid.g3c { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gp-kv.wide > div { grid-template-columns: 160px minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .gp-side { grid-template-columns: 1fr; }
+  .gp-side-ph { aspect-ratio: 4 / 3; border-right: none; border-bottom: 1px solid var(--areia); }
+  .gp-side-b .gp-kv { grid-template-columns: 1fr; }
+  .fgrid, .fgrid.g3c { grid-template-columns: 1fr; }
+  .gp-ph-empty { grid-template-columns: 1fr; justify-items: center; }
+  .gp-ph-empty .empty-state { align-items: center; text-align: center; }
+  .gp-fin-tiles { grid-template-columns: 1fr; }
+  .gp-fin-tiles > div + div { border-left: none; border-top: 1px solid var(--areia); }
+}
