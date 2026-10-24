@@ -44,7 +44,9 @@ export function ClientesListPage() {
 
   const q = params.get('q') ?? ''
   const ordemRaw = params.get('ordem')
-  const sort: CustomerSort = isSort(ordemRaw) ? ordemRaw : 'nome'
+  // "Maior gasto" expõe dinheiro: sem financeiro.view some o botão e `?ordem=gasto` cai em A–Z
+  const sorts = canMoney ? SORTS : SORTS.filter(([k]) => k !== 'gasto')
+  const sort: CustomerSort = isSort(ordemRaw) && (canMoney || ordemRaw !== 'gasto') ? ordemRaw : 'nome'
 
   const fkey = `${q}|${sort}`
   const [more, setMore] = useState({ key: fkey, pages: 1 })
@@ -106,7 +108,7 @@ export function ClientesListPage() {
               placeholder="Nome, telefone, Instagram, CPF ou código…"
             />
             <div className="ac-seg" role="group" aria-label="Ordenar por">
-              {SORTS.map(([k, l]) => (
+              {sorts.map(([k, l]) => (
                 <button key={k} type="button" aria-pressed={sort === k} onClick={() => setParam('ordem', k === 'nome' ? null : k, true)}>
                   {l}
                 </button>

@@ -83,7 +83,35 @@ describe('Cadastro de cliente', () => {
     expect(input(dlg, /^CPF/).value).toBe('529.982.247-25')
   })
 
-  it('CPF "111.111.111-11" → "CPF inválido."; telefone sem DDD e nascimento futuro acusam no campo', async () => {
+  it('Enter na busca do modelo ideal não envia o cadastro', async () => {
+    const src = newSource()
+    const create = vi.spyOn(src, 'createCustomer')
+    renderNova(undefined, src)
+    const dlg = await dialog()
+    await userEvent.type(within(dlg).getByRole('searchbox', { name: 'Buscar peça do acervo' }), 'verona{Enter}')
+    await within(dlg).findByRole('button', { name: /SZ-0107.*Vestido Verona/ })
+    expect(create).not.toHaveBeenCalled()
+    expect(errorOf(input(dlg, /^Nome completo/))).toBe('')
+    expect(errorOf(input(dlg, /^CPF/))).toBe('Exigido no contrato') // só a dica, sem erro
+    expect(within(dlg).queryAllByRole('alert')).toHaveLength(0)
+  })
+
+  it('telefone colado com DDI (+55) perde o 55', async () => {
+    const src = newSource()
+    const create = vi.spyOn(src, 'createCustomer')
+    renderNova(undefined, src)
+    const dlg = await dialog()
+    const user = await fillRequired(dlg)
+    await user.clear(input(dlg, /^Telefone/))
+    await user.click(input(dlg, /^Telefone/))
+    await user.paste('+55 63 99612-4478')
+    expect(input(dlg, /^Telefone/).value).toBe('(63) 99612-4478')
+    await user.click(within(dlg).getByRole('button', { name: 'Cadastrar cliente' }))
+    await waitFor(() => expect(create).toHaveBeenCalled())
+    expect(create.mock.calls[0]![0].phone).toBe('63996124478')
+  })
+
+  it('CPF "111.111.111-11" →"CPF inválido."; telefone sem DDD e nascimento futuro acusam no campo', async () => {
     const src = newSource()
     const create = vi.spyOn(src, 'createCustomer')
     renderNova(undefined, src)

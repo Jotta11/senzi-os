@@ -149,6 +149,28 @@ describe('Clientes — lista', () => {
     }
   })
 
+  it('sem financeiro.view não há "Maior gasto" e ?ordem=gasto cai em A–Z', async () => {
+    const src = newSource()
+    const spy = vi.spyOn(src, 'searchCustomers')
+    const router = createMemoryRouter([{ path: '/preview/clientes', element: <ClientesListPage /> }], { initialEntries: ['/preview/clientes?ordem=gasto'] })
+    render(
+      <QueryClientProvider client={newClient()}>
+        <DataSourceProvider source={src}>
+          <PreviewPermissionsProvider revoke={['financeiro.view']}>
+            <AppPathContext.Provider value="/preview">
+              <RouterProvider router={router} />
+            </AppPathContext.Provider>
+          </PreviewPermissionsProvider>
+        </DataSourceProvider>
+      </QueryClientProvider>,
+    )
+    const seg = await screen.findByRole('group', { name: 'Ordenar por' })
+    expect(within(seg).getAllByRole('button').map((b) => b.textContent)).toEqual(['A–Z', 'Mais locações', 'Mais recentes'])
+    expect(within(seg).getByRole('button', { name: 'A–Z' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(async () => expect(await firstName()).toBe('Adriana Sales'))
+    expect(spy.mock.calls.some((c) => c[1] === 'gasto')).toBe(false)
+  })
+
   it('clicar na linha (ou no nome) navega para a ficha', async () => {
     const { router } = renderPage()
     const link = await within(await table()).findByRole('link', { name: 'Mariana Fontes Ribeiro' })

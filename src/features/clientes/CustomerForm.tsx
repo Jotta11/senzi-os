@@ -110,6 +110,13 @@ function initial(c: Customer | undefined, ideal: string | null) {
 type Values = ReturnType<typeof initial>
 type TextKey = { [K in keyof Values]: Values[K] extends string ? K : never }[keyof Values]
 
+/** Dígitos do telefone; colado com DDI (+55 …, 12–13 dígitos) perde o 55. */
+function phoneDigits(s: string): string {
+  let d = onlyDigits(s)
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2)
+  return d.slice(0, 11)
+}
+
 const orNull = (s: string) => s.trim() || null
 const instagramOf = (s: string) => (s.trim() ? `@${s.trim().replace(/^@+/, '')}` : null)
 
@@ -248,7 +255,7 @@ function CustomerFields({
             placeholder="(63) 99612-4478"
             {...f('phone')}
             value={maskPhone(v.phone)}
-            onChange={(e) => put('phone', onlyDigits(e.target.value).slice(0, 11))}
+            onChange={(e) => put('phone', phoneDigits(e.target.value))}
           />
           <Field label="Data de nascimento *" type="date" max={todayISO()} {...f('birthDate')} />
           <Field

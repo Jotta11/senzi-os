@@ -86,7 +86,13 @@ function GarmentSearch({ onPick }: { onPick(g: Garment): void }) {
   const items = search.data?.items ?? []
   const total = search.data?.total ?? 0
   return (
-    <div className="ig-search">
+    // a busca fica dentro do <form> da cliente: Enter aqui não pode enviar o cadastro
+    <div
+      className="ig-search"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.target instanceof HTMLInputElement) e.preventDefault()
+      }}
+    >
       <SearchInput value={q} onChange={(v) => setQ(v.trim())} label="Buscar peça do acervo" placeholder="Código, nome, cor ou tecido da peça que vestiu bem nela…" />
       {search.data && items.length === 0 ? (
         <p className="ig-empty muted">Nenhuma peça encontrada para “{q}”.</p>
