@@ -6,6 +6,7 @@ import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
+import { ReservasListPage } from '@/features/reservas/ReservasListPage'
 import { PREVIEW_BASE } from './paths'
 import { PreviewComingSoon } from './PreviewComingSoon'
 import { PreviewLayout } from './PreviewLayout'
@@ -27,6 +28,7 @@ export const previewRoutes: RouteObject = {
     { path: 'clientes/:id', element: <CustomerPage /> },
     { path: 'provas', element: <ProvasListPage /> },
     { path: 'provas/:id', element: <FittingPage /> },
+    { path: 'reservas', element: <ReservasListPage /> },
     { path: '*', element: <PreviewComingSoon /> },
   ],
 }

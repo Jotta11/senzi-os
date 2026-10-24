@@ -134,7 +134,7 @@ function Ficha({ garment: g }: { garment: Garment }) {
             </Button>
           )}
           {can('reserva.create') && (
-            <Link to={href('/reservas')} className={buttonClass('primary')}>
+            <Link to={href(`/reservas?nova=1&peca=${g.id}`)} className={buttonClass('primary')}>
               <Icon name="plus" size={15} /> Reservar
             </Link>
           )}

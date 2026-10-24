@@ -7,7 +7,7 @@ import { CHANNEL_LABEL, GARMENT_STATE, LEAD_SOURCE_LABEL, LENGTH_LABEL } from '@
 import type { Customer, CustomerFavorite, CustomerMeasurement } from '@/data/types'
 import { ageFrom, brl, dateBR, hideCPF, maskCPF, maskPhone, onlyDigits } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, type TabItem } from '@/ui'
+import { Badge, Button, buttonClass, EmptyState, Icon, Silhouette, Tabs, type TabItem } from '@/ui'
 import { CustomerFittingsPane } from '../provas/FittingPanes'
 import { CustomerForm } from './CustomerForm'
 import { initials } from './initials'
@@ -143,6 +143,11 @@ function Ficha({ customer: c }: { customer: Customer }) {
           </p>
         </div>
         <div className="ac-actions">
+          {can('reserva.create') && (
+            <Link to={href(`/reservas?nova=1&cliente=${c.id}`)} className={buttonClass('primary')}>
+              <Icon name="plus" size={15} /> Nova reserva
+            </Link>
+          )}
           {canNote && (
             <Button icon="editar" onClick={() => setDialog('note')}>
               Observação
