@@ -7,6 +7,7 @@ import type { Garment } from '@/data/types'
 import { brl, dateBR, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, buttonClass, type TabItem } from '@/ui'
+import { GarmentFittingsPane } from '../provas/FittingPanes'
 import { BlockModal } from './BlockModal'
 import { CalendarPane } from './CalendarPane'
 import { STRIP_DAYS, freeDays } from './calendarDays'
@@ -17,7 +18,7 @@ import { PhotosPanel } from './PhotosPanel'
 import './acervo.css'
 import './garment.css'
 
-type TabKey = 'calendario' | 'fotos' | 'historico' | 'financeiro' | 'medidas'
+type TabKey = 'calendario' | 'fotos' | 'historico' | 'provas' | 'financeiro' | 'medidas'
 type Dialog = 'edit' | 'block' | 'fit' | 'measure' | null
 
 const cm = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} cm`)
@@ -26,7 +27,7 @@ const dash = (s: string | null | undefined) => (s && s.trim() ? s : '—')
 
 /**
  * Ficha da peça (protótipo `garmentDetail`): cabeçalho `código · categoria · marca` com Bloquear/Editar, cartão
- * lateral e abas Calendário, Fotos, Histórico, Financeiro (só `acervo.cost`) e Caimento e medidas.
+ * lateral e abas Calendário, Fotos, Histórico, Provas, Financeiro (só `acervo.cost`) e Caimento e medidas.
  * A aba ativa fica na URL (`?aba=`), então dá para compartilhar o link direto de uma aba.
  */
 export function GarmentPage() {
@@ -86,6 +87,7 @@ function Ficha({ garment: g }: { garment: Garment }) {
     { key: 'calendario', label: 'Calendário', content: () => <CalendarPane garment={g} /> },
     { key: 'fotos', label: 'Fotos', content: () => <PhotosPanel garment={g} /> },
     { key: 'historico', label: 'Histórico', content: () => <HistoryPane garment={g} /> },
+    ...(can('prova.view') ? [{ key: 'provas', label: 'Provas', content: () => <GarmentFittingsPane garment={g} /> }] : []),
     ...(canCost ? [{ key: 'financeiro', label: 'Financeiro', content: () => <FinancePane garment={g} /> }] : []),
     {
       key: 'medidas',

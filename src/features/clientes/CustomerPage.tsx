@@ -1,12 +1,14 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
+import { useCustomerFittings } from '@/data/hooks-agenda'
 import { useCustomer, useGarment, useSetFavorite, useSetNotePinned } from '@/data/hooks'
 import { CHANNEL_LABEL, GARMENT_STATE, LEAD_SOURCE_LABEL, LENGTH_LABEL } from '@/data/labels'
 import type { Customer, CustomerFavorite, CustomerMeasurement } from '@/data/types'
 import { ageFrom, brl, dateBR, hideCPF, maskCPF, maskPhone, onlyDigits } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, type TabItem } from '@/ui'
+import { CustomerFittingsPane } from '../provas/FittingPanes'
 import { CustomerForm } from './CustomerForm'
 import { initials } from './initials'
 import { MeasureModal } from './MeasureModal'
@@ -17,7 +19,7 @@ import '../acervo/garment.css'
 import './clientes.css'
 import './customer.css'
 
-type TabKey = 'memoria' | 'medidas' | 'favoritos'
+type TabKey = 'memoria' | 'medidas' | 'favoritos' | 'provas'
 type Dialog = 'note' | 'edit' | 'measure' | null
 
 const dash = (s: string | null | undefined) => (s && s.trim() ? s : '—')
@@ -86,6 +88,7 @@ function Ficha({ customer: c }: { customer: Customer }) {
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<Dialog>(null)
   const close = () => setDialog(null)
+  const fittings = useCustomerFittings(c.id)
 
   const tabs: TabItem[] = [
     {
@@ -103,6 +106,9 @@ function Ficha({ customer: c }: { customer: Customer }) {
       label: <TabLabel n={c.favorites.length}>Favoritos</TabLabel>,
       content: () => <FavoritesPane customer={c} canEdit={canEdit} />,
     },
+    ...(can('prova.view')
+      ? [{ key: 'provas', label: <TabLabel n={fittings.data?.length ?? 0}>Provas</TabLabel>, content: () => <CustomerFittingsPane customerId={c.id} /> }]
+      : []),
   ]
   const aba = params.get('aba')
   const selected = tabs.some((t) => t.key === aba) ? (aba as TabKey) : 'memoria'

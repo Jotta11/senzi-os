@@ -4,6 +4,8 @@ import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
+import { FittingPage } from '@/features/provas/FittingPage'
+import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { PREVIEW_BASE } from './paths'
 import { PreviewComingSoon } from './PreviewComingSoon'
 import { PreviewLayout } from './PreviewLayout'
@@ -23,6 +25,8 @@ export const previewRoutes: RouteObject = {
     { path: 'agenda', element: <AgendaPage /> },
     { path: 'clientes', element: <ClientesListPage /> },
     { path: 'clientes/:id', element: <CustomerPage /> },
+    { path: 'provas', element: <ProvasListPage /> },
+    { path: 'provas/:id', element: <FittingPage /> },
     { path: '*', element: <PreviewComingSoon /> },
   ],
 }

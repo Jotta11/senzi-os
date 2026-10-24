@@ -83,3 +83,10 @@ export function addDays(iso: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
+
+/** Dígitos do telefone; colado com DDI (+55 …, 12–13 dígitos) perde o 55. */
+export function phoneDigits(s: string): string {
+  let d = onlyDigits(s)
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2)
+  return d.slice(0, 11)
+}

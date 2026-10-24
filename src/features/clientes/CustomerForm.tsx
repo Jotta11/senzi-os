@@ -3,7 +3,7 @@ import { useCreateCustomer, useUpdateCustomer } from '@/data/hooks'
 import { LEAD_SOURCE_LABEL, LENGTH_LABEL, SIZES } from '@/data/labels'
 import type { Customer, CustomerInput, CustomerMeasurementInput, GarmentLength, IdealMeasurements, LeadSource, SizeEquiv } from '@/data/types'
 import { customerIssues } from '@/data/validation'
-import { maskCPF, maskPhone, onlyDigits, todayISO } from '@/lib/format'
+import { maskCPF, maskPhone, onlyDigits, phoneDigits, todayISO } from '@/lib/format'
 import { Button, Field, Icon, Modal } from '@/ui'
 import { issuesToErrors, NO_ERRORS, numOrNull, sourceErrors, str, type FormErrors } from '../acervo/formErrors'
 import { IdealGarmentPicker } from './IdealGarmentPicker'
@@ -110,13 +110,6 @@ function initial(c: Customer | undefined, ideal: string | null) {
 }
 type Values = ReturnType<typeof initial>
 type TextKey = { [K in keyof Values]: Values[K] extends string ? K : never }[keyof Values]
-
-/** Dígitos do telefone; colado com DDI (+55 …, 12–13 dígitos) perde o 55. */
-function phoneDigits(s: string): string {
-  let d = onlyDigits(s)
-  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2)
-  return d.slice(0, 11)
-}
 
 const orNull = (s: string) => s.trim() || null
 const instagramOf = (s: string) => (s.trim() ? `@${s.trim().replace(/^@+/, '')}` : null)
