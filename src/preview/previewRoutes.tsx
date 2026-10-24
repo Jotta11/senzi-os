@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
+import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { ComingSoon } from '@/shell/ComingSoon'
 import { PREVIEW_BASE } from './paths'
 import { PreviewComingSoon } from './PreviewComingSoon'
@@ -18,8 +19,7 @@ export const previewRoutes: RouteObject = {
     { index: true, element: <PreviewPage /> },
     { path: 'acervo', element: <AcervoListPage /> },
     { path: 'acervo/:id', element: <GarmentPage /> },
-    // TODO(Plano 2A Task 4): lista de clientes
-    { path: 'clientes', element: <ComingSoon title="Clientes" /> },
+    { path: 'clientes', element: <ClientesListPage /> },
     // TODO(Plano 2A Task 5): ficha da cliente
     { path: 'clientes/:id', element: <ComingSoon title="Ficha da cliente" /> },
     { path: '*', element: <PreviewComingSoon /> },

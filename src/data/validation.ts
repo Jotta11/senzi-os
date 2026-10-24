@@ -43,6 +43,7 @@ export const CM_RANGES: Record<string, readonly [number, number]> = {
   shoulderCm: [0, 300],
   totalLengthCm: [0, 300],
   hemAllowanceCm: [0, 20],
+  heightCm: [0, 300],
 }
 
 function rangeIssues(input: Record<string, unknown>): SourceIssue[] {
@@ -77,8 +78,18 @@ export function issueMessage(issue: SourceIssue): string {
 }
 
 /**
+ * Data `aaaa-mm-dd` que existe no calendário: ida e volta pelo `Date` em UTC (rejeita 31/02, 31/04, mês 13…;
+ * `Date.parse('2026-02-31')` sozinho aceita e "transborda" para março).
+ */
+export function isValidISODate(s: string | null | undefined): boolean {
+  if (!s || !ISO_DATE.test(s)) return false
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
+
+/**
  * Problemas de uma cliente, na ordem do formulário. `today` em `aaaa-mm-dd`.
- * Não checa duplicidade de CPF (isso depende dos dados).
+ * Não checa duplicidade de CPF (isso depende dos dados). Medidas enviadas (`measurement`) são checadas nas faixas de `CM_RANGES`.
  */
 export function customerIssues(input: Partial<CustomerInput>, today: string, partial = false): SourceIssue[] {
   const out: SourceIssue[] = []
@@ -90,9 +101,11 @@ export function customerIssues(input: Partial<CustomerInput>, today: string, par
   }
   if (has('birthDate')) {
     const b = input.birthDate ?? ''
-    if (!ISO_DATE.test(b) || Number.isNaN(Date.parse(b)) || b > today) out.push({ code: 'NASCIMENTO_INVALIDO', field: 'birthDate' })
+    if (!isValidISODate(b) || b > today) out.push({ code: 'NASCIMENTO_INVALIDO', field: 'birthDate' })
   }
   if (has('cpf') && !isValidCPF(input.cpf ?? '')) out.push({ code: 'CPF_INVALIDO', field: 'cpf' })
   if (input.email && !EMAIL_RE.test(input.email.trim())) out.push({ code: 'EMAIL_INVALIDO', field: 'email' })
+  // medidas (cm) que vierem junto: mesmas faixas da peça; altura até 300
+  if (input.measurement) out.push(...rangeIssues(input.measurement))
   return out
 }
