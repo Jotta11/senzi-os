@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
+import { CurrentUserNameContext } from '@/auth/useCurrentUserName'
 import { usePermissions } from '@/auth/usePermissions'
 import { createMockSource } from '@/data/mockSource'
 import { DataSourceProvider, type DataSource } from '@/data/source'
@@ -71,28 +72,30 @@ function Frame() {
   }, [role])
   const items = NAV.filter((n) => can(n.perm)).map((n) => ({ to: n.path, icon: n.icon, label: n.label }))
   return (
-    <div className="sb-app">
-      <Sidebar
-        search
-        items={items}
-        linkTo={previewHref}
-        footer={
-          <>
-            <span className="sb-av" aria-hidden="true">
-              {who.initials}
-            </span>
-            <span className="sb-who">
-              <b>{who.userName}</b>
-              <span>{who.label}</span>
-            </span>
-          </>
-        }
-      />
-      <main className="sb-content">
-        <PreviewBand />
-        <Outlet />
-      </main>
-    </div>
+    <CurrentUserNameContext.Provider value={who.userName}>
+      <div className="sb-app">
+        <Sidebar
+          search
+          items={items}
+          linkTo={previewHref}
+          footer={
+            <>
+              <span className="sb-av" aria-hidden="true">
+                {who.initials}
+              </span>
+              <span className="sb-who">
+                <b>{who.userName}</b>
+                <span>{who.label}</span>
+              </span>
+            </>
+          }
+        />
+        <main className="sb-content">
+          <PreviewBand />
+          <Outlet />
+        </main>
+      </div>
+    </CurrentUserNameContext.Provider>
   )
 }
 

@@ -1,11 +1,12 @@
-import { useContext } from 'react'
-import { PREVIEW_ROLES, PreviewRoleContext } from '@/preview/previewRole'
+import { createContext, useContext } from 'react'
 import { AuthContext } from './useAuth'
 
-/** Nome de quem está usando o sistema: o usuário logado ou, na prévia, o perfil escolhido em "Ver como". */
+/** Quem sobrepõe o nome do usuário atual (a prévia informa o perfil escolhido em "Ver como"). `null` = usar o login. */
+export const CurrentUserNameContext = createContext<string | null>(null)
+
+/** Nome de quem está usando o sistema: o informado pelo contexto ou, senão, o usuário logado. */
 export function useCurrentUserName(): string | null {
-  const preview = useContext(PreviewRoleContext)
+  const override = useContext(CurrentUserNameContext)
   const auth = useContext(AuthContext)
-  if (preview) return PREVIEW_ROLES.find((r) => r.role === preview.role)?.userName ?? null
-  return auth?.user?.full_name ?? null
+  return override ?? auth?.user?.full_name ?? null
 }
