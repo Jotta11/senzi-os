@@ -38,6 +38,8 @@ export function intelInsights(r: Omit<IntelReport, 'insights'>, base: IntelBase,
   // 2. cores que giram ≥ 2,5× por peça (2 mais locadas)
   for (const c of r.colors.slice(0, 2)) {
     if (c.inStock === 0) {
+      // sem peça ativa na cor (só baixadas): só vale como sinal com procura real
+      if (c.rentals < 3) continue
       add({
         id: 'cor-giro',
         tone: 'amber',

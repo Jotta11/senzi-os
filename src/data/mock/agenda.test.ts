@@ -95,7 +95,7 @@ describe('provas', () => {
   it('lista por filtro (scheduledAt desc) e KPIs batem com conversionRate', async () => {
     const src = newSource()
     const all = await src.listFittings('todas', ALL)
-    expect(all.total).toBe(17)
+    expect(all.total).toBe(27)
     const dates = all.items.map((f) => f.scheduledAt)
     expect([...dates].sort().reverse()).toEqual(dates)
     const abertas = await src.listFittings('abertas', ALL)
@@ -108,10 +108,10 @@ describe('provas', () => {
     expect(k.closed).toBe(c.closed)
     expect(k.converted).toBe(c.converted)
     expect(k.rate).toBe(c.rate ?? 0)
-    expect(k.total).toBe(17)
+    expect(k.total).toBe(27)
     expect(k.open).toBe(abertas.total)
-    expect(k.converted).toBe(9)
-    expect(k.lost).toBe(4)
+    expect(k.converted).toBe(17)
+    expect(k.lost).toBe(6)
   })
 
   it('getFitting traz itens com peça e favorito', async () => {

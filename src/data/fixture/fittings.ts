@@ -173,6 +173,31 @@ export function buildFittings(w: World, rng: Rng, refs: Record<string, Reservati
       ['Positano', 'nao_provou', null],
     ],
   })
+
+  // Provas antigas do acervo (sem sorteio): conversão variada por peça para a Inteligência. Convertida = a locação
+  // seguinte da peça (da própria cliente dessa locação); perdida = uma cliente de relacionamento sem levar nada.
+  const OLD: [name: string, off: number, converts: boolean, ci: number, note: string][] = [
+    ['Sorrento', -170, true, 0, 'Bordado encantou; fechou na hora.'],
+    ['Sorrento', -120, true, 0, 'Sereia caiu perfeita.'],
+    ['Firenze', -165, true, 0, 'Tule bordado era o sonho dela.'],
+    ['Firenze', -130, true, 0, 'Fechou depois de ver com a mãe.'],
+    ['Firenze', -95, false, 6, 'Achou volumoso para cerimônia de dia.'],
+    ['Verona', -150, true, 0, 'Fenda e comprimento certos.'],
+    ['Verona', -110, false, 10, 'Preferiu uma cor mais clara.'],
+    ['Portofino', -160, true, 0, 'Paetê fez sucesso.'],
+    ['Portofino', -105, true, 0, 'Levou para a formatura.'],
+    ['Ostuni', -140, false, 11, 'Decote nas costas não agradou.'],
+  ]
+  OLD.forEach(([name, off, converts, ci, note], i) => {
+    const g = byName(name)
+    const when = D(off)
+    const alvo = converts ? rentalAfter(w, when, (r) => r.items[0]!.garmentId === g.id) : null
+    addFitting(w, {
+      customer: alvo ? alvo.customerId : cu(ci), when: at(alvo ? addDays(alvo.pickupDate, -4) : when, '17:30'), state: alvo ? 'convertida' : 'perdida',
+      reservation: alvo, attendant: i % 2 ? USER.bruna.id : USER.ana.id, eventType: alvo?.eventType ?? null, eventDate: alvo?.eventDate ?? null,
+      outcome: alvo ? 'Saiu daqui com a reserva feita.' : note, pieces: [[g, alvo ? 'favorita' : 'nao_gostou', note]],
+    })
+  })
 }
 
 /** Horários dos compromissos automáticos que a spec fixa (por chave do cenário); o resto usa 10:00 / 11:00 / 19:00. */

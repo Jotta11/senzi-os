@@ -1,9 +1,13 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { createMockSource } from '@/data/mockSource'
-import type { DataSource } from '@/data/source'
+import { DataSourceProvider, type DataSource } from '@/data/source'
+import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
+import { AppPathContext } from '@/shell/appPath'
+import { ToastProvider } from '@/ui'
+import { IntelPage } from './IntelPage'
 import { PreviewLayout } from '@/preview/PreviewLayout'
 import { previewRoutes } from '@/preview/previewRoutes'
 
@@ -130,5 +134,35 @@ describe('Inteligência — permissões', () => {
     expect(nav().queryByRole('link', { name: 'Inteligência' })).toBeNull()
     expect(screen.queryByText('Leitura do período')).toBeNull()
     expect(screen.queryByText('Capital parado')).toBeNull()
+  })
+})
+
+describe('Inteligência — sem acervo.cost', () => {
+  it('com inteligencia.view mas sem acervo.cost: sem insights de custo, colunas Custo/Receita nem "Peças que já se pagaram"', async () => {
+    const router = createMemoryRouter([{ path: '/preview/inteligencia', element: <IntelPage /> }], { initialEntries: ['/preview/inteligencia'] })
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <DataSourceProvider source={newSource()}>
+          <PreviewPermissionsProvider initialRole="admin" revoke={['acervo.cost']}>
+            <AppPathContext.Provider value="/preview">
+              <ToastProvider>
+                <RouterProvider router={router} />
+              </ToastProvider>
+            </AppPathContext.Provider>
+          </PreviewPermissionsProvider>
+        </DataSourceProvider>
+      </QueryClientProvider>,
+    )
+    await screen.findByRole('heading', { level: 3, name: 'Capital parado' })
+    const read = within(card('Leitura do período'))
+    expect(read.queryByText(/sem locação nos últimos/)).toBeNull()
+    expect(read.queryByText(/recuperou o investimento/)).toBeNull()
+    expect(read.getByText(/quase nunca são sequer provadas/)).toBeInTheDocument()
+    const cap = within(card('Capital parado'))
+    expect(cap.queryByRole('columnheader', { name: 'Custo' })).toBeNull()
+    expect(cap.queryByRole('columnheader', { name: 'Receita' })).toBeNull()
+    expect(cap.getByRole('columnheader', { name: 'Parada há' })).toBeInTheDocument()
+    expect(cap.queryByText(/de capital parado/)).toBeNull()
+    expect(screen.queryByRole('heading', { level: 3, name: 'Peças que já se pagaram' })).toBeNull()
   })
 })

@@ -83,7 +83,7 @@ describe('Agenda — kanban de dias', () => {
 
   it('dia sem compromissos mostra "—"', async () => {
     renderPreview('/preview/agenda')
-    const day = await dayRegion('domingo, 11/10')
+    const day = await dayRegion('sábado, 17/10')
     await within(day).findByText('—')
   })
 

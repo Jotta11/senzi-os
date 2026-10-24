@@ -19,6 +19,18 @@ export const POP: Record<string, 0 | 1 | 2 | 3> = {
   Urbino: 2, Como: 1, Pisa: 1, Turim: 0, Nápoles: 0, Rimini: 0, Carrara: 2, Umbria: 1,
 }
 const GAPS: Record<1 | 2 | 3, [number, number]> = { 3: [11, 26], 2: [24, 52], 1: [58, 96] }
+/**
+ * Ajustes da demonstração da Inteligência (dados mais expressivos): sereias giram mais e ficam mais dias fora
+ * (ocupação > 25%), vestidos longos um pouco mais (14–25%); algumas peças pararam de sair há mais de 90 dias.
+ */
+const CAT_GAPS: Record<string, Partial<Record<1 | 2 | 3, [number, number]>>> = {
+  'vestido-sereia': { 3: [3, 9], 2: [6, 14], 1: [20, 40] },
+  'vestido-longo': { 3: [5, 12], 2: [10, 22], 1: [30, 50] },
+}
+/** Dias extras de evento → devolução por categoria (locação mais longa). */
+const CAT_STAY: Record<string, [number, number]> = { 'vestido-sereia': [2, 4], 'vestido-longo': [1, 3] }
+/** Última locação do histórico (offset máximo de devolução) — peças "esquecidas" para o Capital parado. */
+const STOP_AT: Record<string, number> = { Bari: -98, Capri: -104, Gênova: -95 }
 const METHODS: PaymentMethod[] = ['pix', 'pix', 'credito', 'debito', 'dinheiro', 'link']
 const FINDINGS: [label: string, kind: MaintenanceKind][] = [
   ['Barra', 'barra'],
@@ -160,7 +172,7 @@ export function finalizeRental(w: World, rng: Rng, o: RentalOpts): Reservation {
 export type Busy = { from: number; to: number }
 
 /**
- * Sete meses de locações por peça, terminando até 9 dias atrás e desviando dos intervalos `busy`
+ * Sete meses de locações por peça, terminando até 9 dias atrás (ou antes, em `STOP_AT`) e desviando dos intervalos `busy`
  * (cenário atual, reservas encerradas sem locação, baixa). Clientes: as 14 de relacionamento pesam 5×.
  */
 export function buildHistory(w: World, rng: Rng, busy: Map<string, Busy[]>): void {
@@ -178,15 +190,17 @@ export function buildHistory(w: World, rng: Rng, busy: Map<string, Busy[]>): voi
   w.garments.forEach((g, idx) => {
     const pop = POP[g.name.split(' ').at(-1)!] ?? 0
     if (!pop) return
-    const [lo, hi] = GAPS[pop]
+    const [lo, hi] = CAT_GAPS[g.categorySlug]?.[pop] ?? GAPS[pop]
+    const stay = CAT_STAY[g.categorySlug] ?? [1, 1]
+    const stop = STOP_AT[g.name.split(' ').at(-1)!] ?? -9
     const buf = effectiveCleaningDays(g, w.categories, w.settings)
     const windows = busy.get(g.id) ?? []
     let cursor = Math.max(-212 + rng.int(0, 18), -acquiredDaysAgo(idx) + 1)
     for (let guard = 0; guard < 40; guard++) {
       const pickup = cursor + rng.int(lo, hi)
       const event = pickup + rng.int(0, 1)
-      const ret = event + 1
-      if (ret + buf > -9) break
+      const ret = event + (stay[0] === stay[1] ? stay[0] : rng.int(stay[0], stay[1]))
+      if (ret + buf > stop) break
       const clash = windows.find((b) => pickup <= b.to && b.from <= ret + buf)
       if (clash) {
         cursor = clash.to + 1

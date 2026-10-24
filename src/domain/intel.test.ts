@@ -2,6 +2,8 @@ import { buildWorld, type World } from '@/data/fixture'
 import { REALIZED_RESERVATION_STATES } from '@/data/labels-ops'
 import { addDays } from '@/lib/format'
 import { intelReport } from './intel'
+import { coveredDays, customerTotals, intelBase } from './intel-base'
+import { intelInsights } from './intel-insights'
 
 const T = '2026-10-24'
 const world = () => buildWorld(T)
@@ -41,8 +43,10 @@ describe('intelReport — conjuntos base', () => {
   })
 
   it('clientes: ativas = já alugaram; recorrência < 100% (cauda longa) e top 8 por gasto', () => {
-    const r = intelReport(world(), 180, T, null)
-    expect(r.kpis.totalCustomers).toBeGreaterThan(r.kpis.activeCustomers)
+    const w = world()
+    const r = intelReport(w, 180, T, null)
+    expect(r.kpis.totalCustomers).toBeGreaterThanOrEqual(r.kpis.activeCustomers)
+    expect(r.kpis.activeCustomers).toBe(w.customers.filter((c) => w.reservations.some((x) => x.customerId === c.id && REALIZED_RESERVATION_STATES.includes(x.state))).length)
     expect(r.kpis.recurrenceRate).toBeGreaterThan(0)
     expect(r.kpis.recurrenceRate).toBeLessThan(1)
     expect(r.kpis.recurrenceRate).toBeCloseTo(r.kpis.recurrentCount / r.kpis.activeCustomers, 6)
@@ -190,5 +194,51 @@ describe('intelReport — insights', () => {
     const seen = order.filter((o) => ids.includes(o))
     expect([...new Set(ids)]).toEqual(seen)
     for (const i of r.insights) expect(i.ref).toBeTruthy()
+  })
+})
+
+describe('coveredDays', () => {
+  const span = (from: string, to: string) => ({ from, to })
+  it('une sobreposições sem contar dia duplicado', () => {
+    expect(coveredDays([span('2026-10-01', '2026-10-05'), span('2026-10-04', '2026-10-08')], '2026-09-01', '2026-10-31')).toBe(8)
+    expect(coveredDays([span('2026-10-01', '2026-10-10'), span('2026-10-03', '2026-10-04')], '2026-09-01', '2026-10-31')).toBe(10)
+  })
+  it('intervalos encostados somam sem lacuna nem duplicidade; separados somam cada um', () => {
+    expect(coveredDays([span('2026-10-01', '2026-10-03'), span('2026-10-04', '2026-10-06')], '2026-09-01', '2026-10-31')).toBe(6)
+    expect(coveredDays([span('2026-10-06', '2026-10-06'), span('2026-10-01', '2026-10-02')], '2026-09-01', '2026-10-31')).toBe(3)
+  })
+  it('corta no período (inclusive) e ignora o que fica fora', () => {
+    expect(coveredDays([span('2026-09-28', '2026-10-02')], '2026-10-01', '2026-10-31')).toBe(2)
+    expect(coveredDays([span('2026-10-30', '2026-11-04')], '2026-10-01', '2026-10-31')).toBe(2)
+    expect(coveredDays([span('2026-08-01', '2026-08-05'), span('2026-11-01', '2026-11-02')], '2026-10-01', '2026-10-31')).toBe(0)
+    expect(coveredDays([span('2025-12-30', '2026-01-02')], '2025-12-31', '2026-01-01')).toBe(2)
+    expect(coveredDays([], '2026-10-01', '2026-10-31')).toBe(0)
+  })
+})
+
+describe('intelReport — mundo de demonstração', () => {
+  it('6 meses: sereia > 25%, longo entre 14% e 25%; insight #3 dispara', () => {
+    const r = intelReport(world(), 180, T, null)
+    const occ = (c: string) => r.occupancyByCategory.find((x) => x.category === c)!.rate
+    expect(occ('Vestido sereia')).toBeGreaterThan(0.25)
+    expect(occ('Vestido longo')).toBeGreaterThan(0.14)
+    expect(occ('Vestido longo')).toBeLessThanOrEqual(0.25)
+    expect(r.insights.filter((i) => i.id === 'ocupacao-categoria').length).toBeGreaterThanOrEqual(1)
+  })
+  it('capital parado tem ao menos 3 peças paradas há 90+ dias além das nunca alugadas; ≥ 4 barras de conversão por peça', () => {
+    const r = intelReport(world(), 180, T, null)
+    expect(r.idleCapital.filter((g) => g.idleDays != null && g.idleDays > 90).length).toBeGreaterThanOrEqual(3)
+    expect(r.fittingConversionByGarment.length).toBeGreaterThanOrEqual(4)
+    expect(new Set(r.fittingConversionByGarment.map((g) => g.rate)).size).toBeGreaterThanOrEqual(3)
+  })
+  it('cor sem peça ativa só vira insight com 3+ locações', () => {
+    const w = world()
+    const base = intelBase(w, 180, T, null)
+    const rest = intelReport(w, 180, T, null)
+    const colorInsights = (rentals: number) =>
+      intelInsights({ ...rest, colors: [{ color: 'Ciano', hex: '#00A0B0', rentals, inStock: 0, revenue: 100 }] }, base, customerTotals(w)).filter((i) => i.id === 'cor-giro')
+    expect(colorInsights(2)).toHaveLength(0)
+    const [three] = colorInsights(3)
+    expect(three!.html).toBe('<b>Ciano</b> gira 3× sem estoque ativo — alta procura com estoque baixo.')
   })
 })

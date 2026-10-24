@@ -76,20 +76,20 @@ describe('Provas — lista', () => {
     const user = userEvent.setup()
     renderPreview('/preview/provas')
     expect(await screen.findByRole('heading', { level: 1, name: 'Provas' })).toBeInTheDocument()
-    expect(await screen.findByText('17 sessões · 64% de conversão')).toBeInTheDocument()
+    expect(await screen.findByText('27 sessões · 71% de conversão')).toBeInTheDocument()
     const chips = within(screen.getByRole('group', { name: 'Situação' }))
     expect(chips.getByRole('button', { name: 'Em aberto' })).toHaveAttribute('aria-pressed', 'true')
 
     const terms = within(await screen.findByLabelText('Números das provas')).getAllByRole('term').map((t) => t.textContent)
     expect(terms).toEqual(['Em aberto', 'Convertidas', 'Sem conversão', 'Taxa de conversão'])
-    expect(screen.getByText('sobre 14 provas encerradas')).toBeInTheDocument()
+    expect(screen.getByText('sobre 24 provas encerradas')).toBeInTheDocument()
 
     const table = await screen.findByRole('table', { name: 'Provas' })
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(3)) // cabeçalho + 2 abertas
     expect(within(table).queryByText('Concluída')).toBeNull()
 
     await user.click(chips.getByRole('button', { name: 'Todas' }))
-    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Provas' })).getAllByRole('row')).toHaveLength(18))
+    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Provas' })).getAllByRole('row')).toHaveLength(28))
     expect(within(screen.getByRole('table', { name: 'Provas' })).getByText('Concluída')).toBeInTheDocument()
   })
 })
@@ -116,7 +116,7 @@ describe('Provas — agendar', () => {
 
     expect(await within(dlg).findByText('CPF inválido.')).toBeInTheDocument()
     expect(within(dlg).getByLabelText('CPF *')).toHaveAttribute('aria-invalid', 'true')
-    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(17)
+    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(27)
     const found = await source.searchCustomers('Beatriz Nogueira', 'nome', { limit: 5, offset: 0 })
     expect(found.items).toHaveLength(0)
   })
@@ -131,7 +131,7 @@ describe('Provas — agendar', () => {
     await user.click(within(dlg).getByRole('button', { name: 'Agendar prova' }))
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/preview\/provas\/.+/))
     expect(await screen.findByRole('heading', { level: 1, name: /^Prova PR-2026-/ })).toBeInTheDocument()
-    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(18)
+    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(28)
     expect(await screen.findByRole('status')).toHaveTextContent(/Prova agendada\s*PR-2026-\d{4} · 25\/10/)
   })
 
