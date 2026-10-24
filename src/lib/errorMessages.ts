@@ -55,6 +55,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CATEGORIA_EM_USO: 'Há lançamentos nesta categoria — arquive em vez de excluir.',
   CATEGORIA_SISTEMA: 'Categorias do sistema não podem ser alteradas.',
   RECORRENCIA_FIM_INVALIDO: 'A data final deve ser posterior ao vencimento.',
+  PECA_NAO_ENCONTRADA: 'Peça não encontrada.',
+  ORDEM_NAO_ENCONTRADA: 'Ordem de serviço não encontrada.',
+  ORDEM_JA_CONCLUIDA: 'Esta ordem já foi concluída.',
+  CUSTO_INVALIDO: 'Informe um custo igual ou maior que zero.',
 }
 
 export const GENERIC_ERROR = 'Algo deu errado. Tente novamente.'

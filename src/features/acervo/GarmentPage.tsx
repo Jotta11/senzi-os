@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useCategories, useGarment, useGarmentEconomics } from '@/data/hooks'
+import { useGarmentMaintenances } from '@/data/hooks-operacao'
 import { useGarmentReservations } from '@/data/hooks-reservas'
 import { BLOCK_KIND, FIT_RUNS_LABEL, GARMENT_STATE, LENGTH_LABEL, STRETCH_LABEL } from '@/data/labels'
 import type { Garment } from '@/data/types'
@@ -15,12 +16,13 @@ import { CalendarPane } from './CalendarPane'
 import { STRIP_DAYS, freeDays } from './calendarDays'
 import { FitModal } from './FitModal'
 import { GarmentForm } from './GarmentForm'
+import { MaintenancePane } from './MaintenancePane'
 import { MeasurementsModal } from './MeasurementsModal'
 import { PhotosPanel } from './PhotosPanel'
 import './acervo.css'
 import './garment.css'
 
-type TabKey = 'calendario' | 'fotos' | 'historico' | 'reservas' | 'provas' | 'financeiro' | 'medidas'
+type TabKey = 'calendario' | 'fotos' | 'historico' | 'reservas' | 'provas' | 'manutencoes' | 'financeiro' | 'medidas'
 type Dialog = 'edit' | 'block' | 'fit' | 'measure' | null
 
 const cm = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} cm`)
@@ -29,7 +31,7 @@ const dash = (s: string | null | undefined) => (s && s.trim() ? s : '—')
 
 /**
  * Ficha da peça (protótipo `garmentDetail`): cabeçalho `código · categoria · marca` com Bloquear/Editar, cartão
- * lateral e abas Calendário, Fotos, Histórico, Provas, Financeiro (só `acervo.cost`) e Caimento e medidas.
+ * lateral e abas Calendário, Fotos, Histórico, Reservas, Provas, Manutenções, Financeiro (só `acervo.cost`) e Caimento e medidas.
  * A aba ativa fica na URL (`?aba=`), então dá para compartilhar o link direto de uma aba.
  */
 export function GarmentPage() {
@@ -85,6 +87,8 @@ function Ficha({ garment: g }: { garment: Garment }) {
   const [dialog, setDialog] = useState<Dialog>(null)
   const close = () => setDialog(null)
   const reservations = useGarmentReservations(g.id, can('reserva.view'))
+  const ops = useGarmentMaintenances(g.id, can('operacao.view'))
+  const opsCount = (ops.data?.maintenances.length ?? 0) + (ops.data?.inspections.length ?? 0)
 
   const tabs: TabItem[] = [
     { key: 'calendario', label: 'Calendário', content: () => <CalendarPane garment={g} /> },
@@ -108,6 +112,23 @@ function Ficha({ garment: g }: { garment: Garment }) {
         ]
       : []),
     ...(can('prova.view') ? [{ key: 'provas', label: 'Provas', content: () => <GarmentFittingsPane garment={g} /> }] : []),
+    ...(can('operacao.view')
+      ? [
+          {
+            key: 'manutencoes',
+            label: (
+              <>
+                Manutenções{' '}
+                <span className="rd-tab-n" aria-hidden="true">
+                  {opsCount}
+                </span>
+                <span className="sr-only">({opsCount})</span>
+              </>
+            ),
+            content: () => <MaintenancePane garment={g} />,
+          },
+        ]
+      : []),
     ...(canCost ? [{ key: 'financeiro', label: 'Financeiro', content: () => <FinancePane garment={g} /> }] : []),
     {
       key: 'medidas',

@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router'
 import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
+import { OperacaoPage } from '@/features/operacao/OperacaoPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { FittingPage } from '@/features/provas/FittingPage'
@@ -29,6 +30,7 @@ export const previewRoutes: RouteObject = {
     { path: 'agenda', element: <AgendaPage /> },
     { path: 'clientes', element: <ClientesListPage /> },
     { path: 'clientes/:id', element: <CustomerPage /> },
+    { path: 'operacao', element: <OperacaoPage /> },
     { path: 'provas', element: <ProvasListPage /> },
     { path: 'provas/:id', element: <FittingPage /> },
     { path: 'reservas', element: <ReservasListPage /> },

@@ -35,12 +35,12 @@ describe('Ficha da peça', () => {
     renderPreview('/preview/acervo/sz-0107')
     expect(await screen.findByRole('heading', { level: 1, name: 'Vestido Verona' })).toBeInTheDocument()
     expect(screen.getByText('SZ-0107 · Vestido longo · PatBO')).toBeInTheDocument()
-    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Financeiro', 'Caimento e medidas'])
+    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Manutenções', 'Financeiro', 'Caimento e medidas'])
     expect(screen.getByRole('button', { name: 'Bloquear' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument()
 
     await verAtendimento(user)
-    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Caimento e medidas'])
+    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Manutenções', 'Caimento e medidas'])
     // ruling: atendimento tem acervo.block e acervo.edit
     expect(screen.getByRole('button', { name: 'Bloquear' })).toBeInTheDocument()
   })

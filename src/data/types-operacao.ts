@@ -64,6 +64,8 @@ export type QueueRow = {
   blockNote: string | null
   nextRentalStart: string | null
   daysOpen: number | null
+  /** Dias desde a entrada na inspeção (fila "Aguardando inspeção"); `null` nas demais. */
+  waitingDays: number | null
 }
 
 export type OperacaoQueue = {

@@ -319,6 +319,10 @@ export type SourceErrorCode =
   | 'CATEGORIA_EM_USO'
   | 'CATEGORIA_SISTEMA'
   | 'RECORRENCIA_FIM_INVALIDO'
+  | 'PECA_NAO_ENCONTRADA'
+  | 'ORDEM_NAO_ENCONTRADA'
+  | 'ORDEM_JA_CONCLUIDA'
+  | 'CUSTO_INVALIDO'
 
 export type SourceIssue = { code: SourceErrorCode; field?: string }
 

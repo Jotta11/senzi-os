@@ -176,7 +176,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
           )}
           {show.ret && <Button variant="primary" icon="refresh" onClick={() => setDialog('return')}>Registrar devolução</Button>}
           {show.inspect && (
-            <Link to={href('/operacao')} className={buttonClass('primary')}>
+            <Link to={href(`/operacao?reserva=${r.id}`)} className={buttonClass('primary')}>
               <Icon name="operacao" size={14} /> Inspecionar peças
             </Link>
           )}

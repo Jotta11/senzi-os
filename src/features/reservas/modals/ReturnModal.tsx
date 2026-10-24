@@ -43,7 +43,7 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
           if (still > 0) toast({ title: 'Devolução parcial registrada', description: `${chosen.length} recebida(s) · ${still} ainda com a cliente.` })
           else toast({ title: 'Devolução registrada', description: `${res.lateFee > 0 ? `Multa de ${brl(res.lateFee)} lançada. ` : ''}${chosen.length} peça(s) em inspeção.` })
           onClose()
-          if (can('operacao.view')) navigate(href('/operacao'))
+          if (can('operacao.view')) navigate(href(`/operacao?reserva=${r.id}`))
         },
         onError: (err) => toast({ title: 'Não foi possível registrar a devolução', description: errorMessage(err), tone: 'error' }),
       },
