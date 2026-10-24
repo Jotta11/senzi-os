@@ -127,7 +127,7 @@ export function FinanceOverviewPage() {
                   rows={o.receivableRows}
                   rowKey={(r) => r.reservationId}
                   onRowClick={(r) => navigate(href(`/reservas/${r.reservationId}`))}
-                  empty={<EmptyState icon="moeda" title="Nada a receber" description="Todas as reservas ativas estão quitadas." />}
+                  empty={<EmptyState icon="moeda" title="Nada a receber" description="Nenhuma reserva com valor em aberto." />}
                 />
                 {o.pendingCharges.length > 0 && (
                   <>
