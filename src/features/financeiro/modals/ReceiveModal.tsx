@@ -6,7 +6,7 @@ import { falta } from '@/domain/finance'
 import { brl } from '@/lib/format'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { MethodField, TopError } from './formKit'
+import { fixAmountMessage, MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['amount', 'receivedAt'] as const
@@ -30,7 +30,7 @@ export function ReceiveModal({ today, receivable, onClose }: { today: string; re
       toast({ title: 'Recebimento registrado', tone: 'ok' })
       onClose()
     } catch (err) {
-      const e2 = sourceErrors(err, FIELDS)
+      const e2 = fixAmountMessage(sourceErrors(err, FIELDS), ['amount'])
       if (err instanceof SourceError && err.issues?.some((i) => i.code === 'VALOR_EXCEDE_SALDO')) e2.fields.amount = `O valor excede o que falta receber (${brl(left)}).`
       setErrors(e2)
     }

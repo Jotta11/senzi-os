@@ -55,7 +55,7 @@ export function FinanceOverviewPage() {
     : []
 
   const receivableCols: Column<FinanceOverview['receivableRows'][number]>[] = [
-    { key: 'cod', header: 'Reserva', render: (r) => <Link to={href(`/reservas/${r.reservationId}`)} className="mono">{r.code}</Link> },
+    { key: 'cod', header: 'Reserva', render: (r) => <Link to={href(`/reservas/${r.reservationId}`)} className="mono fx-nowrap">{r.code}</Link> },
     { key: 'cli', header: 'Cliente', render: (r) => r.customerName },
     {
       key: 'ret',
@@ -68,7 +68,7 @@ export function FinanceOverviewPage() {
   ]
   const latestCols: Column<Latest>[] = [
     { key: 'data', header: 'Data', className: 'mono', render: (l) => dateBR(l.paidAt) },
-    { key: 'res', header: 'Reserva', render: (l) => (l.reservationId ? <Link to={href(`/reservas/${l.reservationId}`)} className="mono">{l.code}</Link> : '—') },
+    { key: 'res', header: 'Reserva', render: (l) => (l.reservationId ? <Link to={href(`/reservas/${l.reservationId}`)} className="mono fx-nowrap">{l.code}</Link> : '—') },
     { key: 'cli', header: 'Cliente', render: (l) => l.customerName ?? '—' },
     {
       key: 'tipo',

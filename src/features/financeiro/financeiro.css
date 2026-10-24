@@ -7,9 +7,9 @@
 .fx-nav a:hover { color: var(--tinta); text-decoration: none; }
 .fx-nav a[aria-current="page"] { color: var(--vivo); border-bottom-color: var(--vivo); }
 
-/* faixa de números */
-.fx-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); border: 1px solid var(--areia); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; gap: 1px; background-color: var(--areia); }
-.fx-tiles > div { background: var(--surface); padding: 14px 18px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* faixa de números: cada número é um cartão (4 por linha; 2 no tablet; 1 no celular) */
+.fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.fx-tiles > div { background: var(--surface); border: 1px solid var(--areia); border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 14px 18px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .fx-tile-l { font-size: 12.5px; font-weight: 600; color: var(--nevoa); }
 .fx-tiles b { font-size: 28px; font-weight: 400; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .fx-tiles .alert b { color: var(--t-amber); }
@@ -25,6 +25,12 @@
 .fx-list > li + li { border-top: 1px solid var(--areia); }
 .fx-list .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .fx-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-nowrap { white-space: nowrap; }
+.dt .fx-row-act { flex-wrap: nowrap; align-items: center; }
+.fx-more { padding-inline: 9px; font-weight: 700; }
+.fx-menu { z-index: 40; min-width: 150px; background: var(--surface); border: 1px solid var(--areia); border-radius: var(--r-md); box-shadow: var(--shadow-2); padding: 4px; display: flex; flex-direction: column; }
+.fx-menu button { background: none; border: none; text-align: left; padding: 7px 10px; font: inherit; font-size: 13px; border-radius: var(--r-sm); cursor: pointer; color: var(--tinta); }
+.fx-menu button:hover, .fx-menu button:focus-visible { background: var(--vivo-soft); }
 .fx-late { color: var(--t-red); font-weight: 650; }
 .fx-neg { color: var(--t-red); }
 .fx-card-flush .dt-wrap { border: none; border-radius: 0; }
@@ -88,7 +94,8 @@
 .fx-col-m { position: absolute; bottom: -20px; font-size: 11px; color: var(--nevoa); white-space: nowrap; }
 .fx-col.now .fx-col-v, .fx-col.now .fx-col-m { color: var(--vivo); font-weight: 600; }
 
-@media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } .fx-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .fx-tiles { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
   .fx-nav { margin: 10px 16px 0; }
   .fx-fields { grid-template-columns: minmax(0, 1fr); }

@@ -4,7 +4,7 @@ import { RECURRENCE } from '@/data/labels-ops'
 import type { Payable, PaymentMethod, Recurrence } from '@/data/types'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { MethodField, TopError } from './formKit'
+import { fixAmountMessage, MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['description', 'categoryId', 'amount', 'dueDate', 'recurrenceEnd', 'paidAt'] as const
@@ -52,7 +52,7 @@ export function PayableModal({ today, payable, suppliers, onClose }: PayableModa
       toast({ title: 'Despesa salva', tone: 'ok' })
       onClose()
     } catch (err) {
-      setErrors(sourceErrors(err, FIELDS))
+      setErrors(fixAmountMessage(sourceErrors(err, FIELDS), ['amount', 'paidAmount']))
     }
   }
 

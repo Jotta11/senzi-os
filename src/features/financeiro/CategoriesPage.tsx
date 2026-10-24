@@ -9,6 +9,7 @@ import { CategoryModal } from './modals/CategoryModal'
 import { ConfirmModal } from './modals/ConfirmModal'
 import './financeiro.css'
 
+const IN_USE = 'Há lançamentos nesta categoria — arquive em vez de excluir.'
 type Cat = FinCategory & { usageCount: number }
 type ModalState = { kind: 'new'; type: FinCategoryType } | { kind: 'edit' | 'archive' | 'delete'; row: Cat }
 
@@ -57,7 +58,14 @@ export function CategoriesPage() {
                   ) : (
                     <Button size="sm" aria-label={`Arquivar ${c.name}`} onClick={() => { setError(null); setModal({ kind: 'archive', row: c }) }}>Arquivar</Button>
                   )}
-                  {c.usageCount === 0 && <Button size="sm" aria-label={`Excluir ${c.name}`} onClick={() => { setError(null); setModal({ kind: 'delete', row: c }) }}>Excluir</Button>}
+                  {c.usageCount === 0 ? (
+                    <Button size="sm" aria-label={`Excluir ${c.name}`} onClick={() => { setError(null); setModal({ kind: 'delete', row: c }) }}>Excluir</Button>
+                  ) : (
+                    <span title={IN_USE}>
+                      <Button size="sm" disabled aria-label={`Excluir ${c.name}`} aria-describedby={`fx-del-${c.id}`}>Excluir</Button>
+                      <span id={`fx-del-${c.id}`} className="sr-only">{IN_USE}</span>
+                    </span>
+                  )}
                 </div>
               )}
             </div>

@@ -4,7 +4,7 @@ import type { Payable, PaymentMethod } from '@/data/types'
 import { brl } from '@/lib/format'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { MethodField, TopError } from './formKit'
+import { fixAmountMessage, MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['paidAmount', 'paidAt'] as const
@@ -27,7 +27,7 @@ export function PayModal({ today, payable, onClose }: { today: string; payable: 
       toast({ title: 'Pagamento registrado', tone: 'ok' })
       onClose()
     } catch (err) {
-      setErrors(sourceErrors(err, FIELDS))
+      setErrors(fixAmountMessage(sourceErrors(err, FIELDS), ['amount', 'paidAmount']))
     }
   }
 

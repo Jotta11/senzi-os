@@ -5,7 +5,7 @@ import type { PaymentMethod } from '@/data/types'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { CustomerPicker } from '../../agenda/CustomerPicker'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { MethodField, TopError } from './formKit'
+import { fixAmountMessage, MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['description', 'categoryId', 'amount', 'dueDate', 'receivedAt'] as const
@@ -51,7 +51,7 @@ export function ReceivableModal({ today, receivable, onClose }: ReceivableModalP
       toast({ title: 'Lançamento salvo', tone: 'ok' })
       onClose()
     } catch (err) {
-      setErrors(sourceErrors(err, FIELDS))
+      setErrors(fixAmountMessage(sourceErrors(err, FIELDS), ['amount', 'paidAmount']))
     }
   }
 

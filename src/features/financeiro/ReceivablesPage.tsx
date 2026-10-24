@@ -15,6 +15,8 @@ import { FinanceNav } from './FinanceNav'
 import { ConfirmModal } from './modals/ConfirmModal'
 import { ReceivableModal } from './modals/ReceivableModal'
 import { ReceiveModal } from './modals/ReceiveModal'
+import { nowrapCodes } from './nowrapCodes'
+import { RowMenu } from './RowMenu'
 import { ParcelPaymentModal } from './ParcelPaymentModal'
 import { brl0, usePeriod, type ListRange } from './period'
 import { PeriodSeg } from './PeriodSeg'
@@ -71,7 +73,7 @@ export function ReceivablesPage() {
       header: 'Descrição',
       render: (r) => (
         <>
-          {r.reservationId ? <Link to={href(`/reservas/${r.reservationId}`)}>{r.description}</Link> : r.description}
+          {r.reservationId ? <Link to={href(`/reservas/${r.reservationId}`)}>{nowrapCodes(r.description)}</Link> : r.description}
           {r.isCustody && (
             <span className="fx-sub-t">
               <Badge tone="stone" dot={false}>Caução — custódia</Badge>
@@ -109,8 +111,13 @@ export function ReceivablesPage() {
             {r.source === 'avulso' && open && (
               <>
                 <Button size="sm" variant="primary" aria-label={nm('Receber')} onClick={() => setModal({ kind: 'receive', row: r })}>Receber</Button>
-                {r.status === 'aberto' && <Button size="sm" aria-label={nm('Editar')} onClick={() => setModal({ kind: 'edit', row: r })}>Editar</Button>}
-                <Button size="sm" aria-label={nm('Cancelar')} onClick={() => { setCancelError(null); setModal({ kind: 'cancel', row: r }) }}>Cancelar</Button>
+                <RowMenu
+                  label={nm('Mais ações')}
+                  items={[
+                    ...(r.status === 'aberto' ? [{ label: 'Editar', ariaLabel: nm('Editar'), onSelect: () => setModal({ kind: 'edit', row: r }) }] : []),
+                    { label: 'Cancelar', ariaLabel: nm('Cancelar'), onSelect: () => { setCancelError(null); setModal({ kind: 'cancel', row: r }) } },
+                  ]}
+                />
               </>
             )}
           </div>

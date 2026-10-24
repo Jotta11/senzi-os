@@ -12,6 +12,7 @@ import '../acervo/acervo.css'
 import { FinanceNav } from './FinanceNav'
 import { ConfirmModal } from './modals/ConfirmModal'
 import { PayableModal } from './modals/PayableModal'
+import { RowMenu } from './RowMenu'
 import { PayModal } from './modals/PayModal'
 import { brl0, usePeriod, type ListRange } from './period'
 import { PeriodSeg } from './PeriodSeg'
@@ -87,8 +88,13 @@ export function PayablesPage() {
         return (
           <div className="fx-row-act">
             {p.status === 'aberta' && <Button size="sm" variant="primary" aria-label={nm('Pagar')} onClick={() => setModal({ kind: 'pay', row: p })}>Pagar</Button>}
-            {p.source === 'manual' && p.status === 'aberta' && <Button size="sm" aria-label={nm('Editar')} onClick={() => setModal({ kind: 'edit', row: p })}>Editar</Button>}
-            {p.source === 'manual' && <Button size="sm" aria-label={nm('Excluir')} onClick={() => { setDelError(null); setModal({ kind: 'delete', row: p }) }}>Excluir</Button>}
+            <RowMenu
+              label={nm('Mais ações')}
+              items={[
+                ...(p.source === 'manual' && p.status === 'aberta' ? [{ label: 'Editar', ariaLabel: nm('Editar'), onSelect: () => setModal({ kind: 'edit', row: p }) }] : []),
+                ...(p.source === 'manual' ? [{ label: 'Excluir', ariaLabel: nm('Excluir'), onSelect: () => { setDelError(null); setModal({ kind: 'delete', row: p }) } }] : []),
+              ]}
+            />
           </div>
         )
       },

@@ -94,8 +94,8 @@ export function BarList({ rows, format, ariaLabel }: BarListProps) {
   )
 }
 
-export type Column = { label: string; value: number; color?: string }
-export type ColumnChartProps = { columns: Column[]; ariaLabel: string; format: Fmt }
+export type ColumnDatum = { label: string; value: number; color?: string }
+export type ColumnChartProps = { columns: ColumnDatum[]; ariaLabel: string; format: Fmt }
 
 /** Colunas verticais (estilo das barras do painel): a última destacada em Vivo, valor acima e rótulo abaixo. */
 export function ColumnChart({ columns, ariaLabel, format }: ColumnChartProps) {

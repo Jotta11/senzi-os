@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -65,10 +65,10 @@ describe('Financeiro — submenu e perfis', () => {
     expect(screen.queryByText('Vencendo nos próximos 7 dias')).toBeNull()
   })
 
-  it('Atendimento em /financeiro/pagar vê o acesso restrito', async () => {
-    renderPreview(`/preview/financeiro/pagar${ATENDIMENTO}`)
+  it.each(['receber', 'pagar', 'categorias'])('Atendimento em /financeiro/%s vê o acesso restrito', async (rota) => {
+    renderPreview(`/preview/financeiro/${rota}${ATENDIMENTO}`)
     expect(await screen.findByRole('heading', { name: 'Acesso restrito' })).toBeInTheDocument()
-    expect(screen.queryByText('Nova despesa')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^(Nova despesa|Novo lançamento|Nova categoria)$/ })).toBeNull()
   })
 })
 
@@ -130,6 +130,36 @@ describe('Financeiro — Contas a Receber', () => {
   })
 })
 
+describe('Financeiro — valores e datas nos formulários', () => {
+  it('valor vazio com categoria escolhida mostra "Informe um valor maior que zero." no campo Valor', async () => {
+    const user = userEvent.setup({ advanceTimers: () => {} })
+    renderPreview('/preview/financeiro/pagar')
+    await user.click(await screen.findByRole('button', { name: 'Nova despesa' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Nova despesa' })
+    await user.type(within(dlg).getByLabelText('Descrição'), 'Taxa')
+    await user.selectOptions(within(dlg).getByLabelText('Categoria'), within(dlg).getByRole('option', { name: 'Marketing' }))
+    await user.click(within(dlg).getByRole('button', { name: 'Salvar' }))
+    const msg = await within(dlg).findByText('Informe um valor maior que zero.')
+    expect(within(dlg).getByLabelText('Valor (R$)')).toHaveAccessibleDescription(msg.textContent!)
+    expect(within(dlg).queryByText('Informe a descrição.')).toBeNull()
+  })
+
+  it('"Repetir até" anterior ao vencimento mostra o erro no campo', async () => {
+    const user = userEvent.setup({ advanceTimers: () => {} })
+    renderPreview('/preview/financeiro/pagar')
+    await user.click(await screen.findByRole('button', { name: 'Nova despesa' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Nova despesa' })
+    await user.type(within(dlg).getByLabelText('Descrição'), 'Internet')
+    await user.selectOptions(within(dlg).getByLabelText('Categoria'), within(dlg).getByRole('option', { name: 'Marketing' }))
+    await user.type(within(dlg).getByLabelText('Valor (R$)'), '100')
+    await user.selectOptions(within(dlg).getByLabelText('Recorrência'), 'mensal')
+    fireEvent.change(within(dlg).getByLabelText('Repetir até'), { target: { value: '2026-01-01' } })
+    await user.click(within(dlg).getByRole('button', { name: 'Salvar' }))
+    expect(await within(dlg).findByText('A data final deve ser posterior ao vencimento.')).toBeInTheDocument()
+    expect(within(dlg).getByLabelText('Repetir até')).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
 describe('Financeiro — Contas a Pagar', () => {
   it('"Nova despesa" sem descrição mostra "Informe a descrição." no campo', async () => {
     const user = userEvent.setup({ advanceTimers: () => {} })
@@ -163,15 +193,22 @@ describe('Financeiro — Contas a Pagar', () => {
     expect(row).toBeTruthy()
     expect(within(row).queryByRole('button', { name: /Editar/ })).toBeNull()
     expect(within(row).queryByRole('button', { name: /Excluir/ })).toBeNull()
+    expect(within(row).queryByRole('button', { name: /Mais ações/ })).toBeNull()
     const manual = within(table).getAllByRole('row').find((r) => /Cabides/.test(r.textContent ?? ''))!
-    expect(within(manual).getByRole('button', { name: /Editar/ })).toBeInTheDocument()
+    const more = within(manual).getByRole('button', { name: /Mais ações/ })
+    expect(more).toHaveAttribute('aria-haspopup', 'menu')
+    await user.click(more)
+    expect(screen.getByRole('menuitem', { name: /Editar/ })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('excluir pede confirmação e remove a despesa', async () => {
     const user = userEvent.setup({ advanceTimers: () => {} })
     renderPreview('/preview/financeiro/pagar')
     const table = await screen.findByRole('table', { name: 'Contas a pagar' })
-    await user.click(within(table).getByRole('button', { name: 'Excluir · Cabides e capas protetoras' }))
+    await user.click(within(table).getByRole('button', { name: 'Mais ações · Cabides e capas protetoras' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir · Cabides e capas protetoras' }))
     const dlg = await screen.findByRole('dialog', { name: 'Excluir despesa' })
     expect(within(dlg).getByText('Excluir "Cabides e capas protetoras"? Esta ação não pode ser desfeita.')).toBeInTheDocument()
     await user.click(within(dlg).getByRole('button', { name: 'Excluir' }))
@@ -180,6 +217,21 @@ describe('Financeiro — Contas a Pagar', () => {
 })
 
 describe('Financeiro — Categorias', () => {
+  it('categoria usada: Excluir desabilitado com a dica e tipo travado na edição', async () => {
+    const user = userEvent.setup({ advanceTimers: () => {} })
+    renderPreview('/preview/financeiro/categorias')
+    await screen.findByText('Locação')
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('.fx-cat')).filter((r) => within(r).queryByRole('button', { name: /^Editar / }) && /[1-9]\d* lançamento/.test(r.textContent ?? ''))
+    expect(rows.length).toBeGreaterThan(0)
+    const row = rows[0]!
+    const del = within(row).getByRole('button', { name: /^Excluir / })
+    expect(del).toBeDisabled()
+    expect(del).toHaveAccessibleDescription('Há lançamentos nesta categoria — arquive em vez de excluir.')
+    await user.click(within(row).getByRole('button', { name: /^Editar / }))
+    const dlg = await screen.findByRole('dialog', { name: 'Editar categoria' })
+    for (const r of within(dlg).getAllByRole('radio', { name: /^(Receita|Despesa)$/ })) expect(r).toBeDisabled()
+  })
+
   it('categoria de sistema tem a pill "Sistema" e não tem "Excluir"', async () => {
     renderPreview('/preview/financeiro/categorias')
     const receitas = await screen.findByRole('region', { name: 'Receitas' })
