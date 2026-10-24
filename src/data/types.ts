@@ -46,7 +46,17 @@ export type GarmentMeasurement = {
 export type GarmentPhoto = { id: string; kind: PhotoKind; url: string; isCover: boolean }
 
 /** Compromisso na agenda da peça (`from`/`to` inclusivos, `aaaa-mm-dd`). Só bloqueios ativos. */
-export type GarmentBlock = { id: string; kind: BlockKind; from: string; to: string; note: string | null }
+export type GarmentBlock = {
+  id: string
+  kind: BlockKind
+  from: string
+  to: string
+  note: string | null
+  /** Reserva dona do bloco (locação, higienização pós-uso, preparação). */
+  reservationId?: string | null
+  /** Ordem de manutenção dona do bloco. */
+  maintenanceId?: string | null
+}
 
 export type GarmentHistoryEntry = { at: string; from: GarmentState | null; to: GarmentState; reason: string; userName: string }
 
@@ -144,6 +154,13 @@ export type GarmentInput = {
 
 /** Caimento observado (FitModal) — inclui a observação de caimento da ficha. */
 export type FitInput = Pick<Garment, 'fitRuns' | 'bustComfortCm' | 'waistMaxCm' | 'hipMaxCm' | 'hemHeelCm' | 'commonAlteration' | 'fitNotes'>
+
+/* Tipos das demais telas (agenda, provas, reservas, operação, financeiro, painel). */
+export * from './types-agenda'
+export * from './types-reservas'
+export * from './types-operacao'
+export * from './types-financeiro'
+export * from './types-painel'
 
 /* ------------------------------------------------------------------ clientes */
 
@@ -263,6 +280,36 @@ export type SourceErrorCode =
   | 'OBSERVACAO_OBRIGATORIA'
   | 'PARAMETRO_INVALIDO'
   | 'NAO_ENCONTRADO'
+  | 'MOTIVO_OBRIGATORIO'
+  | 'DATA_OBRIGATORIA'
+  | 'HORARIO_OBRIGATORIO'
+  | 'CLIENTE_OBRIGATORIA'
+  | 'DATAS_INCOERENTES'
+  | 'PROVA_ENCERRADA'
+  | 'RESERVA_SEM_CLIENTE'
+  | 'RESERVA_SEM_PECAS'
+  | 'DATA_EVENTO_OBRIGATORIA'
+  | 'DEVOLUCAO_ANTES_RETIRADA'
+  | 'EVENTO_ANTES_RETIRADA'
+  | 'EVENTO_DEPOIS_DEVOLUCAO'
+  | 'RETIRADA_NO_PASSADO'
+  | 'DESCONTO_NEGATIVO'
+  | 'DESCONTO_MAIOR_QUE_BRUTO'
+  | 'DESCONTO_ACIMA_LIMITE'
+  | 'CONTRATO_NAO_ASSINADO'
+  | 'SINAL_INSUFICIENTE'
+  | 'VALOR_INVALIDO'
+  | 'VALOR_EXCEDE_SALDO'
+  | 'SALDO_EM_ABERTO'
+  | 'ESTADO_INVALIDO'
+  | 'DESCRICAO_OBRIGATORIA'
+  | 'CATEGORIA_OBRIGATORIA'
+  | 'VENCIMENTO_OBRIGATORIO'
+  | 'DATA_FUTURA'
+  | 'CATEGORIA_DUPLICADA'
+  | 'CATEGORIA_EM_USO'
+  | 'CATEGORIA_SISTEMA'
+  | 'RECORRENCIA_FIM_INVALIDO'
 
 export type SourceIssue = { code: SourceErrorCode; field?: string }
 

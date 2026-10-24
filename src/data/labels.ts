@@ -84,3 +84,5 @@ export const CHANNEL_LABEL: Record<ContactChannel, string> = {
   instagram: 'Instagram',
   telefone: 'Telefone',
 }
+
+export * from './labels-ops'

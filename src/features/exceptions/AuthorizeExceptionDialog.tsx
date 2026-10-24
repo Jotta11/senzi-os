@@ -2,10 +2,11 @@ import { useId, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getSupabase } from '@/lib/supabase'
 import { ERROR_MESSAGES, errorMessage } from '@/lib/errorMessages'
+import type { ExceptionKind } from '@/data/types'
 import { Button, Field } from '@/ui'
 import './exceptions.css'
 
-export type ExceptionKind = 'retirada_com_saldo' | 'desconto_acima_limite' | 'dispensa_sinal_minimo'
+export type { ExceptionKind }
 
 const KIND_LABEL: Record<ExceptionKind, string> = {
   retirada_com_saldo: 'Retirada com saldo em aberto',
