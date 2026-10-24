@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useFittingMutation } from '@/data/hooks-agenda'
 import type { FittingDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { Button, Field, Icon, Modal } from '@/ui'
+import { Button, Field, Icon, Modal, useToast } from '@/ui'
 
 type Item = FittingDetail['items'][number]
 const FORM_ID = 'fn-form'
@@ -33,6 +33,7 @@ export function FittingNoteModal({ open, onClose, code, fittingId, item }: Fitti
 
 function NoteForm({ fittingId, item, onDone }: { fittingId: string; item: Item; onDone(): void }) {
   const mutation = useFittingMutation(fittingId)
+  const toast = useToast()
   const [note, setNote] = useState(item.note ?? '')
   const [alter, setAlter] = useState(item.needsAlteration)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +43,13 @@ function NoteForm({ fittingId, item, onDone }: { fittingId: string; item: Item; 
     if (mutation.isPending) return
     mutation.mutate(
       { type: 'outcome', garmentId: item.garmentId, needsAlteration: alter, note: note.trim() || null },
-      { onSuccess: onDone, onError: (x) => setError(errorMessage(x)) },
+      {
+        onSuccess: () => {
+          toast({ title: 'Observação registrada', description: 'Ela aparece na ficha da peça e da cliente.' })
+          onDone()
+        },
+        onError: (x) => setError(errorMessage(x)),
+      },
     )
   }
 

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useFittingMutation } from '@/data/hooks-agenda'
 import type { FittingDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { Button, Field, Icon, Modal } from '@/ui'
+import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { plural } from './fittingFormat'
 
 type Closing = 'perdida' | 'concluida' | 'no_show'
@@ -34,6 +34,7 @@ export function CloseFittingModal({ open, onClose, detail }: CloseFittingModalPr
 
 function CloseForm({ detail, onDone }: { detail: FittingDetail; onDone(): void }) {
   const mutation = useFittingMutation(detail.session.id)
+  const toast = useToast()
   const [state, setState] = useState<Closing>('perdida')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +43,13 @@ function CloseForm({ detail, onDone }: { detail: FittingDetail; onDone(): void }
   function submit(e: FormEvent) {
     e.preventDefault()
     if (mutation.isPending) return
-    mutation.mutate({ type: 'close', state, notes: notes.trim() || null }, { onSuccess: onDone, onError: (x) => setError(errorMessage(x)) })
+    mutation.mutate({ type: 'close', state, notes: notes.trim() || null }, {
+      onSuccess: () => {
+        toast({ title: 'Prova encerrada', description: detail.session.code })
+        onDone()
+      },
+      onError: (x) => setError(errorMessage(x)),
+    })
   }
 
   return (

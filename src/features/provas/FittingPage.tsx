@@ -7,9 +7,10 @@ import { agendaKeys, useFitting, useFittingMutation } from '@/data/hooks-agenda'
 import { LENGTH_LABEL } from '@/data/labels'
 import { FIT_OUTCOME, FITTING_STATE } from '@/data/labels-ops'
 import type { FittingDetail } from '@/data/types'
+import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Badge, Button, buttonClass, Card, EmptyState, Icon } from '@/ui'
+import { Badge, Button, buttonClass, Card, EmptyState, Icon, useToast } from '@/ui'
 import { initials } from '../clientes/initials'
 import { CloseFittingModal } from './CloseFittingModal'
 import { FittingItemRow } from './FittingItemRow'
@@ -69,17 +70,29 @@ function Ficha({ detail }: { detail: FittingDetail }) {
   const qc = useQueryClient()
   const mutation = useFittingMutation(s.id)
   const setFav = useSetFavorite(c.id)
+  const toast = useToast()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [noteItem, setNoteItem] = useState<Item | null>(null)
 
   const open = OPEN.includes(s.state)
   const manage = open && can('prova.manage')
+  const canPick = manage && can('acervo.view')
+  const fail = (x: unknown) => toast({ title: 'Não foi possível salvar', description: errorMessage(x), tone: 'error' })
   const approved = items.filter((i) => FIT_OUTCOME[i.outcome].positive === true).length
   const withNotes = items.filter((i) => i.note)
   const date = s.scheduledAt.slice(0, 10)
 
   const toggleFav = (i: Item) =>
-    setFav.mutate({ garmentId: i.garmentId, on: !i.favorite }, { onSuccess: () => void qc.invalidateQueries({ queryKey: agendaKeys.fitting(s.id) }) })
+    setFav.mutate(
+      { garmentId: i.garmentId, on: !i.favorite },
+      {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: agendaKeys.fitting(s.id) })
+          toast({ title: i.favorite ? 'Removida dos favoritos' : 'Marcada como favorita', description: `${i.garment.code} · ${i.garment.name}` })
+        },
+        onError: fail,
+      },
+    )
 
   return (
     <div className="ac-page gp-page">
@@ -89,7 +102,7 @@ function Ficha({ detail }: { detail: FittingDetail }) {
             <Icon name="chevronL" size={13} /> Provas
           </Link>
           <h1 className="display">Prova {s.code}</h1>
-          <p className="ac-sub">
+          <p className="ac-sub pv-sub">
             {c.fullName} · {weekdayLong(date)} às {s.scheduledAt.slice(11, 16)}
           </p>
         </div>
@@ -99,7 +112,7 @@ function Ficha({ detail }: { detail: FittingDetail }) {
               <Icon name="plus" size={15} /> Gerar reserva
             </Link>
           )}
-          {manage && (
+          {canPick && (
             <Button icon="acervo" onClick={() => setDialog('pick')}>
               Separar peça
             </Button>
@@ -128,7 +141,7 @@ function Ficha({ detail }: { detail: FittingDetail }) {
                 <span className="muted tiny">
                   {plural(items.length, 'peça', 'peças')} · {plural(approved, 'aprovada', 'aprovadas')}
                 </span>
-                {manage && (
+                {canPick && (
                   <div className="actions">
                     <Button size="sm" icon="plus" onClick={() => setDialog('pick')}>
                       Separar
@@ -146,9 +159,9 @@ function Ficha({ detail }: { detail: FittingDetail }) {
                       item={i}
                       editable={manage}
                       busy={mutation.isPending}
-                      onOutcome={(outcome) => mutation.mutate({ type: 'outcome', garmentId: i.garmentId, outcome, needsAlteration: outcome === 'precisa_ajuste' })}
+                      onOutcome={(outcome) => mutation.mutate({ type: 'outcome', garmentId: i.garmentId, outcome, needsAlteration: outcome === 'precisa_ajuste' }, { onError: fail })}
                       onNote={() => setNoteItem(i)}
-                      onRemove={() => mutation.mutate({ type: 'remove', garmentId: i.garmentId })}
+                      onRemove={() => mutation.mutate({ type: 'remove', garmentId: i.garmentId }, { onError: fail })}
                       onToggleFavorite={() => toggleFav(i)}
                     />
                   ))}

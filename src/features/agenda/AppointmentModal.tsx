@@ -3,7 +3,7 @@ import { useCancelAppointment, useCreateAppointment, useUpdateAppointment } from
 import { AG_KIND } from '@/data/labels-ops'
 import type { AgendaItem, AppointmentInput } from '@/data/types'
 import { dateBR } from '@/lib/format'
-import { Button, Field, Icon, Modal } from '@/ui'
+import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { NO_ERRORS, sourceErrors, type FormErrors } from '../acervo/formErrors'
 import { CustomerPicker } from './CustomerPicker'
 
@@ -43,6 +43,7 @@ function AppointmentForm({ date, item, onDone }: { date: string; item?: AgendaIt
   const create = useCreateAppointment()
   const update = useUpdateAppointment()
   const cancel = useCancelAppointment()
+  const toast = useToast()
   const [v, setV] = useState({
     date,
     time: item?.time ?? '09:00',
@@ -67,14 +68,26 @@ function AppointmentForm({ date, item, onDone }: { date: string; item?: AgendaIt
     e.preventDefault()
     if (busy) return
     const input: AppointmentInput = { date: v.date, time: v.time, kind: v.kind, customerId: v.customerId, notes: v.notes.trim() || null }
-    const opts = { onSuccess: onDone, onError: (x: unknown) => fail(sourceErrors(x, FIELDS)) }
+    const opts = {
+      onSuccess: () => {
+        toast({ title: item ? 'Compromisso atualizado' : 'Compromisso criado', description: `${dateBR(v.date)} às ${v.time}` })
+        onDone()
+      },
+      onError: (x: unknown) => fail(sourceErrors(x, FIELDS)),
+    }
     if (item) update.mutate({ id: item.id, input }, opts)
     else create.mutate(input, opts)
   }
 
   function doCancel() {
     if (!item || busy) return
-    cancel.mutate(item.id, { onSuccess: onDone, onError: (x) => fail(sourceErrors(x, FIELDS)) })
+    cancel.mutate(item.id, {
+      onSuccess: () => {
+        toast({ title: 'Compromisso cancelado', description: `${dateBR(date)} às ${item.time}` })
+        onDone()
+      },
+      onError: (x) => fail(sourceErrors(x, FIELDS)),
+    })
   }
 
   return (

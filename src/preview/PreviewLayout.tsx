@@ -4,6 +4,7 @@ import { Outlet, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { createMockSource } from '@/data/mockSource'
 import { DataSourceProvider, type DataSource } from '@/data/source'
+import { ToastProvider } from '@/ui'
 import { AppPathContext } from '@/shell/appPath'
 import { NAV } from '@/shell/nav'
 import { Sidebar } from '@/shell/Sidebar'
@@ -51,7 +52,9 @@ export function PreviewLayout({ source, queryClient }: PreviewLayoutProps) {
       <DataSourceProvider source={source ?? previewSource()}>
         <PreviewPermissionsProvider initialRole={initialRole}>
           <AppPathContext.Provider value={PREVIEW_BASE}>
-            <Frame />
+            <ToastProvider>
+              <Frame />
+            </ToastProvider>
           </AppPathContext.Provider>
         </PreviewPermissionsProvider>
       </DataSourceProvider>

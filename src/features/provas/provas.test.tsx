@@ -1,9 +1,15 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { createMockSource } from '@/data/mockSource'
 import type { DataSource } from '@/data/source'
+import type { Perm } from '@/auth/permissions'
+import { DataSourceProvider } from '@/data/source'
+import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
+import { AppPathContext } from '@/shell/appPath'
+import { ToastProvider } from '@/ui'
+import { FittingPage } from './FittingPage'
 import { PreviewLayout } from '@/preview/PreviewLayout'
 import { previewRoutes } from '@/preview/previewRoutes'
 
@@ -19,6 +25,30 @@ function renderPreview(path: string, source: DataSource = newSource()) {
   )
   render(<RouterProvider router={router} />)
   return { router, source }
+}
+
+/** Só a ficha da prova (a aberta da Patrícia), com permissões revogáveis. */
+async function renderFicha(revoke: Perm[]) {
+  const source = newSource()
+  const rows = (await source.listFittings('abertas', { limit: 10, offset: 0 })).items
+  const row = rows.find((r) => /Patrícia/.test(r.customerName))!
+  const router = createMemoryRouter([{ path: '/preview/provas/:id', element: <FittingPage /> }, { path: '/preview/reservas', element: <p>Reservas</p> }], {
+    initialEntries: [`/preview/provas/${row.id}`],
+  })
+  render(
+    <QueryClientProvider client={newClient()}>
+      <DataSourceProvider source={source}>
+        <PreviewPermissionsProvider initialRole="admin" revoke={revoke}>
+          <AppPathContext.Provider value="/preview">
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
+          </AppPathContext.Provider>
+        </PreviewPermissionsProvider>
+      </DataSourceProvider>
+    </QueryClientProvider>,
+  )
+  return { router, id: row.id }
 }
 
 beforeEach(() => {
@@ -102,6 +132,25 @@ describe('Provas — agendar', () => {
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/preview\/provas\/.+/))
     expect(await screen.findByRole('heading', { level: 1, name: /^Prova PR-2026-/ })).toBeInTheDocument()
     expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(18)
+    expect(await screen.findByRole('status')).toHaveTextContent(/Prova agendada\s*PR-2026-\d{4} · 25\/10/)
+  })
+
+  it('o atendente já vem com a pessoa logada', async () => {
+    const user = userEvent.setup()
+    const dlg = await openModal(user)
+    await waitFor(() => expect(within(dlg).getByLabelText('Atendente')).toHaveValue('Júlia Senzi'))
+  })
+
+  it('campos da cliente nova vazios mostram as mensagens de obrigatório', async () => {
+    const user = userEvent.setup()
+    const dlg = await openModal(user)
+    await user.click(within(dlg).getByRole('combobox', { name: 'Cliente *' }))
+    await user.click(await within(dlg).findByRole('option', { name: /Cadastrar nova cliente/ }))
+    await user.click(within(dlg).getByRole('button', { name: 'Agendar prova' }))
+    expect(await within(dlg).findByText('Informe o nome completo da cliente.')).toBeInTheDocument()
+    expect(within(dlg).getByText('Informe um telefone com DDD.')).toBeInTheDocument()
+    expect(within(dlg).getByText('Informe a data de nascimento (não pode ser no futuro).')).toBeInTheDocument()
+    expect(within(dlg).getByText('CPF inválido.')).toBeInTheDocument()
   })
 
   it('data do evento antes da prova: "O evento não pode ser antes da prova."', async () => {
@@ -169,6 +218,28 @@ describe('Provas — ficha', () => {
     expect(screen.queryByRole('link', { name: /Gerar reserva/ })).toBeNull()
   })
 
+  it('sem reserva.create não há "Gerar reserva"; com ela, o link leva a /reservas?nova=1&prova=', async () => {
+    await renderFicha(['reserva.create'])
+    await screen.findByRole('button', { name: 'Encerrar prova' })
+    expect(screen.queryByRole('link', { name: /Gerar reserva/ })).toBeNull()
+  })
+
+  it('"Gerar reserva" navega para a nova reserva com a prova', async () => {
+    const user = userEvent.setup()
+    const { router, id } = await renderFicha([])
+    await user.click(await screen.findByRole('link', { name: /Gerar reserva/ }))
+    expect(router.state.location.pathname + router.state.location.search).toBe(`/preview/reservas?nova=1&prova=${id}`)
+  })
+
+  it('observação salva avisa com um toast', async () => {
+    const user = userEvent.setup()
+    await openFitting(user, /Patrícia/)
+    const items = await screen.findByRole('list', { name: 'Peças separadas' })
+    await user.click(within(items).getAllByRole('button', { name: /Observação de/ })[0]!)
+    await user.click(await screen.findByRole('button', { name: 'Salvar' }))
+    expect(await screen.findByText('Observação registrada')).toBeInTheDocument()
+  })
+
   it('prova não encontrada', async () => {
     renderPreview('/preview/provas/nao-existe')
     expect(await screen.findByRole('heading', { level: 1, name: 'Prova não encontrada' })).toBeInTheDocument()
@@ -189,5 +260,9 @@ describe('Provas nas fichas', () => {
     renderPreview('/preview/acervo/sz-0107?aba=provas')
     expect(await screen.findByText('Favoritas')).toBeInTheDocument()
     expect(screen.getByText('Viraram reserva')).toBeInTheDocument()
+    const list = await screen.findByRole('list', { name: 'Provas da peça' })
+    const first = within(list).getAllByRole('listitem')[0]!
+    expect(within(first).getByRole('link', { name: /^PR-/ })).toBeInTheDocument()
+    expect(within(first).getByText('Favorita')).toBeInTheDocument()
   })
 })

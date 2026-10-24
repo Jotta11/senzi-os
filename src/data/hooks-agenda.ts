@@ -16,6 +16,7 @@ export const agendaKeys = {
   kpis: ['fittings', 'kpis'] as const,
   fitting: (id: string) => ['fitting', id] as const,
   ofCustomer: (id: string) => ['fittings', 'customer', id] as const,
+  ofGarment: (id: string) => ['fittings', 'garment', id] as const,
   stats: (garmentId: string) => ['fittings', 'stats', garmentId] as const,
 }
 
@@ -52,9 +53,15 @@ export function useFitting(id: string | undefined) {
   return useQuery({ queryKey: agendaKeys.fitting(id ?? ''), queryFn: () => src.getFitting(id!), enabled: !!id })
 }
 
-export function useCustomerFittings(customerId: string | undefined) {
+/** `enabled = false` (ex.: sem `prova.view`) não consulta. */
+export function useCustomerFittings(customerId: string | undefined, enabled = true) {
   const src = useDataSource()
-  return useQuery({ queryKey: agendaKeys.ofCustomer(customerId ?? ''), queryFn: () => src.fittingsOfCustomer(customerId!), enabled: !!customerId })
+  return useQuery({ queryKey: agendaKeys.ofCustomer(customerId ?? ''), queryFn: () => src.fittingsOfCustomer(customerId!), enabled: !!customerId && enabled })
+}
+
+export function useGarmentFittings(garmentId: string | undefined) {
+  const src = useDataSource()
+  return useQuery({ queryKey: agendaKeys.ofGarment(garmentId ?? ''), queryFn: () => src.fittingsOfGarment(garmentId!), enabled: !!garmentId })
 }
 
 export function useFittingStats(garmentId: string | undefined) {

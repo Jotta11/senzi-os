@@ -88,7 +88,7 @@ function Ficha({ customer: c }: { customer: Customer }) {
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<Dialog>(null)
   const close = () => setDialog(null)
-  const fittings = useCustomerFittings(c.id)
+  const fittings = useCustomerFittings(c.id, can('prova.view'))
 
   const tabs: TabItem[] = [
     {

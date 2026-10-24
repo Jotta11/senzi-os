@@ -17,6 +17,7 @@ import {
   type AppointmentInput,
   type FittingDetail,
   type FittingFilter,
+  type FittingHistoryRow,
   type FittingInput,
   type FittingItem,
   type FittingListRow,
@@ -135,6 +136,18 @@ export function agenda(ctx: MockCtx, createCustomer: CreateCustomer): AgendaSour
   }
   const rowsOf = (pred: (f: FittingSession) => boolean) =>
     db.fittings.filter(pred).sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt) || b.id.localeCompare(a.id)).map(row)
+
+  /** Linha da lista + peças da sessão (só `only`, se informada), na ordem da prova. */
+  const history = (r: FittingListRow, only?: string): FittingHistoryRow => ({
+    ...r,
+    items: db.fittingItems
+      .filter((i) => i.fittingSessionId === r.id && (!only || i.garmentId === only))
+      .sort((a, b) => a.position - b.position)
+      .map((i) => {
+        const g = garment(i.garmentId)
+        return { garmentId: g.id, garmentCode: g.code, garmentName: g.name, outcome: i.outcome, note: i.note, needsAlteration: i.needsAlteration }
+      }),
+  })
 
   function detail(f: FittingSession): FittingDetail {
     const c = customer(f.customerId)
@@ -351,7 +364,13 @@ export function agenda(ctx: MockCtx, createCustomer: CreateCustomer): AgendaSour
         return detail(f)
       }),
 
-    fittingsOfCustomer: (customerId) => run(() => rowsOf((f) => f.customerId === customerId)),
+    fittingsOfCustomer: (customerId) => run(() => rowsOf((f) => f.customerId === customerId).map((r) => history(r))),
+
+    fittingsOfGarment: (garmentId) =>
+      run(() => {
+        const ids = new Set(db.fittingItems.filter((i) => i.garmentId === garmentId).map((i) => i.fittingSessionId))
+        return rowsOf((f) => ids.has(f.id)).map((r) => history(r, garmentId))
+      }),
 
     fittingStatsOf: (garmentId) =>
       run(() =>

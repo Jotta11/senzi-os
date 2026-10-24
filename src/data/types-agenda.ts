@@ -106,6 +106,11 @@ export type FittingListRow = FittingSession & {
   discardedCount: number
 }
 
+/** Linha do histórico de provas (da cliente ou da peça), já com as peças e o resultado de cada uma. */
+export type FittingHistoryRow = FittingListRow & {
+  items: { garmentId: string; garmentCode: string; garmentName: string; outcome: FitOutcome; note: string | null; needsAlteration: boolean }[]
+}
+
 export type FittingKpis = {
   open: number
   converted: number

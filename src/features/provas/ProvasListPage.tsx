@@ -116,9 +116,9 @@ export function ProvasListPage() {
           <Tile label="Taxa de conversão" value={k ? pct(k.rate) : '—'} sub={k ? `sobre ${plural(k.closed, 'prova encerrada', 'provas encerradas')}` : ' '} />
         </dl>
 
-        <Card className="pv-filters">
+        <section className="card pv-filters" aria-label="Filtros das provas">
           <Chips label="Situação" options={FILTERS} value={filter} onChange={setFilter} />
-        </Card>
+        </section>
 
         {list.data && rows.length === 0 ? (
           <Card>

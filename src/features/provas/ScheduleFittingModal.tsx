@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { useCurrentUserName } from '@/auth/useCurrentUserName'
 import { usePermissions } from '@/auth/usePermissions'
 import { useCreateFitting, useUsers } from '@/data/hooks-agenda'
 import type { FittingInput } from '@/data/types'
-import { addDays, maskCPF, maskPhone, onlyDigits, phoneDigits, todayISO } from '@/lib/format'
+import { addDays, dateBR, maskCPF, maskPhone, onlyDigits, phoneDigits, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Button, Field, Icon, Modal } from '@/ui'
+import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../acervo/formErrors'
 import { CustomerPicker } from '../agenda/CustomerPicker'
 
@@ -46,6 +47,8 @@ export function ScheduleFittingModal({ open, onClose, customerId }: ScheduleFitt
 
 function ScheduleForm({ customerId, onDone }: { customerId: string | null; onDone(): void }) {
   const create = useCreateFitting()
+  const toast = useToast()
+  const me = useCurrentUserName()
   const users = useUsers()
   const { can } = usePermissions()
   const navigate = useNavigate()
@@ -54,12 +57,15 @@ function ScheduleForm({ customerId, onDone }: { customerId: string | null; onDon
     customerId,
     date: addDays(todayISO(), 1),
     time: '15:00',
-    attendant: '',
+    /** `null` = não mexeu: vale o usuário atual. */
+    attendant: null as string | null,
     eventType: '',
     eventDate: '',
     budget: '',
     notes: '',
   })
+  const meUser = (users.data ?? []).find((u) => u.name === me)
+  const attendant = v.attendant ?? meUser?.name ?? ''
   const [creating, setCreating] = useState(false)
   const [nc, setNc] = useState({ fullName: '', phone: '', birthDate: '', cpf: '' })
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS)
@@ -80,7 +86,7 @@ function ScheduleForm({ customerId, onDone }: { customerId: string | null; onDon
     const input: FittingInput = {
       date: v.date,
       time: v.time.trim() || undefined,
-      attendantName: v.attendant || null,
+      attendantName: attendant || null,
       eventType: v.eventType.trim() || null,
       eventDate: v.eventDate || null,
       budget: budget ? budget : null,
@@ -92,6 +98,7 @@ function ScheduleForm({ customerId, onDone }: { customerId: string | null; onDon
     setErrors(NO_ERRORS)
     create.mutate(input, {
       onSuccess: (f) => {
+        toast({ title: 'Prova agendada', description: `${f.code} · ${dateBR(f.scheduledAt.slice(0, 10)).slice(0, 5)}` })
         onDone()
         navigate(href(`/provas/${f.id}`))
       },
@@ -159,8 +166,8 @@ function ScheduleForm({ customerId, onDone }: { customerId: string | null; onDon
       <div className="pv-grid">
         <Field id="pf-date" label="Data *" type="date" value={v.date} onChange={(e) => put('date', e.target.value)} error={err.date} />
         <Field id="pf-time" label="Horário" type="time" value={v.time} onChange={(e) => put('time', e.target.value)} error={err.time} />
-        <Field as="select" label="Atendente" value={v.attendant} onChange={(e) => put('attendant', e.target.value)}>
-          <option value="">Eu (padrão)</option>
+        <Field as="select" label="Atendente" value={attendant} onChange={(e) => put('attendant', e.target.value)}>
+          {!meUser && <option value="">{me ? `${me} (você)` : 'Eu (padrão)'}</option>}
           {(users.data ?? []).map((u) => (
             <option key={u.id} value={u.name}>
               {u.name}

@@ -7,6 +7,7 @@ import type {
   FittingDetail,
   FittingFilter,
   FittingGarmentStats,
+  FittingHistoryRow,
   FittingInput,
   FittingKpis,
   FittingListRow,
@@ -44,6 +45,9 @@ export interface AgendaSource {
   setFittingOutcome(id: string, garmentId: string, v: { outcome?: FitOutcome; needsAlteration?: boolean; note?: string | null }): Promise<FittingDetail>
   closeFitting(id: string, state: 'perdida' | 'concluida' | 'no_show', notes: string | null): Promise<FittingDetail>
   /** Ordem `scheduledAt` decrescente. */
-  fittingsOfCustomer(customerId: string): Promise<FittingListRow[]>
+  /** Cada linha traz as peças da sessão (qualquer resultado). */
+  fittingsOfCustomer(customerId: string): Promise<FittingHistoryRow[]>
+  /** Sessões em que a peça entrou (`items` só com ela), `scheduledAt` decrescente. */
+  fittingsOfGarment(garmentId: string): Promise<FittingHistoryRow[]>
   fittingStatsOf(garmentId: string): Promise<FittingGarmentStats>
 }

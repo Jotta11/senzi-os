@@ -3,8 +3,9 @@ import { useGarmentSearch } from '@/data/hooks'
 import { useFittingMutation } from '@/data/hooks-agenda'
 import { GARMENT_STATE } from '@/data/labels'
 import type { FittingDetail, Garment } from '@/data/types'
+import { errorMessage } from '@/lib/errorMessages'
 import { brl } from '@/lib/format'
-import { Badge, Button, Icon, Modal, SearchInput, Silhouette } from '@/ui'
+import { Badge, Button, Modal, SearchInput, Silhouette, useToast } from '@/ui'
 
 export type PickGarmentModalProps = { open: boolean; onClose(): void; detail: FittingDetail }
 
@@ -33,6 +34,7 @@ export function PickGarmentModal({ open, onClose, detail }: PickGarmentModalProp
 
 function Picker({ detail }: { detail: FittingDetail }) {
   const mutation = useFittingMutation(detail.session.id)
+  const toast = useToast()
   const [q, setQ] = useState('')
   const usual = detail.customer.measurements[0]?.usualSize ?? null
   const term = q.trim()
@@ -47,25 +49,27 @@ function Picker({ detail }: { detail: FittingDetail }) {
         .slice(0, 40),
     [search.data, taken],
   )
+  function add(g: Garment) {
+    mutation.mutate(
+      { type: 'add', garmentId: g.id },
+      { onSuccess: () => toast({ title: 'Peça separada', description: `${g.code} · ${g.name}` }), onError: (x) => toast({ title: 'Não foi possível separar a peça', description: errorMessage(x), tone: 'error' }) },
+    )
+  }
   const hint = term ? 'busca livre' : usual ? `filtrado pelo tamanho ${usual} da cliente` : 'todo o acervo'
 
   return (
     <div className="pv-form">
       <SearchInput value="" onChange={setQ} label="Buscar peça" placeholder="Buscar por código, nome ou cor…" />
       <p className="tiny muted">{hint}</p>
-      {mutation.isError && (
-        <div className="note red" role="alert">
-          <Icon name="alerta" size={15} />
-          <span>Não foi possível separar a peça. Tente de novo.</span>
-        </div>
-      )}
       {rows.length === 0 ? (
-        <p className="pv-pick-empty">{search.isFetching ? 'Buscando…' : 'Nada encontrado.'}</p>
+        <p className="pv-pick-empty" role="status">
+          {search.isPending || search.isFetching ? 'Buscando…' : 'Nada encontrado.'}
+        </p>
       ) : (
         <ul className="pv-pick" aria-label="Peças do acervo">
           {rows.map((g) => (
             <li key={g.id}>
-              <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ type: 'add', garmentId: g.id })}>
+              <button type="button" disabled={mutation.isPending} onClick={() => add(g)}>
                 <Thumb garment={g} />
                 <span className="pv-pick-t">
                   <b>
