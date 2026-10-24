@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useRecommendations } from '@/data/hooks'
 import { brl } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Icon, Silhouette } from '@/ui'
+import { Button, Icon, Silhouette } from '@/ui'
 import './customer.css'
 
 export const RECS_EMPTY = 'Cadastre medidas ou preferências para receber sugestões.'
@@ -24,7 +24,15 @@ export function Recommendations({ customerId }: { customerId: string }) {
         <span className="muted tiny cp-h-note">pelo tamanho, pelas cores e pelas peças de que ela gostou</span>
       </div>
       <div className="card-b">
-        {!recs.data ? (
+        {recs.isError ? (
+          <p className="cp-empty-line" role="alert">
+            <Icon name="raio" size={14} />
+            Não foi possível carregar as sugestões.
+            <Button variant="ghost" onClick={() => void recs.refetch()}>
+              Tentar de novo
+            </Button>
+          </p>
+        ) : !recs.data ? (
           <ul className="rc-grid" aria-hidden="true">
             {Array.from({ length: 4 }, (_, i) => (
               <li key={i} className="rc-card rc-skel" />

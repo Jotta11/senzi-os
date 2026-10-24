@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { createMockSource } from '@/data/mockSource'
 import { DataSourceProvider, type DataSource } from '@/data/source'
@@ -43,10 +43,13 @@ export type PreviewLayoutProps = {
  * prefixo de rotas para as telas.
  */
 export function PreviewLayout({ source, queryClient }: PreviewLayoutProps) {
+  // `?como=atendimento` abre já nesse perfil (links de conferência); depois vale o seletor.
+  const [params] = useSearchParams()
+  const initialRole = params.get('como') === 'atendimento' ? 'atendimento' : 'admin'
   return (
     <QueryClientProvider client={queryClient ?? previewClient()}>
       <DataSourceProvider source={source ?? previewSource()}>
-        <PreviewPermissionsProvider>
+        <PreviewPermissionsProvider initialRole={initialRole}>
           <AppPathContext.Provider value={PREVIEW_BASE}>
             <Frame />
           </AppPathContext.Provider>

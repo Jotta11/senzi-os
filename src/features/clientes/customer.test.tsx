@@ -52,7 +52,13 @@ function renderPage({ id = 'cl-0001', revoke, source = newSource() }: { id?: str
   return { router, source }
 }
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  // Relógio fixo (só Date): a idade na ficha não depende de quando a suíte roda.
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-10-23T15:00:00Z'))
+})
+afterEach(() => vi.useRealTimers())
 
 describe('Ficha da cliente', () => {
   it('cabeçalho, cartão lateral com idade, telefone mascarado e WhatsApp', async () => {
@@ -176,6 +182,19 @@ describe('Ficha da cliente', () => {
     renderPage({ source })
     const box = await screen.findByRole('region', { name: 'Sugestões para ela' })
     expect(await within(box).findByText('Cadastre medidas ou preferências para receber sugestões.')).toBeInTheDocument()
+  })
+
+  it('erro ao carregar sugestões mostra mensagem com "Tentar de novo" (sem esqueleto eterno)', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const spy = vi.spyOn(source, 'recommend').mockRejectedValueOnce(new Error('falhou'))
+    renderPage({ source })
+    const box = await screen.findByRole('region', { name: 'Sugestões para ela' })
+    expect(await within(box).findByText('Não foi possível carregar as sugestões.')).toBeInTheDocument()
+    await user.click(within(box).getByRole('button', { name: 'Tentar de novo' }))
+    expect(await within(box).findAllByRole('link')).not.toHaveLength(0)
+    expect(within(box).queryByText('Não foi possível carregar as sugestões.')).toBeNull()
+    expect(spy).toHaveBeenCalledTimes(2)
   })
 
   it('remover favorito some da aba Favoritos', async () => {

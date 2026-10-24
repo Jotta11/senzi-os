@@ -51,6 +51,13 @@ describe('PreviewLayout', () => {
     expect(nav().getByRole('link', { name: 'Agenda' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('?como=atendimento abre já como Atendimento', () => {
+    renderAt('/preview?como=atendimento')
+    expect(screen.getByRole('button', { name: 'Atendimento' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Ana Lima')).toBeInTheDocument()
+    expect(nav().queryByRole('link', { name: 'Configurações' })).toBeNull()
+  })
+
   it('"Ver como Atendimento" troca o perfil e esconde itens sem permissão', async () => {
     renderAt('/preview')
     expect(nav().getByRole('link', { name: 'Configurações' })).toBeInTheDocument()
