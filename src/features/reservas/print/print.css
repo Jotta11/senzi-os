@@ -1,0 +1,41 @@
+/* =====================================================================
+   Documentos de impressão (contrato e OS). Na tela: folha branca sobre --fundo.
+   Na impressão: sem sidebar, sem faixa da prévia, sem barra de ações.
+   ===================================================================== */
+.pr-page { padding: 22px 32px 56px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pr-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pr-sheet { background: #fff; color: #1c1a18; border: 1px solid var(--areia); border-radius: var(--r-md); box-shadow: var(--shadow-1); padding: 40px 48px; max-width: 794px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.pr-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--areia); padding-bottom: 14px; }
+.pr-logo { width: 130px; height: auto; color: var(--cranberry); flex: none; }
+.pr-store { margin: 0; font-size: 11px; color: var(--nevoa); text-align: right; }
+.pr-title h1 { font-size: 24px; font-weight: 400; line-height: 1.15; }
+.pr-title p { margin: 4px 0 0; font-size: 12.5px; }
+.pr-contract { margin: 0; font-family: var(--f-mono); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pr-empty { margin: 0; color: var(--nevoa); }
+.pr-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--areia); font-size: 10.5px; color: var(--nevoa); }
+.pr-sec h2 { font-family: var(--f-display); font-weight: 400; font-size: 16px; margin: 0 0 6px; color: var(--cranberry); }
+.pr-sec p { margin: 0; font-size: 13px; }
+.pr-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pr-items li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; font-size: 13px; }
+.pr-items li > div { display: flex; flex-direction: column; }
+.pr-items li span { font-size: 11.5px; color: var(--nevoa); }
+.pr-photo { width: 44px; height: 58px; object-fit: cover; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--areia); display: block; }
+.pr-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pr-kv { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.pr-kv > div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; }
+.pr-kv dt { color: var(--nevoa); }
+.pr-kv dd { margin: 0; }
+.pr-rules { margin: 0; padding-left: 18px; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 760px) { .pr-sheet { padding: 22px 18px; } .pr-page { padding: 16px; } }
+
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body:has(.pr-doc) .sb-rail,
+  body:has(.pr-doc) .pv-band,
+  .no-print { display: none !important; }
+  body:has(.pr-doc) { background: #fff; }
+  body:has(.pr-doc) .sb-app { display: block; }
+  .pr-page { padding: 0; }
+  .pr-sheet { border: none; box-shadow: none; padding: 0; max-width: none; border-radius: 0; }
+  .pr-contract { font-size: 10.5pt; }
+}

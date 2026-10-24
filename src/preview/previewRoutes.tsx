@@ -6,7 +6,10 @@ import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
+import { ContractPrint } from '@/features/reservas/print/ContractPrint'
+import { OsPrint } from '@/features/reservas/print/OsPrint'
 import { ReservasListPage } from '@/features/reservas/ReservasListPage'
+import { ReservationPage } from '@/features/reservas/ReservationPage'
 import { PREVIEW_BASE } from './paths'
 import { PreviewComingSoon } from './PreviewComingSoon'
 import { PreviewLayout } from './PreviewLayout'
@@ -29,6 +32,9 @@ export const previewRoutes: RouteObject = {
     { path: 'provas', element: <ProvasListPage /> },
     { path: 'provas/:id', element: <FittingPage /> },
     { path: 'reservas', element: <ReservasListPage /> },
+    { path: 'reservas/:id', element: <ReservationPage /> },
+    { path: 'reservas/:id/contrato', element: <ContractPrint /> },
+    { path: 'reservas/:id/os', element: <OsPrint /> },
     { path: '*', element: <PreviewComingSoon /> },
   ],
 }

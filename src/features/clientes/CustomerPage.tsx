@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useCustomerFittings } from '@/data/hooks-agenda'
+import { useCustomerReservations } from '@/data/hooks-reservas'
 import { useCustomer, useGarment, useSetFavorite, useSetNotePinned } from '@/data/hooks'
 import { CHANNEL_LABEL, GARMENT_STATE, LEAD_SOURCE_LABEL, LENGTH_LABEL } from '@/data/labels'
 import type { Customer, CustomerFavorite, CustomerMeasurement } from '@/data/types'
@@ -9,6 +10,7 @@ import { ageFrom, brl, dateBR, hideCPF, maskCPF, maskPhone, onlyDigits } from '@
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, buttonClass, EmptyState, Icon, Silhouette, Tabs, type TabItem } from '@/ui'
 import { CustomerFittingsPane } from '../provas/FittingPanes'
+import { ReservationsPane } from '../reservas/ReservationsPane'
 import { CustomerForm } from './CustomerForm'
 import { initials } from './initials'
 import { MeasureModal } from './MeasureModal'
@@ -19,7 +21,7 @@ import '../acervo/garment.css'
 import './clientes.css'
 import './customer.css'
 
-type TabKey = 'memoria' | 'medidas' | 'favoritos' | 'provas'
+type TabKey = 'memoria' | 'medidas' | 'favoritos' | 'reservas' | 'provas'
 type Dialog = 'note' | 'edit' | 'measure' | null
 
 const dash = (s: string | null | undefined) => (s && s.trim() ? s : '—')
@@ -89,6 +91,7 @@ function Ficha({ customer: c }: { customer: Customer }) {
   const [dialog, setDialog] = useState<Dialog>(null)
   const close = () => setDialog(null)
   const fittings = useCustomerFittings(c.id, can('prova.view'))
+  const reservations = useCustomerReservations(c.id, can('reserva.view'))
 
   const tabs: TabItem[] = [
     {
@@ -106,6 +109,15 @@ function Ficha({ customer: c }: { customer: Customer }) {
       label: <TabLabel n={c.favorites.length}>Favoritos</TabLabel>,
       content: () => <FavoritesPane customer={c} canEdit={canEdit} />,
     },
+    ...(can('reserva.view')
+      ? [
+          {
+            key: 'reservas',
+            label: <TabLabel n={reservations.data?.length ?? 0}>Reservas</TabLabel>,
+            content: () => <ReservationsPane rows={reservations.data} show="peca" loading={reservations.isPending} />,
+          },
+        ]
+      : []),
     ...(can('prova.view')
       ? [{ key: 'provas', label: <TabLabel n={fittings.data?.length ?? 0}>Provas</TabLabel>, content: () => <CustomerFittingsPane customerId={c.id} /> }]
       : []),

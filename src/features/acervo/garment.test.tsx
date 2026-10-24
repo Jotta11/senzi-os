@@ -25,22 +25,22 @@ function renderPreview(path: string, source: DataSource = newSource()) {
 }
 
 const verAtendimento = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Atendimento' }))
-const tabs = () => within(screen.getByRole('tablist', { name: 'Ficha da peça' })).getAllByRole('tab').map((t) => t.textContent)
+const tabs = () => within(screen.getByRole('tablist', { name: 'Ficha da peça' })).getAllByRole('tab').map((t) => t.textContent?.replace(/\s*\d+\(\d+\)$/, ''))
 
 beforeEach(() => localStorage.clear())
 
 describe('Ficha da peça', () => {
-  it('cabeçalho com código · categoria · marca; admin vê 6 abas, atendimento 5 (sem Financeiro)', async () => {
+  it('cabeçalho com código · categoria · marca; admin vê 7 abas, atendimento 6 (sem Financeiro)', async () => {
     const user = userEvent.setup()
     renderPreview('/preview/acervo/sz-0107')
     expect(await screen.findByRole('heading', { level: 1, name: 'Vestido Verona' })).toBeInTheDocument()
     expect(screen.getByText('SZ-0107 · Vestido longo · PatBO')).toBeInTheDocument()
-    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Provas', 'Financeiro', 'Caimento e medidas'])
+    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Financeiro', 'Caimento e medidas'])
     expect(screen.getByRole('button', { name: 'Bloquear' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument()
 
     await verAtendimento(user)
-    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Provas', 'Caimento e medidas'])
+    expect(tabs()).toEqual(['Calendário', 'Fotos', 'Histórico', 'Reservas', 'Provas', 'Caimento e medidas'])
     // ruling: atendimento tem acervo.block e acervo.edit
     expect(screen.getByRole('button', { name: 'Bloquear' })).toBeInTheDocument()
   })

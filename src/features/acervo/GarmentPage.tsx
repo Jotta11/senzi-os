@@ -2,12 +2,14 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useCategories, useGarment, useGarmentEconomics } from '@/data/hooks'
+import { useGarmentReservations } from '@/data/hooks-reservas'
 import { BLOCK_KIND, FIT_RUNS_LABEL, GARMENT_STATE, LENGTH_LABEL, STRETCH_LABEL } from '@/data/labels'
 import type { Garment } from '@/data/types'
 import { brl, dateBR, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, buttonClass, type TabItem } from '@/ui'
 import { GarmentFittingsPane } from '../provas/FittingPanes'
+import { ReservationsPane } from '../reservas/ReservationsPane'
 import { BlockModal } from './BlockModal'
 import { CalendarPane } from './CalendarPane'
 import { STRIP_DAYS, freeDays } from './calendarDays'
@@ -18,7 +20,7 @@ import { PhotosPanel } from './PhotosPanel'
 import './acervo.css'
 import './garment.css'
 
-type TabKey = 'calendario' | 'fotos' | 'historico' | 'provas' | 'financeiro' | 'medidas'
+type TabKey = 'calendario' | 'fotos' | 'historico' | 'reservas' | 'provas' | 'financeiro' | 'medidas'
 type Dialog = 'edit' | 'block' | 'fit' | 'measure' | null
 
 const cm = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} cm`)
@@ -82,11 +84,29 @@ function Ficha({ garment: g }: { garment: Garment }) {
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<Dialog>(null)
   const close = () => setDialog(null)
+  const reservations = useGarmentReservations(g.id, can('reserva.view'))
 
   const tabs: TabItem[] = [
     { key: 'calendario', label: 'Calendário', content: () => <CalendarPane garment={g} /> },
     { key: 'fotos', label: 'Fotos', content: () => <PhotosPanel garment={g} /> },
     { key: 'historico', label: 'Histórico', content: () => <HistoryPane garment={g} /> },
+    ...(can('reserva.view')
+      ? [
+          {
+            key: 'reservas',
+            label: (
+              <>
+                Reservas{' '}
+                <span className="rd-tab-n" aria-hidden="true">
+                  {reservations.data?.length ?? 0}
+                </span>
+                <span className="sr-only">({reservations.data?.length ?? 0})</span>
+              </>
+            ),
+            content: () => <ReservationsPane rows={reservations.data} show="cliente" loading={reservations.isPending} />,
+          },
+        ]
+      : []),
     ...(can('prova.view') ? [{ key: 'provas', label: 'Provas', content: () => <GarmentFittingsPane garment={g} /> }] : []),
     ...(canCost ? [{ key: 'financeiro', label: 'Financeiro', content: () => <FinancePane garment={g} /> }] : []),
     {

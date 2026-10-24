@@ -53,3 +53,13 @@
 .rs-split li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
 .rs-value, .rs-value * { white-space: nowrap; }
+
+/* aba "Reservas" das fichas da peça e da cliente */
+.rs-pane { list-style: none; margin: 0; padding: 0; }
+.rs-pane li { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 11px 16px; }
+.rs-pane li + li { border-top: 1px solid var(--areia); }
+.rs-pane-m { display: flex; flex-direction: column; min-width: 0; }
+.rs-pane-empty { padding: 16px; margin: 0; }
+@media (max-width: 640px) { .rs-pane li { grid-template-columns: minmax(0, 1fr) auto; } }
+
+.rd-tab-n { font-size: 11px; font-weight: 650; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--areia); color: var(--nevoa); }

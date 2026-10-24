@@ -1,0 +1,70 @@
+/* =====================================================================
+   Reservas — ficha. Cards brancos com borda Areia sobre --fundo; Cranberry
+   Vivo só em botão primário, links e foco.
+   ===================================================================== */
+.rd-actions { max-width: 760px; justify-content: flex-end; }
+.rd-main { display: flex; flex-direction: column; gap: 16px; }
+.rd-main .tabs { margin-top: 4px; }
+.rd-page .ac-body > .note { margin: 0; }
+.rd-block { display: block; }
+.rd-alter { display: inline-flex; align-items: center; gap: 4px; color: var(--t-ochre); }
+
+/* lateral */
+.rd-side { position: sticky; top: 20px; }
+.rd-side-b { display: flex; flex-direction: column; gap: 14px; }
+.rd-money { margin: 0; padding-top: 12px; border-top: 1px solid var(--areia); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.rd-money > div { display: flex; justify-content: space-between; gap: 12px; }
+.rd-money dt { color: var(--nevoa); }
+.rd-money dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rd-money .strong dd { font-weight: 700; }
+.rd-money .red dd, .rd-money .red dt { color: var(--t-red); }
+.rd-money .green dd { color: var(--t-green); }
+.rd-money .dim { font-size: 12px; }
+
+/* peças */
+.rd-items { list-style: none; margin: 0; padding: 0; }
+.rd-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; padding: 14px 16px; align-items: start; }
+.rd-item + .rd-item { border-top: 1px solid var(--areia); }
+.rd-thumb { width: 52px; height: 68px; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); border: 1px solid var(--areia); display: block; }
+.rd-thumb.sm { width: 34px; height: 44px; flex: none; }
+.rd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rd-thumb .silhouette { width: 100%; height: 100%; border-radius: 0; padding: 3px 2px 0; }
+.rd-thumb .silhouette > rect { fill: transparent; }
+.rd-item-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rd-item-n { color: inherit; }
+.rd-item-n:hover { text-decoration: none; color: var(--vivo); }
+.rd-item-r { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.rd-net { font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 640px) { .rd-item { grid-template-columns: 52px minmax(0, 1fr); } .rd-item-r { grid-column: 1 / -1; flex-direction: row; align-items: center; flex-wrap: wrap; } }
+
+/* contrato / histórico */
+.rd-contract { display: flex; flex-direction: column; gap: 12px; }
+.rd-contract .note { margin: 0; }
+.rd-contract-text { margin: 0; padding: 16px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font-family: var(--f-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 520px; overflow-y: auto; }
+.rd-timeline { list-style: none; margin: 0; padding: 8px 16px 16px; display: flex; flex-direction: column; }
+.rd-timeline li { display: grid; grid-template-columns: 12px 96px minmax(0, 1fr); gap: 10px; padding: 9px 0; align-items: start; }
+.rd-timeline li > div { display: flex; flex-direction: column; }
+.rd-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; background: var(--t-stone); }
+.rd-dot[data-tone="green"] { background: var(--t-green); }
+.rd-dot[data-tone="wine"] { background: var(--t-wine); }
+.rd-dot[data-tone="amber"] { background: var(--t-amber); }
+.rd-dot[data-tone="indigo"] { background: var(--t-indigo); }
+.rd-dot[data-tone="teal"] { background: var(--t-teal); }
+.rd-dot[data-tone="ochre"] { background: var(--t-ochre); }
+.rd-dot[data-tone="red"] { background: var(--t-red); }
+
+/* modais */
+.rd-form { display: flex; flex-direction: column; gap: 14px; }
+.rd-form p { margin: 0; }
+.rd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+@media (max-width: 640px) { .rd-grid { grid-template-columns: minmax(0, 1fr); } }
+.rd-check { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.rd-check li { display: flex; align-items: center; gap: 8px; }
+.rd-check .ok { color: var(--t-green); }
+.rd-check .no { color: var(--t-red); }
+.rd-check .info { color: var(--nevoa); }
+.rd-conf { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.rd-conf li { border: 1px solid var(--areia); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.rd-conf-h { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.rd-chk { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.rd-wa-text { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font-size: 13.5px; line-height: 1.5; }
