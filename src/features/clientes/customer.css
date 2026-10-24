@@ -1,0 +1,182 @@
+/* =====================================================================
+   Clientes — ficha (protótipo `customerDetail`). Mesma casca da ficha da
+   peça (.gp-*): cartão lateral à esquerda, conteúdo e abas à direita.
+   Cranberry Vivo só em links, foco, "fixada" e botão primário.
+   ===================================================================== */
+
+.cp-profile { grid-template-columns: 300px minmax(0, 1fr); }
+.cp-side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 20px; min-width: 0; }
+.cp-main { display: flex; flex-direction: column; gap: 16px; }
+.cp-main > .tabs { margin: 6px 0 0; }
+.cp-main .tabs-panel { margin-top: -2px; }
+.cp-h-note { min-width: 0; }
+.gp-head .ac-sub.cp-sub { font-family: var(--f-ui); font-size: 13px; letter-spacing: 0; }
+.cp-sub .mono { font-size: 12px; letter-spacing: .03em; }
+.cp-stack { display: flex; flex-direction: column; gap: 18px; }
+.cp-eyebrow { margin-bottom: 8px; }
+.cp-sec-h { margin-bottom: 8px; }
+.cp-code-sm { font-size: 10.5px; color: var(--nevoa); letter-spacing: .03em; }
+
+/* ------------------------------------------------------- cartão lateral */
+.cp-card { padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.cp-who { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.cp-avatar {
+  width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--papel); border: 1px solid var(--areia); color: var(--vivo);
+  font-family: var(--f-display); font-size: 23px; letter-spacing: .02em; line-height: 1;
+}
+.cp-who-t { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cp-who-n { font-weight: 650; font-size: 15px; line-height: 1.25; }
+.cp-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.cp-kv { padding-top: 12px; border-top: 1px solid var(--areia); gap: 7px; }
+.cp-kv > div { grid-template-columns: 92px minmax(0, 1fr); }
+.cp-kv a { font-weight: 550; }
+.cp-wa { font-variant-numeric: tabular-nums; }
+.cp-cpf { font-size: 12px; letter-spacing: .02em; }
+
+/* -------------------------------------------------- lembre-se ao atender */
+.cp-remember { border-color: var(--vivo-line); background: linear-gradient(180deg, color-mix(in srgb, var(--vivo-soft) 55%, var(--surface)), var(--surface) 70%); }
+.cp-remember .card-h { padding: 11px 14px; border-bottom-color: var(--vivo-line); color: var(--vivo); gap: 7px; }
+.cp-remember .card-h h3 { font-size: 13px; color: var(--tinta); }
+.cp-remember-b { list-style: none; margin: 0; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 11px; }
+.cp-remember-b li { padding-left: 10px; border-left: 2px solid var(--vivo-line); }
+.cp-remember-b p { margin: 0; font-size: 12.5px; line-height: 1.45; }
+.cp-remember-b .tiny { display: block; margin-top: 2px; font-size: 11px; }
+
+/* ---------------------------------------------------------------- números */
+.cp-tiles {
+  margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  background: var(--surface); border: 1px solid var(--areia); border-radius: var(--r-lg); box-shadow: var(--shadow-1);
+}
+.cp-tiles > div { padding: 13px 16px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cp-tiles > div + div { border-left: 1px solid var(--areia); }
+.cp-tiles dd { margin: 0; display: flex; flex-direction: column; gap: 1px; }
+.cp-tiles b { font-size: 27px; font-weight: 400; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------------------------------------------------------- perfil senzi */
+.cp-profile-b { display: flex; flex-direction: column; gap: 16px; }
+.cp-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+.cp-cols > dl { padding: 0 18px; }
+.cp-cols > dl:first-child { padding-left: 0; }
+.cp-cols > dl:last-child { padding-right: 0; }
+.cp-cols > dl + dl { border-left: 1px solid var(--areia); }
+.cp-kv-p { gap: 7px; }
+.cp-kv-p > div { grid-template-columns: 112px minmax(0, 1fr); }
+.cp-fav-chip { text-decoration: none; }
+.cp-fav-chip:hover { text-decoration: none; border-color: var(--vivo-line); }
+.cp-fav-chip svg { color: var(--vivo); }
+
+/* --------------------------------------------------------- sugestões */
+.rc-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.rc-grid > li { min-width: 0; display: flex; }
+.rc-card {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; color: var(--tinta);
+  background: var(--surface); border: 1px solid var(--areia); border-radius: var(--r-md); overflow: hidden;
+  transition: box-shadow .16s, transform .16s, border-color .16s;
+}
+a.rc-card:hover { text-decoration: none; box-shadow: var(--shadow-2); transform: translateY(-1px); border-color: var(--areia-2); }
+a.rc-card:hover .rc-nm { color: var(--vivo); }
+a.rc-card:focus-visible { outline-offset: 2px; }
+.rc-ph {
+  display: block; height: 132px; overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 38%, rgba(255, 255, 255, .7), transparent 70%),
+    color-mix(in srgb, var(--tint, var(--areia)) 11%, var(--surface-2));
+  border-bottom: 1px solid color-mix(in srgb, var(--tint, var(--areia)) 14%, var(--areia));
+}
+.rc-ph .silhouette { width: 100%; height: 100%; border-radius: 0; padding: 10px 0 2px; }
+.rc-ph .silhouette > rect { fill: transparent; }
+.rc-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rc-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; padding: 9px 11px 11px; }
+.rc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.rc-code { font-size: 10.5px; color: var(--nevoa); letter-spacing: .04em; white-space: nowrap; }
+.rc-pr { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-nm { font-size: 13.5px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .12s; }
+.rc-why { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--areia); }
+.rc-why > span { position: relative; padding-left: 10px; font-size: 11px; line-height: 1.35; color: var(--nevoa); }
+.rc-why > span::before { content: ""; position: absolute; left: 0; top: .5em; width: 5px; height: 5px; border-radius: 50%; background: var(--t-green-line); }
+.rc-skel { min-height: 250px; background: var(--surface-2); animation: ac-pulse 1.4s ease-in-out infinite; }
+.cp-empty-line { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--nevoa); font-size: 13px; }
+.cp-empty-line svg { flex: none; }
+
+/* -------------------------------------------------------------- abas */
+.cp-tab-n {
+  display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 650; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums;
+  background: var(--surface-2); border: 1px solid var(--areia); color: var(--nevoa);
+}
+[aria-selected="true"] > .cp-tab-n { background: var(--vivo-soft); border-color: var(--vivo-line); color: var(--vivo); }
+
+/* --------------------------------------------- memória (linha do tempo) */
+.cp-tline .ln i { background: var(--areia-2); }
+.cp-tline .is-pinned .ln i { background: var(--vivo); }
+.cp-tline .t2 { font-weight: 500; line-height: 1.45; }
+.cp-tline .n2 { display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; margin-top: 2px; }
+.cp-pinned { color: var(--vivo); font-weight: 650; }
+.cp-link-btn {
+  background: none; border: none; padding: 1px 4px; margin-left: 6px; border-radius: var(--r-sm);
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--vivo); cursor: pointer;
+}
+.cp-link-btn:hover { background: var(--vivo-soft); }
+.cp-link-btn:disabled { opacity: .5; cursor: default; }
+
+/* ------------------------------------------------------- medidas */
+.cp-hist td, .cp-hist th { padding: 8px 12px; }
+.cp-hist-d { font-size: 12px; white-space: nowrap; }
+.cp-current {
+  margin-left: 7px; padding: 0 6px; border-radius: 999px; font-family: var(--f-ui); font-size: 10.5px; font-weight: 600;
+  background: var(--t-green-bg); color: var(--t-green); border: 1px solid var(--t-green-line);
+}
+.cp-hist-o { display: flex; flex-direction: column; font-size: 12.5px; min-width: 150px; }
+
+/* ------------------------------------------------------- favoritos */
+.cp-favs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 14px; }
+.cp-favs > li { min-width: 0; display: flex; }
+.cp-fav { box-shadow: none; }
+.cp-fav.gc-skel { min-height: 320px; background: var(--surface-2); }
+.cp-fav-link { display: flex; flex-direction: column; color: inherit; }
+.cp-fav-link:hover { text-decoration: none; }
+.cp-fav-link:hover .gc-nm { color: var(--vivo); }
+.cp-fav-f { margin-top: auto; padding: 0 13px 10px; display: flex; flex-direction: column; gap: 3px; }
+.cp-fav-q { font-size: 12px; color: var(--tinta); font-style: italic; line-height: 1.4; }
+.cp-fav-rm { align-self: flex-start; margin: 4px 0 0 -9px; }
+
+/* ------------------------------------------------------- formulários */
+.cp-form { display: flex; flex-direction: column; gap: 14px; }
+.cp-note-row { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 14px; align-items: end; }
+.cp-check { display: flex; gap: 9px; align-items: flex-start; padding: 6px 0 4px; }
+.cp-check input { width: 16px; height: 16px; margin-top: 1px; accent-color: var(--vivo); flex: none; }
+.cp-check > span { display: flex; flex-direction: column; }
+.cp-check label { font-size: 13px; font-weight: 550; cursor: pointer; }
+.cp-check small { font-size: 11px; color: var(--nevoa); }
+
+/* ----------------------------------------------------------- responsivo */
+@media (max-width: 1280px) {
+  .rc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1180px) {
+  .cp-profile { grid-template-columns: 270px minmax(0, 1fr); }
+  .cp-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 0; }
+  .cp-cols > dl:nth-child(3) { grid-column: 1 / -1; border-left: none; padding: 14px 0 0; border-top: 1px solid var(--areia); }
+  .cp-cols > dl:nth-child(2) { padding-right: 0; }
+}
+/* tablet: cartão lateral vira faixa no topo, conteúdo em uma coluna */
+@media (max-width: 1024px) {
+  .cp-profile { grid-template-columns: minmax(0, 1fr); }
+  .cp-side { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .cp-side:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+  .cp-side > .cp-card:only-child .cp-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 18px; }
+}
+@media (max-width: 760px) {
+  .cp-side { grid-template-columns: minmax(0, 1fr); }
+  .cp-cols { grid-template-columns: minmax(0, 1fr); }
+  .cp-cols > dl, .cp-cols > dl:nth-child(n) { padding: 0; border-left: none; }
+  .cp-cols > dl + dl { padding-top: 12px; border-top: 1px solid var(--areia); }
+  .cp-tiles > div:nth-child(odd) { border-left: none; }
+  .cp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-tiles > div:nth-child(n + 3) { border-top: 1px solid var(--areia); }
+}
+@media (max-width: 560px) {
+  .rc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-note-row { grid-template-columns: minmax(0, 1fr); }
+}

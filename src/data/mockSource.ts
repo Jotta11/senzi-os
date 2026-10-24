@@ -18,7 +18,7 @@ import {
   type Recommendation,
   type SourceIssue,
 } from './types'
-import { customerIssues, fitIssues, garmentIssues, MAX_PHOTOS, measurementIssues } from './validation'
+import { customerIssues, customerMeasurementIssues, fitIssues, garmentIssues, MAX_PHOTOS, measurementIssues } from './validation'
 
 export type MockSourceOptions = {
   /** Latência simulada em ms (padrão 150; use 0 nos testes). */
@@ -122,6 +122,8 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
       preferredLength: input.preferredLength ?? null,
       source: fromIdeal ? 'modelo_ideal' : 'manual',
       sourceGarmentId: fromIdeal ? (input.sourceGarmentId ?? idealGarmentId) : null,
+      notes: input.notes?.trim() || null,
+      measuredBy: userName(),
     }
   }
 
@@ -393,6 +395,8 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
     addMeasurement: (id, input) =>
       run(() => {
         const c = customer(id)
+        const issues = customerMeasurementIssues(input)
+        if (issues.length) fail(issues)
         c.measurements.unshift(measurementFrom({ source: 'manual', ...input }, c.idealGarmentId))
         return c
       }),

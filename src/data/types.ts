@@ -164,6 +164,10 @@ export type CustomerMeasurement = {
   preferredLength: GarmentLength | null
   source: 'manual' | 'modelo_ideal'
   sourceGarmentId: string | null
+  /** Observação da medição ("Medidas tiradas na prova do Verona"). */
+  notes?: string | null
+  /** Quem registrou a versão (preenchido pela fonte). */
+  measuredBy?: string | null
 }
 
 export type CustomerPreferences = {
@@ -209,7 +213,7 @@ export type Customer = {
   stats: CustomerStats
 }
 
-export type CustomerMeasurementInput = Partial<Omit<CustomerMeasurement, 'measuredAt'>>
+export type CustomerMeasurementInput = Partial<Omit<CustomerMeasurement, 'measuredAt' | 'measuredBy'>>
 
 export type CustomerInput = {
   fullName: string

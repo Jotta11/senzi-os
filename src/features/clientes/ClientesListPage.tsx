@@ -7,6 +7,7 @@ import { brl, dateBR, maskPhone } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, DataTable, EmptyState, SearchInput, type Column } from '@/ui'
 import { CustomerForm } from './CustomerForm'
+import { initials } from './initials'
 import '../acervo/acervo.css'
 import './clientes.css'
 
@@ -19,15 +20,6 @@ const SORTS: [CustomerSort, string][] = [
   ['recentes', 'Mais recentes'],
 ]
 const isSort = (v: string | null): v is CustomerSort => SORTS.some(([k]) => k === v)
-
-/** Iniciais do primeiro e do último nome ("Mariana Fontes Ribeiro" → "MR"). */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]![0]!
-  const last = parts.length > 1 ? parts.at(-1)![0]! : ''
-  return (first + last).toLocaleUpperCase('pt-BR')
-}
 
 /**
  * Clientes — lista (protótipo `UI.VIEWS.clientes` + `UI.customerRow`). Busca e ordenação na URL

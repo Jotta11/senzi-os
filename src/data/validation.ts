@@ -5,7 +5,7 @@
 import { isValidCPF } from '@/lib/cpf'
 import { errorMessage } from '@/lib/errorMessages'
 import { onlyDigits } from '@/lib/format'
-import type { CustomerInput, FitInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
+import type { CustomerInput, CustomerMeasurementInput, FitInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -63,6 +63,11 @@ export function fitIssues(input: Partial<FitInput>): SourceIssue[] {
 
 /** Problemas das medidas da peça (só os campos enviados). */
 export function measurementIssues(input: Partial<GarmentMeasurement>): SourceIssue[] {
+  return rangeIssues(input)
+}
+
+/** Problemas de uma versão de medidas da cliente (faixas de `CM_RANGES`; altura até 300). */
+export function customerMeasurementIssues(input: CustomerMeasurementInput): SourceIssue[] {
   return rangeIssues(input)
 }
 
