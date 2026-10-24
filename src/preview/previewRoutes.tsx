@@ -8,6 +8,7 @@ import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
 import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
 import { PayablesPage } from '@/features/financeiro/PayablesPage'
 import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { IntelPage } from '@/features/inteligencia/IntelPage'
 import { RequirePerm } from '@/shell/RequirePerm'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
@@ -40,6 +41,7 @@ export const previewRoutes: RouteObject = {
     { path: 'financeiro/receber', element: <RequirePerm perm="financeiro.geral"><ReceivablesPage /></RequirePerm> },
     { path: 'financeiro/pagar', element: <RequirePerm perm="financeiro.geral"><PayablesPage /></RequirePerm> },
     { path: 'financeiro/categorias', element: <RequirePerm perm="financeiro.geral"><CategoriesPage /></RequirePerm> },
+    { path: 'inteligencia', element: <RequirePerm perm="inteligencia.view"><IntelPage /></RequirePerm> },
     { path: 'provas', element: <ProvasListPage /> },
     { path: 'provas/:id', element: <FittingPage /> },
     { path: 'reservas', element: <ReservasListPage /> },

@@ -2,9 +2,8 @@
  * Acervo e Clientes na fonte em memória. Mesma interface e mesmos códigos de erro do banco (Plano 2B);
  * o estado vive no mundo do `MockCtx` e some ao recarregar a página.
  */
-import { REALIZED_RESERVATION_STATES, STATE_GROUP_STATES } from '@/data/labels'
-import { diffDays } from '@/domain/dates'
-import { round2 } from '@/domain/money'
+import { STATE_GROUP_STATES } from '@/data/labels'
+import { garmentEconomics } from '@/domain/economics'
 import { dateBR, normalize, onlyDigits, STORE_TZ } from '@/lib/format'
 import { FIN_CAT } from '../fixture'
 import { addPayable } from '../fixture/finance'
@@ -17,7 +16,6 @@ import {
   type CustomerMeasurement,
   type CustomerMeasurementInput,
   type Garment,
-  type GarmentEconomics,
   type GarmentFilters,
   type GarmentState,
 } from '../types'
@@ -117,37 +115,6 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
     if (hasMeasurement(input.measurement)) c.measurements.unshift(measurementFrom(input.measurement!, c.idealGarmentId))
   }
 
-  /**
-   * Economia da peça (spec dashboard §3.3): itens de reservas realizadas → receita (Σ líquido rateado);
-   * limpeza/manutenção = contas pagas `operacao` da peça; resultado = receita − aquisição − limpeza − manutenção.
-   */
-  function economics(id: string): GarmentEconomics {
-    const g = garment(id)
-    const uses = db.reservations
-      .filter((r) => REALIZED_RESERVATION_STATES.includes(r.state))
-      .flatMap((r) => r.items.filter((i) => i.garmentId === id && i.itemState !== 'cancelado' && i.itemState !== 'nao_entregue').map((i) => ({ r, i })))
-    const revenue = round2(uses.reduce((s, u) => s + u.i.netRevenue, 0))
-    const ops = db.payables.filter((p) => p.source === 'operacao' && p.garmentId === id && p.status !== 'cancelada')
-    const sum = (cats: string[]) => round2(ops.filter((p) => cats.includes(p.categoryId)).reduce((s, p) => s + (p.paidAmount ?? p.amount), 0))
-    const cleaning = sum([FIN_CAT.higienizacao])
-    const maintenance = sum([FIN_CAT.manutencao, FIN_CAT.ajuste])
-    const cost = g.acquisitionCost
-    const lastRental = uses.map((u) => u.r.eventDate ?? u.r.pickupDate).sort().at(-1) ?? null
-    return {
-      garmentId: id,
-      rentals: uses.length,
-      revenue,
-      acquisitionCost: cost,
-      payback: cost ? revenue / cost : null,
-      paidBack: !!cost && revenue >= cost,
-      cleaning,
-      maintenance,
-      result: round2(revenue - (cost ?? 0) - cleaning - maintenance),
-      lastRental,
-      idleDays: lastRental ? diffDays(lastRental, today) : null,
-    }
-  }
-
   return {
     listCategories: () => run(() => db.categories),
     listBrands: () => run(() => [...db.brands].sort((a, b) => a.localeCompare(b, 'pt-BR'))),
@@ -176,7 +143,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
         }
       }),
 
-    garmentEconomics: (ids) => run(() => ids.flatMap((id) => (db.garments.some((g) => g.id === id) ? [economics(id)] : []))),
+    garmentEconomics: (ids) => run(() => ids.flatMap((id) => (db.garments.some((g) => g.id === id) ? [garmentEconomics(garment(id), db, today)] : []))),
 
     // Exclui `baixado` de propósito (o protótipo somava todas): peça baixada não conta como investimento do acervo.
     acervoInvestment: () =>

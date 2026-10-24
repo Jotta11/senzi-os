@@ -81,6 +81,21 @@ export type PressureRow = {
   occupancy: number
 }
 
+export type IntelInsight = {
+  /** Identificador estável da regra (ex.: `tamanho-top`, `cor-giro`). */
+  id: string
+  tone: Tone
+  icon: string
+  html: string
+  why: string
+  group: IntelGroup
+  /** Id do card de origem (para rolar até ele). */
+  ref?: string
+  requires?: 'acervo.cost'
+}
+
+export type IntelGarmentRevenue = { garmentId: string; name: string; hex: string; rentals: number; revenue: number }
+
 export type IntelReport = {
   period: { days: IntelPeriod; from: string; to: string }
   kpis: {
@@ -95,8 +110,22 @@ export type IntelReport = {
     fittingConversion: number | null
     closedFittings: number
   }
-  insights: { tone: Tone; icon: string; html: string; why: string; group: IntelGroup; ref?: string }[]
-  revenueByGarment: { garmentId: string; name: string; hex: string; rentals: number; revenue: number }[]
+  /** Slug da categoria filtrada (`null` = todas). Vale para tudo menos clientes e provas globais (tile, taxa, funil). */
+  category: string | null
+  /** Parâmetro `idle_alert_days` usado em "Peças paradas". */
+  idleAlertDays: number
+  /** Em ordem de geração (regras 1–11). `html` só usa `<b>`; `requires` = permissão extra para exibir. */
+  insights: IntelInsight[]
+  /** Itens-locação e receita por mês do período (o 1º e o último mês podem ser parciais). */
+  monthly: { month: string; label: string; rentals: number; revenue: number }[]
+  /** Top 8 por receita. */
+  revenueByGarment: IntelGarmentRevenue[]
+  /** As 8 peças do acervo de menor receita no período (inclui as sem locação). */
+  revenueByGarmentBottom: IntelGarmentRevenue[]
+  /** Funil das provas agendadas no período: agendadas → realizadas (sem no-show/agendada) → convertidas. */
+  fittingFunnel: { scheduled: number; held: number; converted: number; closed: number }
+  /** Receita acumulada (Σ líquido das reservas realizadas) de clientes recorrentes × de uma locação só. */
+  customerRevenue: { recurrent: number; recurrentCount: number; single: number; singleCount: number }
   colors: { color: string; hex: string; rentals: number; inStock: number; revenue: number }[]
   sizes: { size: string; rentals: number }[]
   occupancyByCategory: { category: string; garments: number; occupiedDays: number; rate: number }[]
