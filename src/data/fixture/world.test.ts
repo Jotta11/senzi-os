@@ -211,4 +211,20 @@ describe('buildWorld', () => {
     expect(w.receivables).toHaveLength(3)
     expect(w.users.find((u) => u.role === 'admin')).toMatchObject({ name: 'Júlia Senzi', email: 'julia@senzi.com.br' })
   })
+
+  it('prova convertida acontece no dia da criação da reserva ou antes; a que foi para o dia da criação termina antes dela', () => {
+    const converted = w.fittings.filter((f) => f.reservationId)
+    expect(converted.length).toBeGreaterThan(10)
+    for (const f of converted) {
+      const r = w.reservations.find((x) => x.id === f.reservationId)!
+      expect({ fit: f.code, day: f.scheduledAt.slice(0, 10) <= r.createdAt.slice(0, 10) }).toEqual({ fit: f.code, day: true })
+    }
+    const history = converted.filter((f) => f.code && w.reservations.find((x) => x.id === f.reservationId)!.state === 'finalizada')
+    for (const f of history) expect(f.endedAt! <= w.reservations.find((x) => x.id === f.reservationId)!.createdAt).toBe(true)
+  })
+
+  it('categorias de sistema têm systemKey; livres não', () => {
+    expect(w.finCategories.filter((c) => c.isSystem).map((c) => c.systemKey).sort()).toEqual(['ajuste', 'aquisicao', 'higienizacao', 'locacao', 'manutencao'])
+    expect(w.finCategories.filter((c) => !c.isSystem).every((c) => c.systemKey === null)).toBe(true)
+  })
 })

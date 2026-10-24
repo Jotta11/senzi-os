@@ -7,7 +7,7 @@ import { addDays } from '@/lib/format'
 import { addAppointment, addReservationAppointments } from '../mock/appointments'
 import type { AppointmentState, FitOutcome, FittingSession, FittingState, Garment, Reservation } from '../types'
 import { at, EVENTOS, USER, type Rng } from './kit'
-import type { World } from './world'
+import type { World } from '../types-world'
 
 type Piece = [name: string, outcome: FitOutcome, note: string | null, alteration?: boolean]
 type FitSpec = {
@@ -24,7 +24,20 @@ type FitSpec = {
   attendant: string
 }
 
-function addFitting(w: World, s: FitSpec): FittingSession {
+/**
+ * Prova que converteu acontece antes da reserva existir: no dia da criação (terminando antes dela) ou antes.
+ * Se a data pedida cai depois da criação, a prova vai para o dia da criação, 1h30 antes (ou para a véspera, 18:00).
+ */
+function convertedWhen(when: string, r: Reservation): string {
+  const created = r.createdAt.slice(0, 10)
+  if (when.slice(0, 10) <= created) return when
+  const mins = Number(r.createdAt.slice(11, 13)) * 60 + Number(r.createdAt.slice(14, 16)) - 90
+  const hhmm = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+  return mins >= 9 * 60 ? at(created, hhmm) : at(addDays(created, -1), '18:00')
+}
+
+function addFitting(w: World, spec: FitSpec): FittingSession {
+  const s = spec.reservation ? { ...spec, when: convertedWhen(spec.when, spec.reservation) } : spec
   const id = `fit-${String(w.fittings.length + 1).padStart(4, '0')}`
   const closed = s.state === 'convertida' || s.state === 'perdida' || s.state === 'no_show' || s.state === 'concluida'
   const f: FittingSession = {
