@@ -42,6 +42,25 @@ describe('PreviewLayout', () => {
     }
   })
 
+  it('sidebar mantém nome acessível em todos os itens (inclusive no trilho de ícones)', () => {
+    renderAt('/preview/acervo')
+    for (const label of ['Dashboard', 'Agenda', 'Reservas', 'Acervo', 'Clientes', 'Operação', 'Financeiro', 'Inteligência', 'Configurações']) {
+      expect(nav().getByRole('link', { name: label })).toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: /buscar/i })).toBeInTheDocument()
+
+    // nos breakpoints compactos, rótulos somem só visualmente — nunca com display:none
+    const css = readFileSync(resolve(__dirname, '../shell/shell.css'), 'utf8')
+    let vistos = 0
+    for (const m of css.matchAll(/([^{}]*)\{([^}]*)\}/g)) {
+      if (/\.sb-nav-label|\.sb-search span/.test(m[1]!)) {
+        vistos++
+        expect(m[2]).not.toMatch(/display:\s*none/)
+      }
+    }
+    expect(vistos).toBeGreaterThan(0)
+  })
+
   it('demais itens mostram "Em construção" dentro da prévia', async () => {
     const router = renderAt('/preview')
     await userEvent.click(nav().getByRole('link', { name: 'Inteligência' }))

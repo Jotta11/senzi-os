@@ -123,6 +123,9 @@ function receipts(world: FinanceWorld, from: string, to: string): { revenue: Rec
 }
 
 const sum = (xs: number[]): number => round2(xs.reduce((s, x) => s + x, 0))
+
+/** Faturamento recebido entre duas datas (inclusivas), já descontados os estornos de receita. Caução nunca entra. */
+export const receivedBetween = (world: FinanceWorld, from: string, to: string): number => sum(receipts(world, from, to).revenue.map((x) => x.amount))
 const paidValue = (p: Payable): number => p.paidAmount ?? p.amount
 
 /** Visão geral do período (`range` dias) em regime de caixa. Caução nunca é receita. */

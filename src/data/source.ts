@@ -22,6 +22,7 @@ import type {
 import type { AgendaSource } from './source-agenda'
 import type { FinanceiroSource } from './source-financeiro'
 import type { OperacaoSource } from './source-operacao'
+import type { PainelSource } from './source-painel'
 import type { ExceptionsSource, ReservasSource } from './source-reservas'
 
 /**
@@ -74,7 +75,7 @@ export interface AcervoClientesSource {
 }
 
 /** Única porta de dados das telas: interseção das interfaces de cada área (as próximas áreas entram aqui). */
-export type DataSource = AcervoClientesSource & AgendaSource & ReservasSource & ExceptionsSource & OperacaoSource & FinanceiroSource
+export type DataSource = AcervoClientesSource & AgendaSource & ReservasSource & ExceptionsSource & OperacaoSource & FinanceiroSource & PainelSource
 
 const DataSourceContext = createContext<DataSource | null>(null)
 

@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
@@ -19,7 +20,6 @@ import { ReservationPage } from '@/features/reservas/ReservationPage'
 import { PREVIEW_BASE } from './paths'
 import { PreviewComingSoon } from './PreviewComingSoon'
 import { PreviewLayout } from './PreviewLayout'
-import { PreviewPage } from './PreviewPage'
 
 /**
  * Rotas da prévia visual (públicas, sem login, dados fictícios em memória).
@@ -29,7 +29,7 @@ export const previewRoutes: RouteObject = {
   path: PREVIEW_BASE,
   element: <PreviewLayout />,
   children: [
-    { index: true, element: <PreviewPage /> },
+    { index: true, element: <DashboardPage /> },
     { path: 'acervo', element: <AcervoListPage /> },
     { path: 'acervo/:id', element: <GarmentPage /> },
     { path: 'agenda', element: <AgendaPage /> },
