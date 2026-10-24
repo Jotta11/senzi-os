@@ -65,7 +65,7 @@ describe('shell', () => {
     authMock.loading = true
     setup('atendimento', '/config')
     expect(screen.queryByText('Acesso restrito')).toBeNull()
-    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Carregando…')
   })
 
   it('falha ao carregar permissões mostra erro com Tentar novamente, não Acesso restrito', async () => {

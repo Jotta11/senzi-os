@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { vi } from 'vitest'
-import { Chips, DataTable, EmptyState, Modal, SearchInput, Silhouette, Tabs } from '@/ui'
+import { Chips, DataTable, EmptyState, Modal, SearchInput, Silhouette, Tabs, ToastProvider, useToast } from '@/ui'
 
 function ModalHarness() {
   const [open, setOpen] = useState(false)
@@ -210,5 +210,59 @@ describe('DataTable e EmptyState', () => {
     render(<EmptyState title="Nenhuma peça encontrada" description="Ajuste os filtros ou cadastre uma nova peça." />)
     expect(screen.getByText('Nenhuma peça encontrada')).toBeInTheDocument()
     expect(screen.getByText('Ajuste os filtros ou cadastre uma nova peça.')).toBeInTheDocument()
+  })
+})
+
+describe('ToastProvider', () => {
+  function Trigger() {
+    const toast = useToast()
+    return (
+      <>
+        <button type="button" onClick={() => toast({ title: 'Salvo', description: 'Tudo certo.' })}>ok</button>
+        <button type="button" onClick={() => toast({ title: 'Falhou', tone: 'error' })}>erro</button>
+      </>
+    )
+  }
+  const setup = () =>
+    render(
+      <ToastProvider>
+        <Trigger />
+      </ToastProvider>,
+    )
+  afterEach(() => vi.useRealTimers())
+
+  it('regiões vivas persistentes: avisos em polite, erros em assertive (já no DOM antes do 1º aviso)', () => {
+    setup()
+    const polite = screen.getByRole('status', { name: 'Avisos' })
+    const assertive = screen.getByRole('alert', { name: 'Erros' })
+    expect(polite).toHaveAttribute('aria-live', 'polite')
+    expect(assertive).toHaveAttribute('aria-live', 'assertive')
+    expect(polite).toBeEmptyDOMElement()
+    fireEvent.click(screen.getByRole('button', { name: 'ok' }))
+    fireEvent.click(screen.getByRole('button', { name: 'erro' }))
+    expect(polite).toHaveTextContent('Salvo')
+    expect(assertive).toHaveTextContent('Falhou')
+    expect(polite).not.toHaveTextContent('Falhou')
+  })
+
+  it('some em ~4 s, mas pausa enquanto o ponteiro ou o foco está no aviso', () => {
+    vi.useFakeTimers()
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'ok' }))
+    const toast = screen.getByText('Salvo').closest('.toast') as HTMLElement
+    act(() => vi.advanceTimersByTime(1000))
+    fireEvent.mouseEnter(toast)
+    act(() => vi.advanceTimersByTime(10_000))
+    expect(screen.getByText('Salvo')).toBeInTheDocument()
+    fireEvent.mouseLeave(toast)
+    act(() => vi.advanceTimersByTime(2500))
+    expect(screen.getByText('Salvo')).toBeInTheDocument()
+
+    fireEvent.focus(screen.getByRole('button', { name: 'Fechar aviso' }))
+    act(() => vi.advanceTimersByTime(10_000))
+    expect(screen.getByText('Salvo')).toBeInTheDocument()
+    fireEvent.blur(screen.getByRole('button', { name: 'Fechar aviso' }))
+    act(() => vi.advanceTimersByTime(600))
+    expect(screen.queryByText('Salvo')).toBeNull()
   })
 })
