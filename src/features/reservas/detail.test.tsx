@@ -166,6 +166,16 @@ describe('Reservas — ficha', () => {
     for (const t of [/Custo/, /Payback/, /Resultado/]) expect(screen.queryByText(t)).toBeNull()
   })
 
+  it.each(['cancelada', 'no_show'] as const)('%s: o cartão de valores mostra "nada a receber", nunca um saldo em vermelho', async (state) => {
+    const source = newSource()
+    const row = await find(source, (r) => r.state === state)
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    const values = await screen.findByLabelText('Valores da reserva')
+    const saldo = within(values).getByText('Saldo').closest('div') as HTMLElement
+    expect(saldo).not.toHaveClass('red')
+    expect(within(saldo).getByText('nada a receber')).toBeInTheDocument()
+  })
+
   it('Pagamentos lista os lançamentos e oferece "Receber" no saldo pendente (Sorrento)', async () => {
     const source = newSource()
     const row = await find(source, (r) => r.state === 'confirmada' && has('Sorrento')(r))

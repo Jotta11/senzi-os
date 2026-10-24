@@ -1,7 +1,8 @@
 /** Leituras de Reservas na fonte em memória: lista por filtro (spec §2.1), ficha, disponibilidade e alternativas. */
-import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES } from '@/data/labels'
+import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES, OUT_RESERVATION_STATES } from '@/data/labels'
 import { alternatives as rankAlternatives } from '@/domain/calendar'
-import { balance, depositSuggestion, minSignal } from '@/domain/money'
+import { reservationsToReceive } from '@/domain/finance'
+import { balance, depositSuggestion, minSignal, openReceivableDue } from '@/domain/money'
 import type { ReservasSource } from '../source-reservas'
 import type { Reservation, ReservationDetail, ReservationFilter, ReservationRow, ReservationState } from '../types'
 import { projectCustomer, projectGarment, type MockCtx } from './context'
@@ -17,14 +18,13 @@ type Read = Pick<
 
 export function reservasRead(ctx: MockCtx, kit: ReservaKit): Read {
   const { db, today, run } = ctx
-  const due = (r: Reservation) => balance(r.totalNet, r.lateFee, r.payments).due
 
   const FILTERS: Record<ReservationFilter, (r: Reservation) => boolean> = {
     ativas: (r) => LIST_ACTIVE.includes(r.state),
     hoje: (r) => r.pickupDate === today || r.returnDueDate === today || r.eventDate === today,
     rascunhos: (r) => r.state === 'rascunho',
-    com_saldo: (r) => LIST_ACTIVE.includes(r.state) && r.state !== 'rascunho' && due(r) > 0,
-    rua: (r) => r.state === 'retirada' || r.state === 'em_uso' || r.state === 'aguardando_devolucao',
+    com_saldo: (r) => LIST_ACTIVE.includes(r.state) && openReceivableDue(r) > 0,
+    rua: (r) => OUT_RESERVATION_STATES.includes(r.state),
     inspecao: (r) => r.state === 'devolvida' || r.state === 'em_inspecao',
     futuras: (r) => (r.state === 'rascunho' || ACTIVE_RESERVATION_STATES.includes(r.state)) && r.pickupDate > today,
     encerradas: (r) => CLOSED_RESERVATION_STATES.includes(r.state),
@@ -65,7 +65,7 @@ export function reservasRead(ctx: MockCtx, kit: ReservaKit): Read {
     reservationSummary: () =>
       run(() => {
         const active = db.reservations.filter((r) => ACTIVE_RESERVATION_STATES.includes(r.state))
-        return { active: active.length, toReceive: Math.round(active.reduce((s, r) => s + due(r), 0) * 100) / 100 }
+        return { active: active.length, toReceive: reservationsToReceive(db) }
       }),
 
     getReservation: (id) =>

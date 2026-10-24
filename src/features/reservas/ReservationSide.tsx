@@ -3,6 +3,7 @@ import { usePermissions } from '@/auth/usePermissions'
 import { RESERVATION_STATE } from '@/data/labels-ops'
 import type { ReservationDetail } from '@/data/types'
 import { relativeDay } from '@/domain/dates'
+import { hasReceivable } from '@/domain/money'
 import { brl, dateBR, maskPhone } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Icon } from '@/ui'
@@ -18,6 +19,8 @@ export function ReservationSide({ r, today }: { r: ReservationDetail; today: str
   const phone = c.phone ? maskPhone(c.phone) : '—'
   const rel = (iso: string) => <span className="muted"> · {relativeDay(iso, today)}</span>
   const b = r.balance
+  // Rascunho, cancelada e no-show não têm conta a receber (mesma regra da lista e do Financeiro).
+  const receivable = hasReceivable(r)
   const discount = r.discount
   return (
     <aside className="card rd-side" aria-label="Resumo da reserva">
@@ -97,10 +100,17 @@ export function ReservationSide({ r, today }: { r: ReservationDetail; today: str
               <dt>Pago</dt>
               <dd>{brl(b.pago)}</dd>
             </div>
-            <div className={`strong ${b.due > 0.005 ? 'red' : 'green'}`}>
-              <dt>Saldo</dt>
-              <dd>{brl(b.due)}</dd>
-            </div>
+            {receivable ? (
+              <div className={`strong ${b.due > 0.005 ? 'red' : 'green'}`}>
+                <dt>Saldo</dt>
+                <dd>{brl(b.due)}</dd>
+              </div>
+            ) : (
+              <div className="dim">
+                <dt>Saldo</dt>
+                <dd>{r.state === 'rascunho' ? '—' : 'nada a receber'}</dd>
+              </div>
+            )}
             {b.caucao > 0 && (
               <div className="dim">
                 <dt>Caução retida</dt>

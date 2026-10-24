@@ -1,5 +1,10 @@
 /** Dinheiro: arredondamento a centavos e regras de valores de reserva (spec reservas §4.2–§4.4). */
-import type { Garment, Payment, PayStatus, ReservationBalance } from '@/data/types'
+import { NO_RECEIVABLE_RESERVATION_STATES, OUT_RESERVATION_STATES } from '@/data/labels-ops'
+import type { Garment, Payment, PayStatus, Reservation, ReservationBalance } from '@/data/types'
+import { diffDays } from './dates'
+
+/** O que as regras de saldo leem de um pagamento. */
+type PaymentLike = Pick<Payment, 'kind' | 'amount' | 'state' | 'refersTo'>
 
 export const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100
 
@@ -31,10 +36,10 @@ export function prorate(items: { gross: number; itemDiscount?: number }[], order
  * Saldo da reserva. Só pagamentos `pago` contam; caução nunca abate. Estorno de receita subtrai do pago;
  * estorno com `refersTo: 'caucao'` abate a caução retida e não mexe no saldo (Decisão 6).
  */
-export function balance(totalNet: number, lateFeeAmount: number, payments: Payment[]): ReservationBalance {
+export function balance(totalNet: number, lateFeeAmount: number, payments: PaymentLike[]): ReservationBalance {
   const devido = round2(totalNet + lateFeeAmount)
   const paid = payments.filter((p) => p.state === 'pago')
-  const sum = (f: (p: Payment) => boolean) => round2(paid.filter(f).reduce((s, p) => s + p.amount, 0))
+  const sum = (f: (p: PaymentLike) => boolean) => round2(paid.filter(f).reduce((s, p) => s + p.amount, 0))
   const bruto = sum((p) => p.kind !== 'caucao' && p.kind !== 'estorno')
   const estornoReceita = sum((p) => p.kind === 'estorno' && p.refersTo !== 'caucao')
   const estornoCaucao = sum((p) => p.kind === 'estorno' && p.refersTo === 'caucao')
@@ -42,6 +47,35 @@ export function balance(totalNet: number, lateFeeAmount: number, payments: Payme
   const caucao = Math.max(0, round2(sum((p) => p.kind === 'caucao') - estornoCaucao))
   const status: PayStatus = pago <= 0 ? 'nao_pago' : pago >= devido - 0.009 ? 'pago' : 'parcial'
   return { devido, pago, caucao, due: Math.max(0, round2(devido - pago)), status }
+}
+
+/** A reserva tem conta a receber? Não em rascunho (ainda não cobra) nem cancelada/no-show (o pendente caiu). */
+export const hasReceivable = (r: Pick<Reservation, 'state'>): boolean => !NO_RECEIVABLE_RESERVATION_STATES.includes(r.state)
+
+/**
+ * Quanto ainda falta receber da reserva — a regra única de "a receber" (lista, ficha, financeiro, alertas):
+ * `balance(...).due`, e 0 quando a reserva não tem conta a receber (`hasReceivable`).
+ */
+export function openReceivableDue(r: Pick<Reservation, 'state' | 'totalNet' | 'lateFee' | 'payments'>): number {
+  return hasReceivable(r) ? balance(r.totalNet, r.lateFee, r.payments).due : 0
+}
+
+/**
+ * Parcelas pendentes coerentes com o saldo: `saldo` = `min(due, líquido − pago da locação)`; `multa` = `due − saldo`.
+ * Usada pela fonte (`syncPending`) e pelo fixture, para que Σ parcelas pendentes = `due`.
+ */
+export function pendingTargets(totalNet: number, lateFeeAmount: number, payments: PaymentLike[]): { saldo: number; multa: number } {
+  const due = balance(totalNet, lateFeeAmount, payments).due
+  const paid = payments.filter((p) => p.state === 'pago')
+  const sum = (f: (p: PaymentLike) => boolean) => round2(paid.filter(f).reduce((s, p) => s + p.amount, 0))
+  const rentalPaid = round2(sum((p) => p.kind !== 'caucao' && p.kind !== 'estorno' && p.kind !== 'multa') - sum((p) => p.kind === 'estorno' && p.refersTo !== 'caucao'))
+  const saldo = Math.min(due, Math.max(0, round2(totalNet - rentalPaid)))
+  return { saldo, multa: round2(due - saldo) }
+}
+
+/** Dias de atraso da devolução: só com a peça na rua (`OUT_RESERVATION_STATES`) e depois do prazo; senão 0. */
+export function daysLate(r: Pick<Reservation, 'state' | 'returnDueDate'>, today: string): number {
+  return OUT_RESERVATION_STATES.includes(r.state) ? Math.max(0, diffDays(r.returnDueDate, today)) : 0
 }
 
 /** Multa por atraso: `% diário` do líquido × dias corridos. */

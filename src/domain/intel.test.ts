@@ -236,7 +236,7 @@ describe('intelReport — mundo de demonstração', () => {
     const base = intelBase(w, 180, T, null)
     const rest = intelReport(w, 180, T, null)
     const colorInsights = (rentals: number) =>
-      intelInsights({ ...rest, colors: [{ color: 'Ciano', hex: '#00A0B0', rentals, inStock: 0, revenue: 100 }] }, base, customerTotals(w)).filter((i) => i.id === 'cor-giro')
+      intelInsights({ ...rest, colors: [{ color: 'Ciano', hex: '#00A0B0', rentals, inStock: 0, revenue: 100 }] }, base, customerTotals(w, T)).filter((i) => i.id === 'cor-giro')
     expect(colorInsights(2)).toHaveLength(0)
     const [three] = colorInsights(3)
     expect(three!.html).toBe('<b>Ciano</b> gira 3× sem estoque ativo — alta procura com estoque baixo.')

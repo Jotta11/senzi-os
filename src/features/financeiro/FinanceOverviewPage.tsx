@@ -3,6 +3,7 @@ import { usePermissions } from '@/auth/usePermissions'
 import { useFinanceOverview, usePayables } from '@/data/hooks-financeiro'
 import { PAYMENT_KIND, PAYMENT_METHOD as METHOD_LABEL } from '@/data/labels-ops'
 import type { FinanceOverview } from '@/data/types'
+import { monthAbbr } from '@/domain/dates'
 import { addDays, brl, dateBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, buttonClass, Card, DataTable, EmptyState, type Column } from '@/ui'
@@ -15,8 +16,6 @@ import { PeriodSeg } from './PeriodSeg'
 import { Tiles, type Tile } from './Tiles'
 import './financeiro.css'
 
-const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-const monthLabel = (k: string) => MONTHS[Number(k.slice(5)) - 1] ?? k
 
 type Latest = FinanceOverview['latest'][number]
 
@@ -111,8 +110,8 @@ export function FinanceOverviewPage() {
               <LineChart
                 ariaLabel="Faturamento recebido por mês, últimos 12 meses"
                 format={brl0}
-                points={o.monthly.map((m) => ({ label: monthLabel(m.k), value: m.v }))}
-                secondary={consolidated ? { name: 'Pago', points: o.monthly.map((m) => ({ label: monthLabel(m.k), value: m.paid ?? 0 })) } : undefined}
+                points={o.monthly.map((m) => ({ label: monthAbbr(m.k), value: m.v }))}
+                secondary={consolidated ? { name: 'Pago', points: o.monthly.map((m) => ({ label: monthAbbr(m.k), value: m.paid ?? 0 })) } : undefined}
               />
             </Card>
             <div className="fx-grid2">

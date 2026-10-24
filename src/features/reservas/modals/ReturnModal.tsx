@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useReturnItems, useSettings } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
+import { daysLate } from '@/domain/money'
 import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateTimeBR, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
-import { daysLate } from '../reservaFormat'
 
 /**
  * Registrar devolução (spec §3.6): marca o que voltou; multa por atraso é lançada como cobrança pendente.

@@ -7,9 +7,9 @@ import { CLOSED_RESERVATION_STATES } from '@/data/labels'
 import { MAINTENANCE_KIND } from '@/data/labels-ops'
 import { deriveGarmentState, effectiveCleaningDays } from '@/domain/calendar'
 import { diffDays } from '@/domain/dates'
+import { systemCategoryId } from '@/domain/fin-categories'
 import { round2 } from '@/domain/money'
 import { addDays } from '@/lib/format'
-import { FIN_CAT } from '../fixture'
 import { addOperationExpense } from '../fixture/finance'
 import type { OperacaoSource } from '../source-operacao'
 import {
@@ -21,7 +21,6 @@ import {
   type InspectionFinding,
   type InspectionResult,
   type Maintenance,
-  type MaintenanceKind,
   type OperacaoQueue,
   type QueueRow,
 } from '../types'
@@ -35,7 +34,6 @@ const OPERATIONAL_BLOCKS = ['higienizacao', 'manutencao', 'ajuste', 'inspecao']
 const RETURN_STATES = ['em_inspecao', 'devolvida', 'aguardando_devolucao']
 
 const isOpen = (m: Maintenance) => OPEN.includes(m.state)
-const expenseCategory = (k: MaintenanceKind) => (k === 'higienizacao' ? FIN_CAT.higienizacao : k === 'ajuste' ? FIN_CAT.ajuste : FIN_CAT.manutencao)
 const findingText = (f: InspectionFinding) => `${f.label} (${f.severity === 'media' ? 'média' : f.severity})${f.note ? ` — ${f.note}` : ''}`
 
 export function operacao(ctx: MockCtx): OperacaoSource {
@@ -68,7 +66,7 @@ export function operacao(ctx: MockCtx): OperacaoSource {
     if (m.cost > 0) {
       addOperationExpense(db, {
         date: today,
-        categoryId: expenseCategory(m.kind),
+        categoryId: systemCategoryId(db.finCategories, m.kind === 'higienizacao' || m.kind === 'ajuste' ? m.kind : 'manutencao')!,
         amount: m.cost,
         supplier: m.provider ?? 'Sem fornecedor',
         description: m.description ?? MAINTENANCE_KIND[m.kind],

@@ -166,6 +166,11 @@ export const ALERT_SEVERITY: Record<AlertSeverity, LT> = {
 
 /** Estados que comprometem a peça (alertas, estatísticas da cliente). */
 export const ACTIVE_RESERVATION_STATES: readonly ReservationState[] = ['confirmada', 'pronta_retirada', 'retirada', 'em_uso', 'aguardando_devolucao']
+/** Peça na rua (com a cliente): a multa por atraso corre nesses estados. */
+export const OUT_RESERVATION_STATES: readonly ReservationState[] = ['retirada', 'em_uso', 'aguardando_devolucao']
+/** Sem conta a receber: rascunho ainda não cobra; cancelada e no-show encerram o que estava pendente. */
+export const NO_RECEIVABLE_RESERVATION_STATES: readonly ReservationState[] = ['rascunho', 'cancelada', 'no_show']
 /** Locações realizadas (receita da peça/cliente, Inteligência). */
 export const REALIZED_RESERVATION_STATES: readonly ReservationState[] = ['retirada', 'em_uso', 'aguardando_devolucao', 'devolvida', 'em_inspecao', 'finalizada']
+/** Encerradas: não mudam mais (a caução retida já pode voltar à cliente). */
 export const CLOSED_RESERVATION_STATES: readonly ReservationState[] = ['finalizada', 'cancelada', 'no_show']

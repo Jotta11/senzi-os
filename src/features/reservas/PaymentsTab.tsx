@@ -1,6 +1,7 @@
 import { usePermissions } from '@/auth/usePermissions'
-import { PAYMENT_KIND, PAYMENT_METHOD } from '@/data/labels-ops'
+import { CLOSED_RESERVATION_STATES, PAYMENT_KIND, PAYMENT_METHOD } from '@/data/labels-ops'
 import type { Payment, PaymentState, ReservationDetail } from '@/data/types'
+import { hasReceivable } from '@/domain/money'
 import { brl, dateBR } from '@/lib/format'
 import { Badge, Button, DataTable, EmptyState, type Column, type Tone } from '@/ui'
 
@@ -16,8 +17,6 @@ const STATUS: Record<ReservationDetail['balance']['status'], { label: string; to
   parcial: { label: 'Parcial', tone: 'amber' },
   pago: { label: 'Pago', tone: 'green' },
 }
-/** Depois de encerrada a reserva a caução pode voltar à cliente. */
-const DEPOSIT_RETURN = ['finalizada', 'cancelada', 'no_show']
 
 const stamp = (p: Payment) => p.paidAt ?? p.createdAt
 
@@ -60,9 +59,9 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
     <section className="card" aria-labelledby="rd-pay-t">
       <div className="card-h">
         <h3 id="rd-pay-t">Pagamentos</h3>
-        <Badge tone={status.tone}>{status.label}</Badge>
+        {hasReceivable(r) && <Badge tone={status.tone}>{status.label}</Badge>}
         <div className="actions">
-          {canPay && r.balance.caucao > 0 && DEPOSIT_RETURN.includes(r.state) && (
+          {canPay && r.balance.caucao > 0 && CLOSED_RESERVATION_STATES.includes(r.state) && (
             <Button size="sm" onClick={onReturnDeposit}>
               Devolver caução
             </Button>

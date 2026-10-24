@@ -4,13 +4,11 @@
  * Nada aqui valida entrada de tela; cada operação valida tudo antes de chamar o que muda o mundo.
  */
 import { checkAvailability, deriveGarmentState, occupiedWindow } from '@/domain/calendar'
-import { diffDays } from '@/domain/dates'
-import { balance, round2 } from '@/domain/money'
+import { balance, daysLate, hasReceivable, openReceivableDue, pendingTargets } from '@/domain/money'
 import {
   SourceError,
   type AvailabilityResult,
   type GarmentState,
-  type Payment,
   type Reservation,
   type ReservationRow,
   type ReservationState,
@@ -18,8 +16,6 @@ import {
 import { projectGarment, type MockCtx } from './context'
 import { renderContract } from './contract'
 
-const OUT_STATES: ReservationState[] = ['retirada', 'em_uso', 'aguardando_devolucao']
-const NO_PAY_STATUS: ReservationState[] = ['rascunho', 'cancelada', 'no_show']
 const NAME_PREFIX = /^(Vestido|Macacão|Conjunto|Saia|Clutch) /
 
 export type ReservaKit = ReturnType<typeof reservaKit>
@@ -28,7 +24,7 @@ export function reservaKit(ctx: MockCtx) {
   const { db, today } = ctx
 
   /** `ESTADO_INVALIDO` se a reserva não está num dos estados. */
-  const ensureState = (r: Reservation, states: ReservationState[]) => {
+  const ensureState = (r: Reservation, states: readonly ReservationState[]) => {
     if (!states.includes(r.state)) throw new SourceError('ESTADO_INVALIDO')
   }
 
@@ -121,12 +117,7 @@ export function reservaKit(ctx: MockCtx) {
    * Zeradas, somem. Só cria parcela nova de multa, quando `multa` é informado (devolução com atraso).
    */
   function syncPending(r: Reservation, multa?: { notes: string; dueAt: string }) {
-    const due = balance(r.totalNet, r.lateFee, r.payments).due
-    const paid = r.payments.filter((p) => p.state === 'pago')
-    const sum = (f: (p: Payment) => boolean) => round2(paid.filter(f).reduce((s, p) => s + p.amount, 0))
-    const rentalPaid = round2(sum((p) => p.kind !== 'caucao' && p.kind !== 'estorno' && p.kind !== 'multa') - sum((p) => p.kind === 'estorno' && p.refersTo !== 'caucao'))
-    const saldo = Math.min(due, Math.max(0, round2(r.totalNet - rentalPaid)))
-    const target = { saldo, multa: round2(due - saldo) }
+    const target = pendingTargets(r.totalNet, r.lateFee, r.payments)
     r.payments = r.payments.flatMap((p) => {
       if (p.state !== 'pendente' || (p.kind !== 'saldo' && p.kind !== 'multa')) return [p]
       const amount = target[p.kind]
@@ -139,11 +130,10 @@ export function reservaKit(ctx: MockCtx) {
     }
   }
 
-  const daysLate = (r: Reservation) => (OUT_STATES.includes(r.state) && r.returnDueDate < today ? diffDays(r.returnDueDate, today) : 0)
 
   function row(r: Reservation): ReservationRow {
     const b = balance(r.totalNet, r.lateFee, r.payments)
-    const noPay = NO_PAY_STATUS.includes(r.state)
+    const noPay = !hasReceivable(r)
     return {
       id: r.id,
       code: r.code,
@@ -157,12 +147,12 @@ export function reservaKit(ctx: MockCtx) {
       eventType: r.eventType,
       pickupDate: r.pickupDate,
       returnDueDate: r.returnDueDate,
-      daysLate: daysLate(r),
+      daysLate: daysLate(r, today),
       payStatus: noPay ? null : b.status,
       totalNet: r.totalNet,
-      due: noPay ? 0 : b.due,
+      due: openReceivableDue(r),
     }
   }
 
-  return { ensureState, log, transition, refresh, availability, blocking, rederive, setGarmentState, writeContract, syncPending, daysLate, row }
+  return { ensureState, log, transition, refresh, availability, blocking, rederive, setGarmentState, writeContract, syncPending, row }
 }

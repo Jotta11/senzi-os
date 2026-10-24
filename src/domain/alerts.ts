@@ -3,16 +3,15 @@
  * Função pura; a ordem final é por severidade (crítico, atenção, info), estável (ordem de geração: reservas,
  * peças, manutenções, clientes, riscos, provas). Filtros por permissão ficam na tela.
  */
-import type { World } from '@/data/fixture'
-import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES, GARMENT_STATE, MAINTENANCE_KIND } from '@/data/labels'
+import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES, GARMENT_STATE, MAINTENANCE_KIND, OUT_RESERVATION_STATES } from '@/data/labels'
 import type { Alert, AlertSeverity, Garment, Reservation } from '@/data/types'
+import type { World } from '@/data/types-world'
 import { brl, dateBR } from '@/lib/format'
 import { diffDays, nextBirthday, relativeDay } from './dates'
-import { balance } from './money'
+import { openReceivableDue } from './money'
 
 type AlertWorld = Pick<World, 'reservations' | 'customers' | 'garments' | 'maintenances' | 'fittings' | 'fittingItems'>
 
-const OUT_STATES = ['retirada', 'em_uso', 'aguardando_devolucao']
 const PICKUP_STATES = ['confirmada', 'pronta_retirada']
 const RISK_STATES = ['inspecao', 'higienizacao', 'ajuste', 'manutencao', 'bloqueado']
 const SEV_ORDER: Record<AlertSeverity, number> = { critico: 0, atencao: 1, info: 2 }
@@ -36,7 +35,7 @@ export function computeAlerts(world: AlertWorld, today: string): Alert[] {
 
   // 1. reservas
   for (const r of world.reservations) {
-    if (OUT_STATES.includes(r.state)) {
+    if (OUT_RESERVATION_STATES.includes(r.state)) {
       const d = diffDays(r.returnDueDate, today)
       if (d > 0) {
         out.push({ sev: 'critico', kind: 'devolucao_atrasada', icon: 'alerta', title: `Devolução atrasada — ${nameOf(r)}`, detail: `${codesOf(r)} · ${plural(d, 'dia', 'dias')} · prevista ${dm(r.returnDueDate)}`, route: route(r) })
@@ -47,7 +46,7 @@ export function computeAlerts(world: AlertWorld, today: string): Alert[] {
     if (PICKUP_STATES.includes(r.state)) {
       const d = diffDays(today, r.pickupDate)
       if (d === 1) out.push({ sev: 'info', kind: 'retirada_amanha', icon: 'presente', title: `Retirada amanhã — ${nameOf(r)}`, detail: `${codesOf(r)} · ${dm(r.pickupDate)}`, route: route(r) })
-      const due = balance(r.totalNet, r.lateFee, r.payments).due
+      const due = openReceivableDue(r)
       if (due > 0.005 && d <= 3) {
         out.push({ sev: d <= 1 ? 'critico' : 'atencao', kind: 'pagamento_pendente', icon: 'moeda', title: `Pagamento pendente — ${nameOf(r)}`, detail: `${codesOf(r)} · falta ${brl(due)} · retirada ${dm(r.pickupDate)}`, route: route(r) })
       }
@@ -103,7 +102,7 @@ export function computeAlerts(world: AlertWorld, today: string): Alert[] {
       route: `/acervo/${g.id}`,
     })
   }
-  for (const r of world.reservations.filter((x) => OUT_STATES.includes(x.state) && x.returnDueDate < today)) {
+  for (const r of world.reservations.filter((x) => OUT_RESERVATION_STATES.includes(x.state) && x.returnDueDate < today)) {
     for (const i of r.items) {
       const g = garment(i.garmentId)
       const queued = g?.blocks.filter((b) => b.kind === 'locacao' && b.reservationId !== r.id && b.from >= today && !(b.reservationId && closed.has(b.reservationId))).sort((a, b) => a.from.localeCompare(b.from))[0]

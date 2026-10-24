@@ -4,12 +4,12 @@
  * contas a pagar e receitas avulsas. Parcelas de reserva não ficam aqui: derivam das reservas.
  */
 import { addDays } from '@/lib/format'
-import type { FinCategory, Payable, Receivable } from '../types'
+import type { FinCategory, FinSystemKey, Payable, Receivable } from '../types'
 import { acquiredDaysAgo } from './garments'
 import { at, USER } from './kit'
-import type { World } from './world'
+import type { World } from '../types-world'
 
-/** Ids fixos das categorias de sistema (a economia da peça e a Operação dependem deles). */
+/** Ids das categorias de sistema no mundo fictício (só o fixture os usa; as regras casam por `systemKey`). */
 export const FIN_CAT = {
   locacao: 'fc-locacao',
   aquisicao: 'fc-aquisicao',
@@ -20,27 +20,27 @@ export const FIN_CAT = {
 
 const PALETTE = ['#7A2E3A', '#5E6B3C', '#1D4E63', '#B4633F', '#A98BC4', '#C9A961', '#3C3F46', '#C98A99']
 
-const CATEGORIES: [id: string, name: string, type: FinCategory['type'], system: boolean][] = [
-  [FIN_CAT.locacao, 'Locação', 'receita', true],
-  ['fc-venda', 'Venda de peça', 'receita', false],
-  ['fc-outras-receitas', 'Outros', 'receita', false],
-  [FIN_CAT.aquisicao, 'Aquisição de acervo', 'despesa', true],
-  [FIN_CAT.higienizacao, 'Higienização', 'despesa', true],
-  [FIN_CAT.manutencao, 'Manutenção', 'despesa', true],
-  [FIN_CAT.ajuste, 'Ajuste', 'despesa', true],
-  ['fc-aluguel', 'Aluguel', 'despesa', false],
-  ['fc-energia', 'Energia e água', 'despesa', false],
-  ['fc-internet', 'Internet e telefone', 'despesa', false],
-  ['fc-folha', 'Folha / pró-labore', 'despesa', false],
-  ['fc-marketing', 'Marketing', 'despesa', false],
-  ['fc-contabilidade', 'Contabilidade', 'despesa', false],
-  ['fc-impostos', 'Impostos', 'despesa', false],
-  ['fc-embalagens', 'Embalagens e materiais', 'despesa', false],
-  ['fc-outras-despesas', 'Outros', 'despesa', false],
+const CATEGORIES: [id: string, name: string, type: FinCategory['type'], systemKey: FinSystemKey | null][] = [
+  [FIN_CAT.locacao, 'Locação', 'receita', 'locacao'],
+  ['fc-venda', 'Venda de peça', 'receita', null],
+  ['fc-outras-receitas', 'Outros', 'receita', null],
+  [FIN_CAT.aquisicao, 'Aquisição de acervo', 'despesa', 'aquisicao'],
+  [FIN_CAT.higienizacao, 'Higienização', 'despesa', 'higienizacao'],
+  [FIN_CAT.manutencao, 'Manutenção', 'despesa', 'manutencao'],
+  [FIN_CAT.ajuste, 'Ajuste', 'despesa', 'ajuste'],
+  ['fc-aluguel', 'Aluguel', 'despesa', null],
+  ['fc-energia', 'Energia e água', 'despesa', null],
+  ['fc-internet', 'Internet e telefone', 'despesa', null],
+  ['fc-folha', 'Folha / pró-labore', 'despesa', null],
+  ['fc-marketing', 'Marketing', 'despesa', null],
+  ['fc-contabilidade', 'Contabilidade', 'despesa', null],
+  ['fc-impostos', 'Impostos', 'despesa', null],
+  ['fc-embalagens', 'Embalagens e materiais', 'despesa', null],
+  ['fc-outras-despesas', 'Outros', 'despesa', null],
 ]
 
 export function buildFinCategories(): FinCategory[] {
-  return CATEGORIES.map(([id, name, type, isSystem], i) => ({ id, name, type, color: PALETTE[i % PALETTE.length]!, isSystem, archived: false }))
+  return CATEGORIES.map(([id, name, type, systemKey], i) => ({ id, name, type, color: PALETTE[i % PALETTE.length]!, isSystem: systemKey !== null, systemKey, archived: false }))
 }
 
 type PayableSpec = Partial<Payable> & Pick<Payable, 'description' | 'categoryId' | 'amount' | 'dueDate'>

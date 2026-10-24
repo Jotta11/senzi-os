@@ -6,6 +6,8 @@ import { addDays } from '@/lib/format'
 
 const DAY_MS = 86_400_000
 const WEEKDAYS = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
+/** Abreviações dos meses (`jan` … `dez`), índice 0 = janeiro. */
+export const MONTH_ABBR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 const utc = (iso: string): number => {
@@ -66,4 +68,26 @@ export function longDate(iso: string): string {
 export function monthLabel(iso: string): string {
   const name = MONTHS[Number(iso.slice(5, 7)) - 1]!
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} de ${iso.slice(0, 4)}`
+}
+
+/** Dias do mês `m` (1–12) do ano `y`. */
+export const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate()
+
+/** `aaaa-mm` deslocado `delta` meses. */
+export function shiftMonth(month: string, delta: number): string {
+  const k = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + delta
+  return `${Math.floor(k / 12)}-${pad((((k % 12) + 12) % 12) + 1)}`
+}
+
+/** Abreviação do mês de `aaaa-mm` (`out`). */
+export const monthAbbr = (month: string): string => MONTH_ABBR[Number(month.slice(5, 7)) - 1] ?? month
+
+/** Os `n` meses terminando no de `today`: `month` = `aaaa-mm`, `[from, to]` = 1º e último dia (o corrente vai até hoje). */
+export function lastMonths(today: string, n: number): { month: string; from: string; to: string }[] {
+  const cur = today.slice(0, 7)
+  return Array.from({ length: n }, (_, i) => {
+    const month = shiftMonth(cur, i - (n - 1))
+    const last = `${month}-${pad(daysInMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7))))}`
+    return { month, from: `${month}-01`, to: month === cur ? today : last }
+  })
 }

@@ -3,6 +3,7 @@
  * pronta para retirada, retirada e devolução por item, cancelamento e no-show. Cada operação valida tudo
  * primeiro e só então muda o mundo — a confirmação com conflito devolve `{ ok: false }` sem tocar em nada.
  */
+import { OUT_RESERVATION_STATES } from '@/data/labels'
 import { effectiveCleaningDays, makeBlocks, realignOnReturn } from '@/domain/calendar'
 import { diffDays } from '@/domain/dates'
 import { lateFee, minSignal, round2 } from '@/domain/money'
@@ -124,7 +125,7 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
     returnItems: (id, decisions) =>
       run(() => {
         const r = ctx.reservation(id)
-        kit.ensureState(r, ['retirada', 'em_uso', 'aguardando_devolucao'])
+        kit.ensureState(r, OUT_RESERVATION_STATES)
         const outNow = new Map(r.items.filter((i) => i.itemState === 'retirado').map((i) => [i.id, i]))
         const back = decisions.filter((d) => d.returned && outNow.has(d.itemId))
         if (!back.length) fail([{ code: 'PARAMETRO_INVALIDO', field: 'items' }])

@@ -1,10 +1,11 @@
 import { Link } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import type { ReservationDetail, Settings } from '@/data/types'
+import { daysLate } from '@/domain/money'
 import { brl, dateBR, dateTimeBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Icon } from '@/ui'
-import { daysLate, exceptionLead } from './reservaFormat'
+import { exceptionLead } from './reservaFormat'
 
 const d2 = (iso: string) => dateBR(iso).slice(0, 5)
 

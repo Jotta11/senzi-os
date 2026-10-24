@@ -4,7 +4,7 @@
  */
 import { minSignal, round2 } from '@/domain/money'
 import { brl, dateBR, maskCPF, maskPhone } from '@/lib/format'
-import type { World } from '../fixture/world'
+import type { World } from '../types-world'
 import type { Reservation } from '../types'
 
 const COL = 40

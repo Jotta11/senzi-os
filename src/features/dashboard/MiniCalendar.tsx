@@ -1,19 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useAgendaMonthDays } from '@/data/hooks-agenda'
-import { weekdayIndex, monthLabel } from '@/domain/dates'
-import { addDays } from '@/lib/format'
+import { daysInMonth, monthLabel, shiftMonth, weekdayIndex } from '@/domain/dates'
 import { useAppHref } from '@/shell/appPath'
 import { Card, Icon } from '@/ui'
 
 const DOWS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 const pad = (n: number) => String(n).padStart(2, '0')
-
-function shiftMonth(month: string, delta: number): string {
-  const k = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + delta
-  return `${Math.floor(k / 12)}-${pad((k % 12) + 1)}`
-}
-const daysIn = (month: string) => Number(addDays(`${shiftMonth(month, 1)}-01`, -1).slice(8, 10))
+const daysIn = (month: string) => daysInMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)))
 
 /** Mini calendário do mês (semana de segunda a domingo): clicar num dia abre `/agenda?dia=aaaa-mm-dd`. */
 export function MiniCalendar({ today }: { today: string }) {

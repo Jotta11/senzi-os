@@ -2,17 +2,17 @@
  * Regras do Financeiro em regime de caixa (spec `operacao-financeiro.md` §2.4): parcelas de reserva derivadas,
  * status derivados, recorrência e visão geral. Funções puras sobre o mundo; "hoje" sempre vem de fora.
  */
-import { ACTIVE_RESERVATION_STATES, PAYMENT_METHOD } from '@/data/labels-ops'
-import type { World } from '@/data/fixture'
-import { FIN_CAT } from '@/data/fixture/finance'
+import { PAYMENT_METHOD } from '@/data/labels-ops'
 import type { FinanceOverview, FinanceRange, Payable, Payment, PaymentMethod, Receivable, ReceivableStatus, Recurrence, Reservation } from '@/data/types'
+import type { World } from '@/data/types-world'
 import { addDays } from '@/lib/format'
-import { balance, round2 } from './money'
+import { daysInMonth, lastMonths } from './dates'
+import { systemCategoryId, systemCategoryIds } from './fin-categories'
+import { balance, hasReceivable, round2 } from './money'
 
-type FinanceWorld = Pick<World, 'reservations' | 'customers' | 'receivables' | 'payables'>
+type FinanceWorld = Pick<World, 'reservations' | 'customers' | 'receivables' | 'payables' | 'finCategories'>
 
 const day = (iso: string): string => iso.slice(0, 10)
-const OPERATING_CATEGORIES: string[] = [FIN_CAT.higienizacao, FIN_CAT.ajuste, FIN_CAT.manutencao]
 const REVENUE_KINDS = ['sinal', 'saldo', 'integral', 'multa']
 
 /** `vencido` = aberto/parcial com vencimento antes de hoje. */
@@ -25,7 +25,6 @@ export function payableStatus(p: Pick<Payable, 'status' | 'dueDate'>, today: str
   return p.status === 'aberta' && p.dueDate < today ? 'vencida' : p.status
 }
 
-const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate()
 const pad = (n: number): string => String(n).padStart(2, '0')
 
 /**
@@ -47,15 +46,15 @@ export function nextRecurrence(dueDate: string, recurrence: Recurrence, anchorDa
 const PARCEL_KINDS = ['sinal', 'saldo', 'integral', 'caucao', 'multa']
 const KIND_LABEL: Record<string, string> = { sinal: 'Sinal', saldo: 'Saldo', integral: 'Integral', caucao: 'Caução', multa: 'Multa por atraso' }
 
-function parcel(r: Reservation, p: Payment, customerName: string | null): Receivable {
-  const cancelled = p.state === 'cancelado' || p.state === 'estornado' || (p.state === 'pendente' && (r.state === 'cancelada' || r.state === 'no_show'))
+function parcel(r: Reservation, p: Payment, customerName: string | null, rentalCategoryId: string | null): Receivable {
+  const cancelled = p.state === 'cancelado' || p.state === 'estornado' || (p.state === 'pendente' && !hasReceivable(r))
   const paid = p.state === 'pago'
   return {
     id: p.id,
     source: 'reserva',
     kind: p.kind,
     description: `${KIND_LABEL[p.kind]} · ${r.code}`,
-    categoryId: p.kind === 'caucao' ? null : FIN_CAT.locacao,
+    categoryId: p.kind === 'caucao' ? null : rentalCategoryId,
     reservationId: r.id,
     reservationCode: r.code,
     customerId: r.customerId,
@@ -78,9 +77,10 @@ function parcel(r: Reservation, p: Payment, customerName: string | null): Receiv
  */
 export function reservationReceivables(world: FinanceWorld): Receivable[] {
   const names = new Map(world.customers.map((c) => [c.id, c.fullName]))
+  const rental = systemCategoryId(world.finCategories, 'locacao')
   return world.reservations
     .filter((r) => r.state !== 'rascunho')
-    .flatMap((r) => r.payments.filter((p) => PARCEL_KINDS.includes(p.kind)).map((p) => parcel(r, p, names.get(r.customerId) ?? null)))
+    .flatMap((r) => r.payments.filter((p) => PARCEL_KINDS.includes(p.kind)).map((p) => parcel(r, p, names.get(r.customerId) ?? null, rental)))
 }
 
 /** Parcelas de reserva + avulsos. */
@@ -90,6 +90,18 @@ export function allReceivables(world: FinanceWorld): Receivable[] {
 
 export const falta = (r: Pick<Receivable, 'amount' | 'paidAmount'>): number => Math.max(0, round2(r.amount - r.paidAmount))
 export const isOpenReceivable = (r: Receivable): boolean => !r.isCustody && (r.status === 'aberto' || r.status === 'parcial')
+
+/**
+ * Parcelas de reserva em aberto (sem caução) — a fonte única de "a receber" das reservas: Visão geral
+ * (total e linhas), cabeçalho de Reservas e Contas a receber somam estas parcelas. Por construção (`syncPending`),
+ * Σ parcelas abertas de cada reserva = `openReceivableDue(r)`; rascunho não gera parcela e cancelada/no-show as cancela.
+ */
+export function openReservationParcels(world: FinanceWorld): Receivable[] {
+  return reservationReceivables(world).filter(isOpenReceivable)
+}
+
+/** Σ "falta" das parcelas de reserva em aberto (sem avulsos). */
+export const reservationsToReceive = (world: FinanceWorld): number => round2(openReservationParcels(world).reduce((s, r) => s + falta(r), 0))
 
 /** Janela do período: `from = hoje − dias + 1`, `to = hoje`. */
 export function rangeBounds(range: FinanceRange, today: string): { from: string; to: string } {
@@ -135,20 +147,17 @@ export function financeOverview(world: FinanceWorld, range: FinanceRange, today:
   const received = sum(revenue.map((x) => x.amount))
   const paidList = world.payables.filter((p) => p.status === 'paga' && inRange(p.paidAt, from, to))
   const paid = sum(paidList.map(paidValue))
-  const operatingCost = sum(paidList.filter((p) => OPERATING_CATEGORIES.includes(p.categoryId)).map(paidValue))
-  const acquisitionInvested = sum(paidList.filter((p) => p.categoryId === FIN_CAT.aquisicao).map(paidValue))
+  const operating = systemCategoryIds(world.finCategories, ['higienizacao', 'ajuste', 'manutencao'])
+  const acquisition = systemCategoryIds(world.finCategories, ['aquisicao'])
+  const operatingCost = sum(paidList.filter((p) => operating.includes(p.categoryId)).map(paidValue))
+  const acquisitionInvested = sum(paidList.filter((p) => acquisition.includes(p.categoryId)).map(paidValue))
 
-  const live = world.reservations.filter((r) => ACTIVE_RESERVATION_STATES.includes(r.state))
   const bal = (r: Reservation) => balance(r.totalNet, r.lateFee, r.payments)
-  const toReceiveReservations = sum(live.map((r) => bal(r).due))
+  const parcels = openReservationParcels(world)
+  const toReceiveReservations = sum(parcels.map(falta))
   const avulsosOpen = sum(world.receivables.filter(isOpenReceivable).map(falta))
 
-  const monthly = Array.from({ length: 12 }, (_, i) => {
-    const m0 = Number(today.slice(5, 7)) - 1 - (11 - i)
-    const y = Number(today.slice(0, 4)) + Math.floor(m0 / 12)
-    const k = `${y}-${pad((((m0 % 12) + 12) % 12) + 1)}`
-    const start = `${k}-01`
-    const end = k === today.slice(0, 7) ? today : `${k}-${pad(daysInMonth(y, Number(k.slice(5))))}`
+  const monthly = lastMonths(today, 12).map(({ month: k, from: start, to: end }) => {
     const v = sum(receipts(world, start, end).revenue.map((x) => x.amount))
     const pd = sum(world.payables.filter((p) => p.status === 'paga' && inRange(p.paidAt, start, end)).map(paidValue))
     return { k, v, paid: pd }
@@ -162,15 +171,18 @@ export function financeOverview(world: FinanceWorld, range: FinanceRange, today:
   const byMethod = [...methods].map(([method, v]) => ({ method, label: PAYMENT_METHOD[method], ...v })).filter((m) => m.total > 0).sort((a, b) => b.total - a.total)
 
   const name = (r: Reservation) => world.customers.find((c) => c.id === r.customerId)?.fullName ?? '—'
-  const receivableRows = live
-    .map((r) => ({ r, b: bal(r) }))
-    .filter(({ b }) => b.due > 0)
-    .sort((a, b) => a.r.pickupDate.localeCompare(b.r.pickupDate))
-    .map(({ r, b }) => ({ reservationId: r.id, code: r.code, customerName: name(r), pickupDate: r.pickupDate, devido: b.devido, due: b.due }))
+  // Uma linha por reserva com parcela em aberto (qualquer estado com conta a receber); "Falta" = Σ dessas parcelas.
+  const dueBy = new Map<string, number>()
+  for (const p of parcels) dueBy.set(p.reservationId!, round2((dueBy.get(p.reservationId!) ?? 0) + falta(p)))
+  const receivableRows = world.reservations
+    .filter((r) => (dueBy.get(r.id) ?? 0) > 0)
+    .sort((a, b) => a.pickupDate.localeCompare(b.pickupDate))
+    .map((r) => ({ reservationId: r.id, code: r.code, customerName: name(r), pickupDate: r.pickupDate, devido: bal(r).devido, due: dueBy.get(r.id)! }))
 
+  // Cobranças lançadas e pendentes que a "Falta" das linhas não cobre: caução pendente (custódia, fora do saldo).
   const pendingCharges = world.reservations
-    .filter((r) => ACTIVE_RESERVATION_STATES.includes(r.state) || r.state === 'devolvida' || r.state === 'em_inspecao')
-    .flatMap((r) => r.payments.filter((p) => p.state === 'pendente' && p.kind !== 'saldo').map((p) => ({ kind: p.kind, customerName: name(r), notes: p.notes, amount: p.amount })))
+    .filter(hasReceivable)
+    .flatMap((r) => r.payments.filter((p) => p.state === 'pendente' && PARCEL_KINDS.includes(p.kind) && (p.kind === 'caucao' || !dueBy.has(r.id))).map((p) => ({ kind: p.kind, customerName: name(r), notes: p.notes, amount: p.amount })))
 
   const latest = world.reservations
     .flatMap((r) => r.payments.filter((p) => p.state === 'pago' && inRange(p.paidAt, from, to)).map((p) => ({ r, p })))

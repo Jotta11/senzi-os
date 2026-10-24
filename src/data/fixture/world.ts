@@ -4,32 +4,14 @@
  * saem de `makeBlocks`/`realignOnReturn`, estados de `deriveGarmentState`, valores de `prorate`/`balance`.
  * Determinístico (PRNG com semente fixa): a mesma data gera o mesmo mundo. Só a fonte em memória importa.
  */
-import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES, REALIZED_RESERVATION_STATES } from '@/data/labels'
+import { ACTIVE_RESERVATION_STATES, CLOSED_RESERVATION_STATES } from '@/data/labels'
+import { customerStats } from '@/domain/customers'
 import { deriveGarmentState, effectiveCleaningDays, makeBlocks, realignOnReturn } from '@/domain/calendar'
 import { diffDays } from '@/domain/dates'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { addDays } from '@/lib/format'
-import type {
-  Appointment,
-  AppUser,
-  Category,
-  ChecklistItem,
-  Customer,
-  CustomerStats,
-  ExceptionAuthorization,
-  FinCategory,
-  FittingItem,
-  FittingSession,
-  Garment,
-  GarmentHistoryEntry,
-  GarmentState,
-  Inspection,
-  Maintenance,
-  Payable,
-  Receivable,
-  Reservation,
-  Settings,
-} from '../types'
+import type { GarmentHistoryEntry, GarmentState } from '../types'
+import type { World } from '../types-world'
 import { renderContract } from '../mock/contract'
 import { buildCustomers } from './customers'
 import { buildFinance } from './finance'
@@ -39,44 +21,10 @@ import { buildHistory, type Busy } from './history'
 import { makeRng, USER, userName } from './kit'
 import { buildCurrent, buildOperation, COMO_BAIXA } from './scenario'
 
-export type World = {
-  today: string
-  settings: Settings
-  users: AppUser[]
-  categories: Category[]
-  brands: string[]
-  /** `blocks` = só blocos ativos. */
-  garments: Garment[]
-  customers: Customer[]
-  /** Com itens, pagamentos, contrato, autorizações, histórico e prova de origem. Ordem cronológica de criação. */
-  reservations: Reservation[]
-  fittings: FittingSession[]
-  fittingItems: FittingItem[]
-  appointments: Appointment[]
-  maintenances: Maintenance[]
-  inspections: Inspection[]
-  checklist: ChecklistItem[]
-  finCategories: FinCategory[]
-  payables: Payable[]
-  /** Só lançamentos avulsos (as parcelas de reserva derivam das reservas). */
-  receivables: Receivable[]
-  exceptions: ExceptionAuthorization[]
-  pinAttempts: { email: string; at: string; ok: boolean }[]
-}
+export type { World }
 
 const CHECKLIST = ['Manchas', 'Rasgos e furos', 'Costuras', 'Zíper e fechos', 'Aplicações e pedrarias', 'Barra', 'Odor', 'Desgaste do tecido', 'Forro', 'Alças e sustentação']
 const SEED = 20260913
-
-/** Estatísticas da cliente a partir das reservas: realizadas, Σ líquido delas e o próximo evento de reserva ativa. */
-export function customerStats(customerId: string, reservations: Reservation[], today: string): CustomerStats {
-  const mine = reservations.filter((r) => r.customerId === customerId)
-  const realized = mine.filter((r) => REALIZED_RESERVATION_STATES.includes(r.state))
-  const next = mine
-    .filter((r) => ACTIVE_RESERVATION_STATES.includes(r.state) && r.eventDate && r.eventDate >= today)
-    .map((r) => r.eventDate!)
-    .sort()[0]
-  return { rentals: realized.length, spent: Math.round(realized.reduce((s, r) => s + r.totalNet, 0) * 100) / 100, nextEvent: next ?? null }
-}
 
 /** Dados fictícios completos, com datas relativas a `today` (`aaaa-mm-dd`). Sempre um objeto novo. */
 export function buildWorld(today: string): World {

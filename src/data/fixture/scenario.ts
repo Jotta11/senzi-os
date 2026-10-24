@@ -4,12 +4,12 @@
  * locação (cancelada, no-show) e a operação da spec operacao-financeiro §1.7.
  * Clientes por índice do fixture (0 Mariana … 13 Aline; 14+ cauda longa), como no protótipo.
  */
-import { lateFee } from '@/domain/money'
+import { hasReceivable, lateFee, pendingTargets } from '@/domain/money'
 import { addDays } from '@/lib/format'
 import type { Channel, ItemState, Reservation, ReservationState } from '../types'
 import { finalizeRental } from './history'
 import { at, byAdmin, makeReservation, USER, type PaySpec, type Rng, type ReservationSpec, type Step } from './kit'
-import type { World } from './world'
+import type { World } from '../types-world'
 
 type Cur = {
   c: number
@@ -88,7 +88,6 @@ const ITEM_BY_STATE: Partial<Record<ReservationState, ItemState>> = { retirada: 
 export function buildCurrent(w: World, rng: Rng): Record<string, Reservation> {
   const D = (n: number) => addDays(w.today, n)
   const byName = (n: string) => w.garments.find((g) => g.name.endsWith(` ${n}`))!
-  const LIVE_STATES: ReservationState[] = ['confirmada', 'pronta_retirada', 'retirada', 'em_uso', 'aguardando_devolucao']
   const out: Record<string, Reservation> = {}
   for (const [key, o] of Object.entries(CURRENT)) {
     const garments = o.g.map(byName)
@@ -114,15 +113,11 @@ export function buildCurrent(w: World, rng: Rng): Record<string, Reservation> {
     if (o.state === 'cancelada' || o.state === 'no_show') steps.push({ to: o.state, at: at(D(o.state === 'cancelada' ? o.d[0] - 4 : o.d[0] + 1), '11:00'), reason: o.cancelReason! })
 
     const payments = o.pay?.(net, D) ?? []
-    let fee = 0
-    if (o.state === 'aguardando_devolucao') {
-      fee = lateFee(net, w.settings.lateFeeDailyPercent, 1)
-      payments.push({ kind: 'multa', method: 'pix', amount: fee, paidAt: null, state: 'pendente', dueAt: w.today, notes: '1 dia(s) de atraso · 1 peça(s) ainda na rua' })
-    }
-    // Mesma regra de `syncPending`: reserva viva com valor a receber leva o saldo pendente, vencendo na retirada
-    const rentalPaid = payments.filter((p) => (p.state ?? 'pago') === 'pago' && p.kind !== 'caucao' && p.kind !== 'estorno' && p.kind !== 'multa').reduce((s, p) => s + p.amount, 0)
-    const saldo = Math.round((net - rentalPaid + Number.EPSILON) * 100) / 100
-    if (LIVE_STATES.includes(o.state) && saldo > 0.005) payments.push({ kind: 'saldo', method: 'pix', amount: saldo, paidAt: null, state: 'pendente', dueAt: D(o.d[0]) })
+    const fee = o.state === 'aguardando_devolucao' ? lateFee(net, w.settings.lateFeeDailyPercent, 1) : 0
+    // Mesma regra de `syncPending` (`pendingTargets`): reserva com conta a receber leva saldo (vence na retirada) e multa pendentes.
+    const target = pendingTargets(net, fee, payments.map((p) => ({ kind: p.kind, amount: p.amount, state: p.state ?? 'pago', refersTo: p.refersTo ?? null })))
+    if (hasReceivable(o) && target.multa > 0.005) payments.push({ kind: 'multa', method: 'pix', amount: target.multa, paidAt: null, state: 'pendente', dueAt: w.today, notes: '1 dia(s) de atraso · 1 peça(s) ainda na rua' })
+    if (hasReceivable(o) && target.saldo > 0.005) payments.push({ kind: 'saldo', method: 'pix', amount: target.saldo, paidAt: null, state: 'pendente', dueAt: D(o.d[0]) })
     const contract = o.contract ?? 'assinado'
     out[key] = makeReservation(w, {
       customerId: customer.id,

@@ -1,7 +1,6 @@
 /** Categorias financeiras em memória (spec §2.3.6): nome único por tipo, sistema intocável, excluir só sem uso. */
 import { reservationReceivables } from '@/domain/finance'
 import { normalize } from '@/lib/format'
-import { FIN_CAT } from '../fixture/finance'
 import type { FinanceiroSource } from '../source-financeiro'
 import { SourceError, type FinCategory } from '../types'
 import type { MockCtx } from './context'
@@ -20,7 +19,7 @@ export function financeiroCategorias(ctx: MockCtx): Categorias {
   const usage = (id: string): number =>
     db.payables.filter((p) => p.categoryId === id).length +
     db.receivables.filter((r) => r.categoryId === id).length +
-    (id === FIN_CAT.locacao ? reservationReceivables(db).length : 0)
+    (db.finCategories.find((c) => c.id === id)?.systemKey === 'locacao' ? reservationReceivables(db).length : 0)
   const duplicated = (name: string, type: FinCategory['type'], ignore?: string) =>
     db.finCategories.some((c) => c.id !== ignore && c.type === type && normalize(c.name) === normalize(name))
   const notSystem = (c: FinCategory) => {
@@ -34,7 +33,7 @@ export function financeiroCategorias(ctx: MockCtx): Categorias {
       run(() => {
         if (!i.name?.trim()) fail([{ code: 'NOME_CATEGORIA_OBRIGATORIO', field: 'name' }])
         if (duplicated(i.name, i.type)) fail([{ code: 'CATEGORIA_DUPLICADA', field: 'name' }])
-        const c: FinCategory = { id: ctx.newId('fc'), name: i.name.trim(), type: i.type, color: i.color ?? PALETTE[db.finCategories.length % PALETTE.length]!, isSystem: false, archived: false }
+        const c: FinCategory = { id: ctx.newId('fc'), name: i.name.trim(), type: i.type, color: i.color ?? PALETTE[db.finCategories.length % PALETTE.length]!, isSystem: false, systemKey: null, archived: false }
         db.finCategories.push(c)
         return c
       }),

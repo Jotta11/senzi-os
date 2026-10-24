@@ -2,12 +2,16 @@
 import type { PaymentKind, PaymentMethod } from './types-reservas'
 
 export type FinCategoryType = 'receita' | 'despesa'
+/** Identidade das categorias de sistema: as regras casam por ela, nunca pelo id (que muda com a fonte de dados). */
+export type FinSystemKey = 'locacao' | 'aquisicao' | 'higienizacao' | 'manutencao' | 'ajuste'
 export type FinCategory = {
   id: string
   name: string
   type: FinCategoryType
   color: string
   isSystem: boolean
+  /** Só nas categorias de sistema (`isSystem`); `null` nas livres. */
+  systemKey: FinSystemKey | null
   archived: boolean
   usageCount?: number
 }

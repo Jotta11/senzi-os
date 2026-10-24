@@ -3,7 +3,7 @@
  * automáticos de uma reserva confirmada (retirada, evento, devolução).
  */
 import { at, USER } from './constants'
-import type { World } from '../fixture/world'
+import type { World } from '../types-world'
 import type { Appointment, AppointmentKind, AppointmentState, Reservation } from '../types'
 
 export type ApptSpec = Partial<Appointment> & Pick<Appointment, 'kind' | 'startsAt' | 'title' | 'state'>

@@ -4,10 +4,9 @@
  */
 import { STATE_GROUP_STATES } from '@/data/labels'
 import { garmentEconomics } from '@/domain/economics'
-import { dateBR, normalize, onlyDigits, STORE_TZ } from '@/lib/format'
-import { FIN_CAT } from '../fixture'
+import { systemCategoryId } from '@/domain/fin-categories'
+import { dateBR, normalize, onlyDigits } from '@/lib/format'
 import { addPayable } from '../fixture/finance'
-import { at } from './constants'
 import type { AcervoClientesSource } from '../source'
 import {
   SourceError,
@@ -22,9 +21,6 @@ import {
 import { customerIssues, customerMeasurementIssues, fitIssues, garmentIssues, MAX_PHOTOS, measurementIssues } from '../validation'
 import { fail, projectCustomer, projectGarment, type MockCtx } from './context'
 import { recommendFor } from './recommend'
-
-/** `HH:MM` agora no fuso da loja. */
-const storeTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: STORE_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
 
 const nextCode = (codes: string[], prefix: 'SZ' | 'CL') => {
   const max = codes.reduce((m, c) => Math.max(m, Number(c.slice(prefix.length + 1)) || 0), 0)
@@ -56,7 +52,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
   }
   const setState = (g: Garment, to: GarmentState, reason: string) => {
     if (g.state === to) return
-    g.history.unshift({ at: new Date().toISOString(), from: g.state, to, reason, userName: userName() })
+    g.history.unshift({ at: ctx.now(), from: g.state, to, reason, userName: userName() })
     g.state = to
   }
   /** Peças que casam com busca, categoria e tamanho (o estado fica por conta de quem chama). */
@@ -193,16 +189,16 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
           measurement: { bustCm: null, waistCm: null, hipCm: null, shoulderCm: null, totalLengthCm: null, hemAllowanceCm: null, stretch: null },
           photos: [],
           blocks: [],
-          history: [{ at: new Date().toISOString(), from: null, to: 'disponivel', reason: 'Peça cadastrada no acervo', userName: userName() }],
+          history: [{ at: ctx.now(), from: null, to: 'disponivel', reason: 'Peça cadastrada no acervo', userName: userName() }],
         }
         db.garments.push(g)
         if (g.acquisitionCost && g.acquisitionCost > 0) {
-          // Data pura da loja (`today`), nunca `toISOString()` — a compra conta no dia certo do financeiro.
-          const stamp = at(today, storeTime())
+          // Instante da loja (`today`, -03:00), nunca `toISOString()` — a compra conta no dia certo do financeiro.
+          const stamp = ctx.now()
           addPayable(db, {
             description: `Compra da peça — ${g.name}`,
             supplier: 'Aquisição de acervo',
-            categoryId: FIN_CAT.aquisicao,
+            categoryId: systemCategoryId(db.finCategories, 'aquisicao')!,
             amount: g.acquisitionCost,
             dueDate: today,
             status: 'paga',
@@ -346,7 +342,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
           vip: false,
           notes: null,
           idealGarmentId: null,
-          createdAt: new Date().toISOString(),
+          createdAt: ctx.now(),
           measurements: [],
           preferences: { preferredColors: [], avoidedColors: [], preferredLengths: [], sleeve: null, neckline: null },
           interactions: [],
@@ -392,7 +388,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
       run(() => {
         const c = customer(id)
         if (!content.trim()) fail([{ code: 'OBSERVACAO_OBRIGATORIA', field: 'content' }])
-        c.interactions.unshift({ id: newId('nota'), content: content.trim(), channel, pinned, at: new Date().toISOString(), authorName: userName() })
+        c.interactions.unshift({ id: newId('nota'), content: content.trim(), channel, pinned, at: ctx.now(), authorName: userName() })
         return pc(c)
       }),
 
@@ -410,7 +406,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
         const c = customer(id)
         garment(garmentId)
         const exists = c.favorites.some((f) => f.garmentId === garmentId)
-        if (on && !exists) c.favorites.unshift({ garmentId, source: 'manual', note: null, at: new Date().toISOString() })
+        if (on && !exists) c.favorites.unshift({ garmentId, source: 'manual', note: null, at: ctx.now() })
         if (!on) c.favorites = c.favorites.filter((f) => f.garmentId !== garmentId)
         return pc(c)
       }),

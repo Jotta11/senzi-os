@@ -2,16 +2,17 @@
  * Conjuntos base da Inteligência (spec dashboard §3.3): escopo de peças (filtro de categoria), itens-locação,
  * economia e provas por peça, dias ocupados no período e estatísticas das clientes. Funções puras sobre o mundo.
  */
-import type { World } from '@/data/fixture'
-import { REALIZED_RESERVATION_STATES } from '@/data/labels-ops'
+import { OUT_RESERVATION_STATES } from '@/data/labels-ops'
 import type { FittingGarmentStats, FittingSession, Garment, GarmentEconomics, IntelPeriod, Reservation, ReservationItem } from '@/data/types'
+import type { World } from '@/data/types-world'
 import { addDays } from '@/lib/format'
+import { customerStats } from './customers'
 import { diffDays } from './dates'
 import { garmentEconomics, isRentalItem } from './economics'
 import { fittingStats } from './fittings'
 import { round2 } from './money'
 
-export type IntelWorld = Pick<World, 'garments' | 'categories' | 'customers' | 'reservations' | 'fittings' | 'fittingItems' | 'payables' | 'settings'>
+export type IntelWorld = Pick<World, 'garments' | 'categories' | 'customers' | 'reservations' | 'fittings' | 'fittingItems' | 'payables' | 'finCategories' | 'settings'>
 
 /** Uma locação na Inteligência = um item (linha) de reserva realizada. */
 export type RentalLine = { r: Reservation; i: ReservationItem; g: Garment }
@@ -38,7 +39,6 @@ export type IntelBase = {
   periodFittings(g: Garment): number
 }
 
-const OUT_STATES = ['retirada', 'em_uso', 'aguardando_devolucao']
 export const dayOf = (iso: string) => iso.slice(0, 10)
 
 /** Data de cadastro: a entrada de histórico sem estado anterior (ou a mais antiga). */
@@ -51,7 +51,7 @@ export function createdOn(g: Garment): string | null {
 function rentalEnd(l: RentalLine, today: string): string {
   const back = l.i.returnedAt ?? l.r.returnedAt
   if (back) return dayOf(back)
-  if (OUT_STATES.includes(l.r.state)) return l.r.returnDueDate > today ? l.r.returnDueDate : today
+  if (OUT_RESERVATION_STATES.includes(l.r.state)) return l.r.returnDueDate > today ? l.r.returnDueDate : today
   return l.r.returnDueDate
 }
 
@@ -116,12 +116,11 @@ export function intelBase(world: IntelWorld, days: IntelPeriod, today: string, c
   }
 }
 
-/** Estatísticas da cliente sobre todo o histórico (`E.customerStats`): reservas realizadas e Σ líquido delas. */
-export function customerTotals(world: Pick<World, 'customers' | 'reservations'>) {
+/** Estatísticas da cliente sobre todo o histórico (`customerStats`): reservas realizadas, Σ líquido delas e ticket. */
+export function customerTotals(world: Pick<World, 'customers' | 'reservations'>, today: string) {
   return world.customers.map((c) => {
-    const realized = world.reservations.filter((r) => r.customerId === c.id && REALIZED_RESERVATION_STATES.includes(r.state))
-    const spent = round2(realized.reduce((s, r) => s + r.totalNet, 0))
-    return { c, rentals: realized.length, spent, ticket: realized.length ? round2(spent / realized.length) : 0 }
+    const { rentals, spent } = customerStats(c.id, world.reservations, today)
+    return { c, rentals, spent, ticket: rentals ? round2(spent / rentals) : 0 }
   })
 }
 

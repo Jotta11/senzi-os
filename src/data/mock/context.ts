@@ -5,7 +5,8 @@
  */
 import { CLOSED_RESERVATION_STATES } from '@/data/labels'
 import { STORE_TZ, todayISO } from '@/lib/format'
-import { buildWorld, customerStats, type World } from '../fixture'
+import { customerStats } from '@/domain/customers'
+import { buildWorld, type World } from '../fixture'
 import { at, USER } from './constants'
 import { SourceError, type Customer, type Garment, type Reservation, type SourceIssue } from '../types'
 

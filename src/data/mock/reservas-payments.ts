@@ -3,6 +3,7 @@
  * caução, multa e estorno; parcela pendente do mesmo tipo é quitada em vez de duplicada; estorno da caução
  * (`refersTo: 'caucao'`) não mexe no saldo.
  */
+import { CLOSED_RESERVATION_STATES } from '@/data/labels'
 import { balance, round2 } from '@/domain/money'
 import { brl } from '@/lib/format'
 import type { ReservasSource } from '../source-reservas'
@@ -11,8 +12,6 @@ import type { MockCtx } from './context'
 import type { ReservaKit } from './reservas-shared'
 
 type Payments = Pick<ReservasSource, 'registerPayment' | 'returnDeposit'>
-
-const CLOSED_FOR_DEPOSIT = ['finalizada', 'cancelada', 'no_show']
 
 export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
   const { run, fail } = ctx
@@ -57,7 +56,7 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
     returnDeposit: (id, method) =>
       run(() => {
         const r = ctx.reservation(id)
-        if (!CLOSED_FOR_DEPOSIT.includes(r.state)) throw new SourceError('ESTADO_INVALIDO')
+        if (!CLOSED_RESERVATION_STATES.includes(r.state)) throw new SourceError('ESTADO_INVALIDO')
         const held = balance(r.totalNet, r.lateFee, r.payments).caucao
         if (held <= 0) fail([{ code: 'VALOR_INVALIDO', field: 'amount' }])
         r.payments.push(paid(r, { kind: 'estorno', method, amount: held, reference: null, notes: 'Devolução da caução', refersTo: 'caucao' }))

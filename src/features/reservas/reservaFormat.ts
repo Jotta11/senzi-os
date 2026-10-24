@@ -1,14 +1,6 @@
-import type { ExceptionAuthorization, Reservation } from '@/data/types'
-import { diffDays, longDate } from '@/domain/dates'
+import type { ExceptionAuthorization } from '@/data/types'
+import { longDate } from '@/domain/dates'
 import { brl } from '@/lib/format'
-
-/** Estados em que a multa corre (peça fora da loja). */
-const LATE_STATES: Reservation['state'][] = ['retirada', 'em_uso', 'aguardando_devolucao']
-
-/** Dias de atraso da devolução (0 fora desses estados ou dentro do prazo). */
-export function daysLate(r: Pick<Reservation, 'state' | 'returnDueDate'>, today: string): number {
-  return LATE_STATES.includes(r.state) ? Math.max(0, diffDays(r.returnDueDate, today)) : 0
-}
 
 /** "12 de outubro". */
 export const longDay = (iso: string): string => longDate(iso).split(', ')[1] ?? iso

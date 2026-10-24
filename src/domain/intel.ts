@@ -3,6 +3,7 @@
  * ocupação/pressão, provas, clientes, capital parado, payback e os 11 insights. Função pura sobre o mundo + "hoje".
  * Filtro de categoria vale para tudo menos clientes e provas globais (tile/taxa/funil de prova).
  */
+import { monthAbbr, shiftMonth } from './dates'
 import { conversionRate } from './fittings'
 import { createdOn, customerTotals, intelBase, sum2, type IntelBase, type IntelWorld, type RentalLine } from './intel-base'
 import { intelInsights } from './intel-insights'
@@ -13,7 +14,6 @@ import { round2 } from './money'
 
 export type { IntelWorld } from './intel-base'
 
-const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 /** Peças cadastradas há menos disso não contam como paradas (Decisão 12). */
 export const NEW_GARMENT_DAYS = 30
 
@@ -28,20 +28,12 @@ function groupBy<K>(lines: RentalLine[], key: (l: RentalLine) => K): Map<K, Rent
 /** Meses de `from` até `to` (`aaaa-mm`), com rótulo curto; com mês repetido (12 meses), rótulo leva o ano. */
 function monthsBetween(from: string, to: string): { month: string; label: string }[] {
   const out: string[] = []
-  let y = Number(from.slice(0, 4))
-  let m = Number(from.slice(5, 7))
   const end = to.slice(0, 7)
-  for (;;) {
-    const k = `${y}-${String(m).padStart(2, '0')}`
+  for (let k = from.slice(0, 7); ; k = shiftMonth(k, 1)) {
     out.push(k)
     if (k >= end) break
-    m += 1
-    if (m > 12) {
-      m = 1
-      y += 1
-    }
   }
-  const names = out.map((k) => MONTHS[Number(k.slice(5)) - 1]!)
+  const names = out.map(monthAbbr)
   const dup = new Set(names.filter((n, i) => names.indexOf(n) !== i))
   return out.map((k, i) => ({ month: k, label: dup.has(names[i]!) ? `${names[i]}/${k.slice(2, 4)}` : names[i]! }))
 }
@@ -63,7 +55,7 @@ export function intelReport(world: IntelWorld, days: IntelPeriod, today: string,
   const revenue = sum2(inPeriod, (l) => l.i.netRevenue)
 
   // clientes (todo o histórico, sem filtro)
-  const totals = customerTotals(world)
+  const totals = customerTotals(world, today)
   const withRentals = totals.filter((t) => t.rentals > 0)
   const recurrent = withRentals.filter((t) => t.rentals >= 2)
   const single = withRentals.filter((t) => t.rentals === 1)

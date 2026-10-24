@@ -6,7 +6,6 @@ import { AG_KIND, FIT_OUTCOME } from '@/data/labels-ops'
 import { conversionRate, fittingStats } from '@/domain/fittings'
 import { dayRange } from '@/domain/dates'
 import { at } from './constants'
-import { STORE_TZ } from '@/lib/format'
 import type { AgendaSource } from '../source-agenda'
 import {
   SourceError,
@@ -38,8 +37,6 @@ const FILTER_STATES: Record<FittingFilter, string[] | null> = {
 }
 const MANUAL_KINDS: Appointment['kind'][] = ['atendimento', 'servico', 'interno']
 
-/** `HH:MM` agora no fuso da loja. */
-const storeTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: STORE_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
 const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
 const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}$/.test(s)
 
@@ -47,10 +44,10 @@ const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}$/.test(s)
 type CreateCustomer = (input: NonNullable<FittingInput['newCustomer']>) => Promise<{ id: string }>
 
 export function agenda(ctx: MockCtx, createCustomer: CreateCustomer): AgendaSource {
-  const { db, today, userName, run, newId, garment, customer } = ctx
+  const { db, userName, run, newId, garment, customer } = ctx
   const currentUserId = () => db.users.find((u) => u.name === userName())?.id ?? null
   /** "Agora" no fuso da loja, coerente com o "hoje" da fonte. */
-  const now = () => at(today, storeTime())
+  const now = ctx.now
 
   const fitting = (id: string): FittingSession => {
     const f = db.fittings.find((x) => x.id === id)

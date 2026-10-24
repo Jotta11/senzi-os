@@ -2,7 +2,7 @@
  * Calendário das peças: janela ocupada, disponibilidade, blocos da reserva, realinhamento na devolução,
  * estado derivado e alternativas (spec reservas §4.5). Funções puras; "hoje" é sempre parâmetro.
  */
-import { BLOCK_KIND, CLOSED_RESERVATION_STATES } from '@/data/labels'
+import { BLOCK_KIND, CLOSED_RESERVATION_STATES, OUT_RESERVATION_STATES } from '@/data/labels'
 import type { AvailabilityConflict, AvailabilityResult, Category, Garment, GarmentBlock, GarmentState, ItemState, ReservationState, Settings } from '@/data/types'
 import { addDays } from '@/lib/format'
 
@@ -129,7 +129,7 @@ const STICKY: GarmentState[] = ['baixado', 'bloqueado', 'higienizacao', 'inspeca
 export function deriveGarmentState(input: { current: GarmentState; blocks: GarmentBlock[]; links: GarmentReservationLink[]; today: string }): GarmentState {
   const { current, blocks, links, today } = input
   if (STICKY.includes(current)) return current
-  const out = links.find((l) => l.itemState === 'retirado' && ['retirada', 'em_uso', 'aguardando_devolucao'].includes(l.state))
+  const out = links.find((l) => l.itemState === 'retirado' && OUT_RESERVATION_STATES.includes(l.state))
   if (out) return out.state === 'aguardando_devolucao' ? 'aguardando_devolucao' : 'em_uso'
 
   const live = blocks.filter((b) => {

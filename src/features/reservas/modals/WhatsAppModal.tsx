@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useSettings } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
+import { daysLate } from '@/domain/money'
 import { todayISO } from '@/lib/format'
 import { Button, Field, Modal, buttonClass } from '@/ui'
-import { daysLate } from '../reservaFormat'
 import { messages, waLink, type WaKey } from '../whatsapp'
 
 /** Escolhe uma das 6 mensagens, mostra o texto e abre o WhatsApp (envio manual, sem registro). */

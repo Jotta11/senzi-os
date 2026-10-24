@@ -4,14 +4,14 @@
  * da peça não canceladas (`paidAmount ?? amount`); resultado = receita − aquisição − higienização − manutenção.
  * Usada pelo Acervo (ficha/lista) e pela Inteligência.
  */
-import type { World } from '@/data/fixture'
-import { FIN_CAT } from '@/data/fixture/finance'
 import { REALIZED_RESERVATION_STATES } from '@/data/labels-ops'
 import type { Garment, GarmentEconomics, Reservation, ReservationItem } from '@/data/types'
+import type { World } from '@/data/types-world'
 import { diffDays } from './dates'
+import { systemCategoryIds } from './fin-categories'
 import { round2 } from './money'
 
-type EconomicsWorld = Pick<World, 'reservations' | 'payables'>
+type EconomicsWorld = Pick<World, 'reservations' | 'payables' | 'finCategories'>
 
 /** Item que conta como locação: reserva realizada e item não cancelado nem "não entregue". */
 export const isRentalItem = (r: Reservation, i: ReservationItem): boolean =>
@@ -22,8 +22,8 @@ export function garmentEconomics(g: Pick<Garment, 'id' | 'acquisitionCost'>, wor
   const revenue = round2(uses.reduce((s, u) => s + u.i.netRevenue, 0))
   const ops = world.payables.filter((p) => p.source === 'operacao' && p.garmentId === g.id && p.status !== 'cancelada')
   const sum = (cats: string[]) => round2(ops.filter((p) => cats.includes(p.categoryId)).reduce((s, p) => s + (p.paidAmount ?? p.amount), 0))
-  const cleaning = sum([FIN_CAT.higienizacao])
-  const maintenance = sum([FIN_CAT.manutencao, FIN_CAT.ajuste])
+  const cleaning = sum(systemCategoryIds(world.finCategories, ['higienizacao']))
+  const maintenance = sum(systemCategoryIds(world.finCategories, ['manutencao', 'ajuste']))
   const cost = g.acquisitionCost
   const lastRental = uses.map((u) => u.r.eventDate ?? u.r.pickupDate).sort().at(-1) ?? null
   return {
