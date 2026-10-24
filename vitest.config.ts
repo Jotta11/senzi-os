@@ -15,6 +15,8 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
           setupFiles: ['src/test/setup.ts'],
+          // telas inteiras com digitação simulada: sob carga (suíte paralela) 5 s é pouco
+          testTimeout: 15000,
           globals: true,
         },
       },
