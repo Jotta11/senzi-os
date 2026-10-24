@@ -205,3 +205,11 @@ export function useSetFavorite(id: string) {
   const src = useDataSource()
   return useCustomerMutation((v: { garmentId: string; on: boolean }) => src.setFavorite(id, v.garmentId, v.on))
 }
+
+/**
+ * Depois de qualquer mutação das áreas de Agenda em diante: refaz todas as consultas (o mundo é um só, uma
+ * reserva muda agenda, peças, caixa e alertas). Só `['categories']` fica de fora, que não depende de nada.
+ */
+export function invalidateWorld(qc: QueryClient) {
+  return qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'categories' })
+}
