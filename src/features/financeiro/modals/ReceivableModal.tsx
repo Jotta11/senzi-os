@@ -5,7 +5,8 @@ import type { PaymentMethod } from '@/data/types'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { CustomerPicker } from '../../agenda/CustomerPicker'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { fixAmountMessage, MethodField, TopError } from './formKit'
+import { fixAmountMessage } from './amountMessage'
+import { MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['description', 'categoryId', 'amount', 'dueDate', 'receivedAt'] as const

@@ -4,7 +4,8 @@ import { RECURRENCE } from '@/data/labels-ops'
 import type { Payable, PaymentMethod, Recurrence } from '@/data/types'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { fixAmountMessage, MethodField, TopError } from './formKit'
+import { fixAmountMessage } from './amountMessage'
+import { MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['description', 'categoryId', 'amount', 'dueDate', 'recurrenceEnd', 'paidAt'] as const

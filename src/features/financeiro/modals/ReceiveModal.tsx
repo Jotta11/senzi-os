@@ -6,7 +6,8 @@ import { falta } from '@/domain/finance'
 import { brl } from '@/lib/format'
 import { Button, Field, Modal, useToast } from '@/ui'
 import { NO_ERRORS, numOrNull, sourceErrors, type FormErrors } from '../../acervo/formErrors'
-import { fixAmountMessage, MethodField, TopError } from './formKit'
+import { fixAmountMessage } from './amountMessage'
+import { MethodField, TopError } from './formKit'
 import '../financeiro.css'
 
 const FIELDS = ['amount', 'receivedAt'] as const
