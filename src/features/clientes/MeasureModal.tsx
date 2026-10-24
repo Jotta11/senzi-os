@@ -5,6 +5,7 @@ import type { Customer, CustomerMeasurementInput, SizeEquiv } from '@/data/types
 import { customerMeasurementIssues } from '@/data/validation'
 import { Button, Field, Icon, Modal } from '@/ui'
 import { issuesToErrors, NO_ERRORS, numOrNull, sourceErrors, str, type FormErrors } from '../acervo/formErrors'
+import { measurementChanged } from './measurementChanged'
 import './customer.css'
 
 const NUMS = [
@@ -26,6 +27,7 @@ export type MeasureModalProps = { customer: Customer; open: boolean; onClose(): 
  * Começa com os valores da medida atual; as faixas (cm) são as mesmas do cadastro e da fonte.
  */
 export function MeasureModal({ customer: c, open, onClose }: MeasureModalProps) {
+  const save = useAddMeasurement(c.id)
   return (
     <Modal
       open={open}
@@ -36,19 +38,18 @@ export function MeasureModal({ customer: c, open, onClose }: MeasureModalProps) 
       footer={
         <>
           <Button onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" type="submit" form={FORM_ID}>
+          <Button variant="primary" type="submit" form={FORM_ID} disabled={save.isPending}>
             Salvar medidas
           </Button>
         </>
       }
     >
-      {open && <MeasureForm customer={c} onDone={onClose} />}
+      {open && <MeasureForm customer={c} save={save} onDone={onClose} />}
     </Modal>
   )
 }
 
-function MeasureForm({ customer: c, onDone }: { customer: Customer; onDone(): void }) {
-  const save = useAddMeasurement(c.id)
+function MeasureForm({ customer: c, save, onDone }: { customer: Customer; save: ReturnType<typeof useAddMeasurement>; onDone(): void }) {
   const m = c.measurements[0]
   const [v, setV] = useState<Values>({
     usualSize: m?.usualSize ?? '',
@@ -65,6 +66,7 @@ function MeasureForm({ customer: c, onDone }: { customer: Customer; onDone(): vo
 
   function submit(e: FormEvent) {
     e.preventDefault()
+    if (save.isPending) return
     const input: CustomerMeasurementInput = {
       usualSize: (v.usualSize || null) as SizeEquiv | null,
       bustCm: numOrNull(v.bustCm),
@@ -80,6 +82,8 @@ function MeasureForm({ customer: c, onDone }: { customer: Customer; onDone(): vo
     const issues = customerMeasurementIssues(input)
     if (issues.length) return setErrors(issuesToErrors(issues, FIELDS))
     setErrors(NO_ERRORS)
+    // nada mudou (e sem observação): não cria versão idêntica à atual
+    if (!input.notes && !measurementChanged(m, input)) return onDone()
     save.mutate(input, { onSuccess: onDone, onError: (x) => setErrors(sourceErrors(x, FIELDS)) })
   }
 

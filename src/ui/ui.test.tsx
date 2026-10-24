@@ -188,6 +188,24 @@ describe('DataTable e EmptyState', () => {
     expect(onRowClick).toHaveBeenCalledWith({ id: '1', code: 'SZ-0107', price: 890 })
   })
 
+  it('linha clicável não é parada de Tab (o link dentro dela é o caminho do teclado)', async () => {
+    render(
+      <DataTable
+        caption="Peças"
+        rows={[{ id: '1', code: 'SZ-0107' }]}
+        rowKey={(r) => r.id}
+        onRowClick={() => {}}
+        columns={[{ key: 'code', header: 'Código', render: (r) => <a href="#x">{r.code}</a> }]}
+      />,
+    )
+    const row = screen.getByRole('link', { name: 'SZ-0107' }).closest('tr')!
+    expect(row).not.toHaveAttribute('tabindex')
+    await userEvent.tab()
+    expect(screen.getByRole('link', { name: 'SZ-0107' })).toHaveFocus()
+    await userEvent.tab()
+    expect(row).not.toHaveFocus()
+  })
+
   it('EmptyState mostra título e descrição', () => {
     render(<EmptyState title="Nenhuma peça encontrada" description="Ajuste os filtros ou cadastre uma nova peça." />)
     expect(screen.getByText('Nenhuma peça encontrada')).toBeInTheDocument()

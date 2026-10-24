@@ -7,6 +7,7 @@ import { maskCPF, maskPhone, onlyDigits, todayISO } from '@/lib/format'
 import { Button, Field, Icon, Modal } from '@/ui'
 import { issuesToErrors, NO_ERRORS, numOrNull, sourceErrors, str, type FormErrors } from '../acervo/formErrors'
 import { IdealGarmentPicker } from './IdealGarmentPicker'
+import { CM_KEYS, measurementChanged } from './measurementChanged'
 import './clientes.css'
 
 const FORM_ID = 'cf-form'
@@ -34,7 +35,7 @@ const FIELDS = [
   'preferredLength',
 ] as const
 
-const CM = ['bustCm', 'waistCm', 'hipCm', 'shoulderCm', 'heightCm'] as const
+const CM = CM_KEYS
 type CmKey = (typeof CM)[number]
 
 export type CustomerFormProps = {
@@ -175,14 +176,6 @@ function CustomerFields({
     }
   }
 
-  /** Na edição, só cria versão nova de medidas se algum valor mudou em relação à atual. */
-  function measurementChanged(m: CustomerMeasurementInput): boolean {
-    const cur = customer?.measurements[0]
-    const keys = ['usualSize', ...CM, 'shoeSize', 'preferredLength'] as const
-    if (!cur) return keys.some((k) => m[k] != null)
-    return keys.some((k) => (m[k] ?? null) !== (cur[k] ?? null))
-  }
-
   function submit(e: FormEvent) {
     e.preventDefault()
     if (busy) return
@@ -209,7 +202,7 @@ function CustomerFields({
         neckline: orNull(v.neckline),
       },
     }
-    if (measurementChanged(measurement)) input.measurement = measurement
+    if (measurementChanged(customer?.measurements[0], measurement)) input.measurement = measurement
 
     const issues = customerIssues(input, todayISO())
     if (issues.length) return fail(issuesToErrors(issues, FIELDS))

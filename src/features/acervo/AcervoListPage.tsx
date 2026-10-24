@@ -166,19 +166,19 @@ export function AcervoListPage() {
             <span className="ac-chip-l" aria-hidden="true">
               Categoria
             </span>
-            <Chips label="Categoria" options={catOptions} value={cat ?? ''} onChange={(v) => setParam('cat', v || null)} />
+            <Chips label="Categoria" options={catOptions} value={cat ?? ''} onChange={(v) => setParam('cat', v || null, true)} />
           </div>
           <div className="ac-chip-row">
             <span className="ac-chip-l" aria-hidden="true">
               Estado
             </span>
-            <Chips label="Estado" options={stateOptions} value={st ?? ''} onChange={(v) => setParam('st', v || null)} />
+            <Chips label="Estado" options={stateOptions} value={st ?? ''} onChange={(v) => setParam('st', v || null, true)} />
           </div>
           <div className="ac-chip-row">
             <span className="ac-chip-l" aria-hidden="true">
               Tamanho
             </span>
-            <Chips label="Tamanho" options={sizeOptions} value={size ?? ''} onChange={(v) => setParam('tam', v || null)} />
+            <Chips label="Tamanho" options={sizeOptions} value={size ?? ''} onChange={(v) => setParam('tam', v || null, true)} />
           </div>
         </section>
 
@@ -231,7 +231,7 @@ export function AcervoListPage() {
         )}
       </div>
 
-      <GarmentForm open={creating} onClose={() => setParam('nova', null)} onCreated={(g) => navigate(toGarment(g))} />
+      <GarmentForm open={creating} onClose={() => setParam('nova', null, true)} onCreated={(g) => navigate(toGarment(g), { replace: true })} />
     </div>
   )
 }

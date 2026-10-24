@@ -163,6 +163,41 @@ describe('Ficha da cliente', () => {
     expect(within(after).getByText(/Medida na prova/)).toBeInTheDocument()
   })
 
+  it('o nome acessível da aba inclui a contagem: "Medidas (2)"', async () => {
+    renderPage()
+    expect(await screen.findByRole('tab', { name: 'Medidas (2)' })).toBeInTheDocument()
+  })
+
+  it('atualizar medidas: duplo clique cria uma só versão', async () => {
+    const user = userEvent.setup()
+    const source = createMockSource({ latencyMs: 40, today: '2026-10-23' })
+    const spy = vi.spyOn(source, 'addMeasurement')
+    renderPage({ source })
+    await user.click(await screen.findByRole('tab', { name: /Medidas/ }))
+    await user.click(await screen.findByRole('button', { name: 'Atualizar' }))
+    const dialog = screen.getByRole('dialog', { name: 'Atualizar medidas' })
+    const waist = within(dialog).getByLabelText('Cintura (cm)')
+    await user.clear(waist)
+    await user.type(waist, '71')
+    await user.dblClick(within(dialog).getByRole('button', { name: 'Salvar medidas' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('atualizar medidas sem mudar nada não cria versão (só fecha)', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const spy = vi.spyOn(source, 'addMeasurement')
+    renderPage({ source })
+    await user.click(await screen.findByRole('tab', { name: /Medidas/ }))
+    await user.click(await screen.findByRole('button', { name: 'Atualizar' }))
+    const dialog = screen.getByRole('dialog', { name: 'Atualizar medidas' })
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar medidas' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(spy).not.toHaveBeenCalled()
+    expect(within(await screen.findByRole('table', { name: 'Histórico de medidas' })).getAllByRole('row').length - 1).toBe(2)
+  })
+
   it('sugestões mostram motivos e linkam para /preview/acervo/:id', async () => {
     const source = newSource()
     const recs = await source.recommend('cl-0001', 8)

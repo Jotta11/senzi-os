@@ -233,6 +233,21 @@ describe('Nova peça', () => {
     expect(screen.getByText(/^SZ-0297 · /)).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+
+  it('voltar depois de cadastrar não reabre o formulário "Nova peça"', async () => {
+    const user = userEvent.setup()
+    const { router } = renderPreview('/preview/acervo')
+    await user.click(await screen.findByRole('button', { name: 'Nova peça' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nova peça' })
+    await user.type(within(dialog).getByLabelText('Nome / modelo *'), 'Vestido Lucca')
+    await user.type(within(dialog).getByLabelText('Valor da locação (R$) *'), '650')
+    await user.click(within(dialog).getByRole('button', { name: 'Cadastrar peça' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/preview/acervo/sz-0297'))
+    await router.navigate(-1)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/preview/acervo'))
+    expect(router.state.location.search).toBe('')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
 })
 
 describe('Lista — payback', () => {

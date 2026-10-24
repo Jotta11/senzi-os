@@ -68,7 +68,7 @@ export function ClientesListPage() {
       next.delete('nova')
       next.delete('ideal')
       return next
-    })
+    }, { replace: true })
   }
 
   const creating = params.get('nova') === '1' && can('cliente.create')
@@ -144,7 +144,7 @@ export function ClientesListPage() {
         )}
       </div>
 
-      <CustomerForm open={creating} onClose={closeForm} initialIdealGarmentId={params.get('ideal')} onCreated={(c) => navigate(toCustomer(c))} />
+      <CustomerForm open={creating} onClose={closeForm} initialIdealGarmentId={params.get('ideal')} onCreated={(c) => navigate(toCustomer(c), { replace: true })} />
     </div>
   )
 }

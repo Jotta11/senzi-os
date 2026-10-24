@@ -64,10 +64,18 @@ describe('PreviewPage', () => {
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('nenhum link do dashboard sai da prévia (todos sob /preview)', () => {
+    renderPreview()
+    const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href') ?? '')
+    expect(hrefs.length).toBeGreaterThan(10)
+    expect(hrefs.filter((h) => !h.startsWith('/preview') && h.startsWith('/'))).toEqual([])
+    expect(screen.getByRole('link', { name: /ver semana/i })).toHaveAttribute('href', '/preview/agenda')
+  })
+
   it('tem os atalhos de Faturamento e Ciclo operacional', () => {
     renderPreview()
-    expect(screen.getByRole('link', { name: /ver financeiro completo/i })).toHaveAttribute('href', '/financeiro')
-    expect(screen.getByRole('link', { name: /ver operação/i })).toHaveAttribute('href', '/operacao')
+    expect(screen.getByRole('link', { name: /ver financeiro completo/i })).toHaveAttribute('href', '/preview/financeiro')
+    expect(screen.getByRole('link', { name: /ver operação/i })).toHaveAttribute('href', '/preview/operacao')
   })
 
   it('mostra um compromisso Interno com estilo distinto', () => {

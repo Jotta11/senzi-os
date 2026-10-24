@@ -192,6 +192,16 @@ describe('Acervo — lista', () => {
     expect(screen.getByText('Ajuste os filtros ou cadastre uma nova peça.')).toBeInTheDocument()
   })
 
+  it('chips de filtro substituem a entrada do histórico (não empilham)', async () => {
+    const { router } = renderPreview('/preview/acervo')
+    await userEvent.click(await within(await screen.findByRole('group', { name: 'Categoria' })).findByRole('button', { name: /^Saia/ }))
+    expect(new URLSearchParams(router.state.location.search).get('cat')).not.toBeNull()
+    expect(router.state.historyAction).toBe('REPLACE')
+    await userEvent.click(chip('Tamanho', /^M$/))
+    expect(new URLSearchParams(router.state.location.search).get('tam')).toBe('M')
+    expect(router.state.historyAction).toBe('REPLACE')
+  })
+
   it('"Nova peça" põe ?nova=1 na URL (o formulário vem na Task 3)', async () => {
     const { router } = renderPreview('/preview/acervo?cat=saia')
     await userEvent.click(await screen.findByRole('button', { name: 'Nova peça' }))

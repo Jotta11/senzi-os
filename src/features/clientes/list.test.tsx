@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider, useParams } from 'react-router'
 import type { Perm } from '@/auth/permissions'
@@ -190,6 +190,23 @@ describe('Clientes — lista', () => {
     expect(within(dlg).getByText('Nome, telefone, nascimento e CPF são obrigatórios.')).toBeInTheDocument()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Cancelar' }))
     expect(new URLSearchParams(router.state.location.search).get('nova')).toBeNull()
+  })
+
+  it('voltar depois de cadastrar não reabre o formulário "Nova cliente"', async () => {
+    const { router } = renderPreview('/preview/clientes')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Nova cliente' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Nova cliente' })
+    await user.type(within(dlg).getByLabelText(/^Nome completo/), 'Helena Prado Teste')
+    await user.type(within(dlg).getByLabelText(/^Telefone/), '63981234567')
+    fireEvent.change(within(dlg).getByLabelText(/^Data de nascimento/), { target: { value: '1995-08-14' } })
+    await user.type(within(dlg).getByLabelText(/^CPF/), '390.533.447-05')
+    await user.click(within(dlg).getByRole('button', { name: 'Cadastrar cliente' }))
+    await waitFor(() => expect(router.state.location.pathname).not.toBe('/preview/clientes'))
+    await router.navigate(-1)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/preview/clientes'))
+    expect(router.state.location.search).toBe('')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
   it('sem cliente.create não há botão nem formulário', async () => {

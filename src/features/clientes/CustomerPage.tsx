@@ -203,10 +203,11 @@ function Ficha({ customer: c }: { customer: Customer }) {
 function TabLabel({ n, children }: { n: number; children: ReactNode }) {
   return (
     <>
-      {children}
-      <span className="cp-tab-n" aria-label={`(${n})`}>
+      {children}{' '}
+      <span className="cp-tab-n" aria-hidden="true">
         {n}
       </span>
+      <span className="sr-only">({n})</span>
     </>
   )
 }

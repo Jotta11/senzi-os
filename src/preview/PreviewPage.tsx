@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router'
+import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, Card, Icon, buttonClass, type IconName, type Tone } from '@/ui'
 import './preview.css'
 
@@ -144,6 +145,7 @@ export function PreviewPage() {
 }
 
 function Alertas() {
+  const href = useAppHref()
   return (
     <section className="pv-alerts" aria-labelledby="pv-alertas-t">
       <div className="pv-section-h">
@@ -153,7 +155,7 @@ function Alertas() {
       </div>
       <div className="pv-alert-row">
         {ALERTAS.map((a) => (
-          <Link key={a.title} to={a.to} className={`pv-alert tone-${a.tone}`}>
+          <Link key={a.title} to={href(a.to)} className={`pv-alert tone-${a.tone}`}>
             <span className="pv-alert-ic">
               <Icon name={a.icon} size={15} />
             </span>
@@ -170,12 +172,13 @@ function Alertas() {
 }
 
 function AgendaHoje() {
+  const href = useAppHref()
   return (
     <Card
       title="Agenda de hoje"
       meta={<span className="muted tiny">{HOJE_LISTA.length} compromissos</span>}
       actions={
-        <Link to="/agenda" className={buttonClass('ghost', 'sm')}>
+        <Link to={href('/agenda')} className={buttonClass('ghost', 'sm')}>
           Ver semana <Icon name="seta" size={13} />
         </Link>
       }
@@ -202,6 +205,7 @@ function AgendaHoje() {
 }
 
 function MiniCalendario() {
+  const href = useAppHref()
   // outubro/2026 começa numa quinta → 3 casas vazias (semana começa na segunda)
   const pad = 3
   const total = 31
@@ -245,7 +249,7 @@ function MiniCalendario() {
                 ) : (
                   <td key={j} aria-selected={d === HOJE ? true : undefined}>
                     <Link
-                      to={`/agenda?dia=2026-10-${String(d).padStart(2, '0')}`}
+                      to={href(`/agenda?dia=2026-10-${String(d).padStart(2, '0')}`)}
                       className={['pv-cal-d', d === HOJE && 'today', d < HOJE && 'past'].filter(Boolean).join(' ')}
                       aria-label={`${String(d).padStart(2, '0')}/10/2026${COM_COMPROMISSO.has(d) ? ', com compromissos' : ''}`}
                     >
@@ -267,6 +271,7 @@ function MiniCalendario() {
 }
 
 function Faturamento() {
+  const href = useAppHref()
   const max = Math.max(...FATURAMENTO.map((f) => f.v))
   const total = 21350
   return (
@@ -274,7 +279,7 @@ function Faturamento() {
       title="Faturamento recebido"
       meta={<span className="muted tiny">7 meses · corrente parcial</span>}
       actions={
-        <Link to="/financeiro" className={buttonClass('secondary', 'sm')}>
+        <Link to={href('/financeiro')} className={buttonClass('secondary', 'sm')}>
           Ver financeiro completo <Icon name="seta" size={13} />
         </Link>
       }
@@ -307,11 +312,12 @@ function Faturamento() {
 }
 
 function CicloOperacional() {
+  const href = useAppHref()
   return (
     <Card
       title="Ciclo operacional"
       actions={
-        <Link to="/operacao" className={buttonClass('secondary', 'sm')}>
+        <Link to={href('/operacao')} className={buttonClass('secondary', 'sm')}>
           Ver operação <Icon name="seta" size={13} />
         </Link>
       }

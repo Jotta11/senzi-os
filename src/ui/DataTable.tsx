@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 export type Column<T> = {
   key: string
@@ -13,7 +13,7 @@ export type DataTableProps<T> = {
   columns: Column<T>[]
   rows: T[]
   rowKey(row: T): string
-  /** Linha clicável (também por Enter quando focada). Prefira pôr um link na primeira coluna. */
+  /** Clique na linha (só mouse/toque; a linha não é parada de Tab). O caminho do teclado é o link na primeira coluna. */
   onRowClick?(row: T): void
   /** Nome acessível da tabela (fica visualmente oculto). */
   caption?: string
@@ -24,9 +24,6 @@ export type DataTableProps<T> = {
 /** Tabela simples com cabeçalho fixo de estilo, rolagem horizontal própria (nunca a da página). */
 export function DataTable<T>({ columns, rows, rowKey, onRowClick, caption, empty }: DataTableProps<T>) {
   if (rows.length === 0 && empty) return <>{empty}</>
-  const onKey = (row: T) => (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && e.target === e.currentTarget) onRowClick?.(row)
-  }
   return (
     <div className="dt-wrap">
       <table className="dt">
@@ -46,8 +43,6 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, caption, empty
               key={rowKey(r)}
               className={onRowClick ? 'dt-click' : undefined}
               onClick={onRowClick ? () => onRowClick(r) : undefined}
-              onKeyDown={onRowClick ? onKey(r) : undefined}
-              tabIndex={onRowClick ? 0 : undefined}
             >
               {columns.map((c) => (
                 <td key={c.key} className={[c.align && `al-${c.align}`, c.className].filter(Boolean).join(' ') || undefined}>
