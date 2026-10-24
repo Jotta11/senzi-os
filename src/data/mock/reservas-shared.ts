@@ -95,6 +95,7 @@ export function reservaKit(ctx: MockCtx) {
   function writeContract(r: Reservation) {
     const now = ctx.now()
     const prev = r.contract
+    if (prev?.signedAt) log(r, null, r.state, `Contrato v${prev.version} assinado substituído pela v${prev.version + 1}`)
     r.contract = {
       id: prev?.id ?? ctx.newId('ct'),
       reservationId: r.id,
@@ -115,20 +116,27 @@ export function reservaKit(ctx: MockCtx) {
   }
 
   /**
-   * Parcelas pendentes coerentes com o saldo: o `saldo` pendente fica em `total líquido − pago da locação` e a
-   * `multa` pendente em `multa − multa paga`; zeradas, somem. Não cria parcela nova.
+   * Parcelas pendentes coerentes com o saldo — uma regra só: `due = balance(...).due`;
+   * `saldo` pendente = `min(due, total líquido − pago da locação)`; `multa` pendente = `due − saldo`.
+   * Zeradas, somem. Só cria parcela nova de multa, quando `multa` é informado (devolução com atraso).
    */
-  function syncPending(r: Reservation) {
+  function syncPending(r: Reservation, multa?: { notes: string; dueAt: string }) {
+    const due = balance(r.totalNet, r.lateFee, r.payments).due
     const paid = r.payments.filter((p) => p.state === 'pago')
     const sum = (f: (p: Payment) => boolean) => round2(paid.filter(f).reduce((s, p) => s + p.amount, 0))
-    const multaPaid = sum((p) => p.kind === 'multa')
     const rentalPaid = round2(sum((p) => p.kind !== 'caucao' && p.kind !== 'estorno' && p.kind !== 'multa') - sum((p) => p.kind === 'estorno' && p.refersTo !== 'caucao'))
-    const target = { saldo: Math.max(0, round2(r.totalNet - rentalPaid)), multa: Math.max(0, round2(r.lateFee - multaPaid)) }
+    const saldo = Math.min(due, Math.max(0, round2(r.totalNet - rentalPaid)))
+    const target = { saldo, multa: round2(due - saldo) }
     r.payments = r.payments.flatMap((p) => {
       if (p.state !== 'pendente' || (p.kind !== 'saldo' && p.kind !== 'multa')) return [p]
       const amount = target[p.kind]
-      return amount > 0 ? [{ ...p, amount }] : []
+      if (amount <= 0) return []
+      return [p.kind === 'multa' && multa ? { ...p, amount, ...multa } : { ...p, amount }]
     })
+    if (multa && target.multa > 0 && !r.payments.some((p) => p.kind === 'multa' && p.state === 'pendente')) {
+      const now = ctx.now()
+      r.payments.push({ id: ctx.newId('pay'), reservationId: r.id, kind: 'multa', method: 'pix', amount: target.multa, state: 'pendente', paidAt: null, reference: null, refersTo: null, createdBy: ctx.userId(), createdAt: now, ...multa })
+    }
   }
 
   const daysLate = (r: Reservation) => (OUT_STATES.includes(r.state) && r.returnDueDate < today ? diffDays(r.returnDueDate, today) : 0)

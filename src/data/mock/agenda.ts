@@ -5,7 +5,7 @@
 import { AG_KIND, FIT_OUTCOME } from '@/data/labels-ops'
 import { conversionRate, fittingStats } from '@/domain/fittings'
 import { dayRange } from '@/domain/dates'
-import { at } from '../fixture/kit'
+import { at } from './constants'
 import { STORE_TZ } from '@/lib/format'
 import type { AgendaSource } from '../source-agenda'
 import {

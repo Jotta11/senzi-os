@@ -3,6 +3,7 @@
  * já coerentes (rateio de desconto, saldo, contrato, histórico de estados). Só o fixture usa.
  */
 import { balance, round2 } from '@/domain/money'
+import { at, USER } from '../mock/constants'
 import { priceItems } from '../mock/pricing'
 import type {
   Channel,
@@ -35,14 +36,7 @@ export function makeRng(seed: number): Rng {
   return { next, int: (a, b) => a + Math.floor(next() * (b - a + 1)), pick: (xs) => xs[Math.floor(next() * xs.length)]! }
 }
 
-/** Instante no fuso da loja (`2026-10-24T10:30:00-03:00`): os 10 primeiros caracteres são a data. */
-export const at = (date: string, hhmm: string): string => `${date}T${hhmm}:00-03:00`
-
-export const USER = {
-  julia: { id: 'u-julia', name: 'Júlia Senzi' },
-  ana: { id: 'u-ana', name: 'Ana Lima' },
-  bruna: { id: 'u-bruna', name: 'Bruna Costa' },
-} as const
+export { at, USER }
 export const userName = (id: string): string => Object.values(USER).find((u) => u.id === id)?.name ?? 'Júlia Senzi'
 
 export const EVENTOS = ['Casamento', 'Formatura', 'Aniversário de 15 anos', 'Festa corporativa', 'Casamento civil', 'Baile de gala', 'Premiação', 'Jantar de noivado', 'Formatura de Medicina']

@@ -142,18 +142,20 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         const ref = complete ? r.items.map((i) => i.returnedAt?.slice(0, 10) ?? '').sort().at(-1) || today : today
         const late = Math.max(0, diffDays(r.returnDueDate, ref))
         r.lateFee = lateFee(r.totalNet, db.settings.lateFeeDailyPercent, late)
-        const multaPaid = round2(r.payments.filter((p) => p.kind === 'multa' && p.state === 'pago').reduce((s, p) => s + p.amount, 0))
-        const pendingFee = Math.max(0, round2(r.lateFee - multaPaid))
         const notes = `${late} dia(s) de atraso${stillOut.length ? ` · ${stillOut.length} peça(s) ainda na rua` : ''}`
-        const pending = r.payments.find((p) => p.kind === 'multa' && p.state === 'pendente')
-        if (pending && pendingFee > 0) Object.assign(pending, { amount: pendingFee, dueAt: today, notes })
-        else if (pending) r.payments = r.payments.filter((p) => p !== pending)
-        else if (pendingFee > 0) r.payments.push(payment(r, { kind: 'multa', method: 'pix', amount: pendingFee, state: 'pendente', dueAt: today, notes }))
+        kit.syncPending(r, { notes, dueAt: today })
 
         r.returnedAt = complete ? now : null
         if (complete) {
+          // O que nunca saiu da loja não sai mais: vira "não entregue" e libera a agenda da peça.
+          for (const it of r.items.filter((i) => i.itemState === 'pendente' || i.itemState === 'nao_entregue')) {
+            if (it.itemState === 'pendente') Object.assign(it, { itemState: 'nao_entregue', pickupNote: it.pickupNote || 'Não entregue na retirada' })
+            const g = ctx.garment(it.garmentId)
+            g.blocks = g.blocks.filter((b) => b.reservationId !== r.id)
+          }
           kit.transition(r, 'em_inspecao', late > 0 ? `Devolvida com ${late} dia(s) de atraso` : 'Devolvida no prazo')
           for (const a of apptsOf(r, 'devolucao')) a.state = 'concluido'
+          for (const it of r.items.filter((i) => i.itemState === 'nao_entregue')) kit.rederive(it.garmentId, `Reserva ${r.code} encerrada sem a peça`)
         } else {
           const received = r.items.filter((i) => i.itemState === 'devolvido' || i.itemState === 'inspecionado').length
           if (r.state !== 'aguardando_devolucao') kit.transition(r, 'aguardando_devolucao', `Devolução parcial — ${received} peça(s) recebida(s), ${stillOut.length} pendente(s)`)

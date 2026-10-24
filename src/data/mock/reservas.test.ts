@@ -306,3 +306,116 @@ describe('autorizador de exceções da prévia', () => {
     expect(ok.ok).toBe(true)
   })
 })
+
+/** Rascunho assinado e confirmado com o sinal dado (padrão: o mínimo). */
+async function confirmed(ctx: MockCtx, src: ReturnType<typeof reservas>, names: string[], d: [number, number, number], amount?: (net: number) => number) {
+  const draft = await src.createDraft(input(ctx, names, d))
+  await signed(src, ctx, draft.id)
+  const res = await src.confirmReservation(draft.id, { amount: amount ? amount(draft.totalNet) : minSignal(draft.totalNet, 50), method: 'pix', reference: null, notes: null })
+  if (!res.ok) throw new Error('confirmação recusada')
+  return res.reservation
+}
+const pendings = (r: Reservation, kind: string) => r.payments.filter((p) => p.kind === kind && p.state === 'pendente')
+
+describe('reservas — pagamentos', () => {
+  it('saldo pago em parte atualiza a parcela pendente; pago no resto, quita sem duplicar', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    expect(pendings(r0, 'saldo')).toEqual([expect.objectContaining({ amount: 300 })])
+    const pay = { kind: 'saldo' as const, method: 'pix' as const, reference: null, notes: null }
+    const r1 = await src.registerPayment(r0.id, { ...pay, amount: 100 })
+    expect(pendings(r1, 'saldo')).toEqual([expect.objectContaining({ amount: 200, dueAt: D(5) })])
+    expect(r1.balance).toMatchObject({ due: 200, status: 'parcial' })
+    const r2 = await src.registerPayment(r0.id, { ...pay, amount: 200 })
+    expect(pendings(r2, 'saldo')).toHaveLength(0)
+    expect(r2.payments.filter((p) => p.kind === 'saldo').map((p) => [p.state, p.amount])).toEqual([
+      ['pago', 200],
+      ['pago', 100],
+    ])
+    expect(r2.balance).toMatchObject({ due: 0, status: 'pago' })
+  })
+
+  it('multa pendente de reserva quitada é paga como "saldo": due 0, sem multa pendente, e a devolução seguinte não a ressuscita', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim', 'Nápoles'], [-1, -1, -1], (n) => n)
+    const picked = await src.pickupItems(r0.id, r0.items.map((i) => ({ itemId: i.id, delivered: true })))
+    const r1 = await src.returnItems(r0.id, [{ itemId: picked.items[0]!.id, returned: true }])
+    const fee = lateFee(r1.totalNet, 20, 1)
+    expect(pendings(r1, 'multa')).toEqual([expect.objectContaining({ amount: fee })])
+    const r2 = await src.registerPayment(r0.id, { kind: 'saldo', method: 'pix', amount: fee, reference: null, notes: null })
+    expect(r2.balance).toMatchObject({ due: 0, status: 'pago' })
+    expect(pendings(r2, 'multa')).toHaveLength(0)
+    const r3 = await src.returnItems(r0.id, [{ itemId: picked.items[1]!.id, returned: true }])
+    expect(r3.state).toBe('em_inspecao')
+    expect(r3.lateFee).toBe(fee)
+    expect(pendings(r3, 'multa')).toHaveLength(0)
+    expect(r3.balance.due).toBe(0)
+  })
+
+  it('VALOR_EXCEDE_SALDO: tipos normais até o saldo, caução livre, estorno de caução até a retida, estorno de receita até o pago', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    const p = (kind: 'saldo' | 'caucao' | 'estorno' | 'multa', amount: number, refersTo: 'caucao' | null = null) => ({ kind, method: 'pix' as const, amount, reference: null, notes: null, refersTo })
+    const over = await errorOf(src.registerPayment(r0.id, p('saldo', 300.01)))
+    expect(over.code).toBe('VALOR_EXCEDE_SALDO')
+    expect(over.hint).toBe('R$ 300,00')
+    expect((await errorOf(src.registerPayment(r0.id, p('multa', 301)))).code).toBe('VALOR_EXCEDE_SALDO')
+    const withDeposit = await src.registerPayment(r0.id, p('caucao', 5000))
+    expect(withDeposit.balance).toMatchObject({ caucao: 5000, due: 300 })
+    expect((await errorOf(src.registerPayment(r0.id, p('estorno', 5000.01, 'caucao')))).code).toBe('VALOR_EXCEDE_SALDO')
+    expect((await errorOf(src.registerPayment(r0.id, p('estorno', 300.01)))).code).toBe('VALOR_EXCEDE_SALDO')
+    const refunded = await src.registerPayment(r0.id, p('estorno', 100))
+    expect(refunded.balance).toMatchObject({ pago: 200, due: 400, caucao: 5000 })
+    expect(pendings(refunded, 'saldo')).toEqual([expect.objectContaining({ amount: 400 })])
+    expect((await errorOf(src.registerPayment(r0.id, p('saldo', 0)))).code).toBe('VALOR_INVALIDO')
+  })
+
+  it('devolver caução: só depois de encerrada; reduz a caução e não mexe no saldo', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    await src.registerPayment(r0.id, { kind: 'caucao', method: 'pix', amount: 150, reference: null, notes: null })
+    expect((await errorOf(src.returnDeposit(r0.id, 'pix'))).code).toBe('ESTADO_INVALIDO')
+    const cancelled = await src.cancelReservation(r0.id, 'Cliente desistiu')
+    expect(cancelled.balance.caucao).toBe(150)
+    const back = await src.returnDeposit(r0.id, 'pix')
+    expect(back.balance.caucao).toBe(0)
+    expect(back.balance.due).toBe(cancelled.balance.due)
+    expect(back.balance.pago).toBe(cancelled.balance.pago)
+    expect(back.payments.at(-1)).toMatchObject({ kind: 'estorno', refersTo: 'caucao', amount: 150, state: 'pago' })
+    expect((await errorOf(src.returnDeposit(r0.id, 'pix'))).code).toBe('VALOR_INVALIDO')
+  })
+})
+
+describe('reservas — revisão', () => {
+  it('devolução completa com peça que nunca saiu: item vira não entregue e a agenda da peça é liberada', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim', 'Nápoles'], [-1, 0, 1], (n) => n)
+    expect(byName(ctx, 'Nápoles').state).toBe('reservado')
+    const [turim, napoles] = r0.items
+    const partial = await src.pickupItems(r0.id, [{ itemId: turim!.id, delivered: true }])
+    expect(partial.state).toBe('retirada')
+    const done = await src.returnItems(r0.id, [{ itemId: turim!.id, returned: true }])
+    expect(done.state).toBe('em_inspecao')
+    expect(done.items.find((i) => i.id === napoles!.id)).toMatchObject({ itemState: 'nao_entregue', pickupNote: 'Não entregue na retirada' })
+    const g = byName(ctx, 'Nápoles')
+    expect(g.blocks.some((b) => b.reservationId === r0.id)).toBe(false)
+    expect(g.state).toBe('disponivel')
+  })
+
+  it('editar rascunho com contrato assinado registra a troca de versão no histórico', async () => {
+    const { ctx, src } = setup()
+    const bolonha = resOf(ctx, 'Bolonha', 'rascunho')
+    await signed(src, ctx, bolonha.id)
+    const r = await src.updateDraft(bolonha.id, {
+      customerId: bolonha.customerId,
+      eventDate: bolonha.eventDate!,
+      pickupDate: bolonha.pickupDate,
+      returnDueDate: bolonha.returnDueDate,
+      discount: 0,
+      notes: 'Mudou o evento',
+      items: bolonha.items.map((i) => ({ garmentId: i.garmentId, unitPrice: i.unitPrice })),
+    })
+    expect(r.contract).toMatchObject({ version: 2, signedAt: null })
+    expect(r.history.at(-1)).toMatchObject({ fromState: null, toState: 'rascunho', reason: 'Contrato v1 assinado substituído pela v2' })
+  })
+})

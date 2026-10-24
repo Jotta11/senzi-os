@@ -8,7 +8,7 @@ import { round2 } from '@/domain/money'
 import { dateBR, normalize, onlyDigits, STORE_TZ } from '@/lib/format'
 import { FIN_CAT } from '../fixture'
 import { addPayable } from '../fixture/finance'
-import { at } from '../fixture/kit'
+import { at } from './constants'
 import type { AcervoClientesSource } from '../source'
 import {
   SourceError,

@@ -2,7 +2,7 @@
  * Criação de compromissos de agenda, comum ao mundo fictício e à fonte em memória: avulsos e os três
  * automáticos de uma reserva confirmada (retirada, evento, devolução).
  */
-import { at } from '../fixture/kit'
+import { at, USER } from './constants'
 import type { World } from '../fixture/world'
 import type { Appointment, AppointmentKind, AppointmentState, Reservation } from '../types'
 
@@ -19,7 +19,7 @@ export function addAppointment(w: Pick<World, 'appointments'>, a: ApptSpec, id?:
     garmentId: null,
     assignedTo: null,
     internal: a.kind === 'interno',
-    createdBy: 'u-julia',
+    createdBy: USER.julia.id,
     ...a,
   }
   w.appointments.push(appt)

@@ -35,6 +35,7 @@ export function exceptionsMock(ctx: MockCtx): ExceptionsMock {
         const user = db.users.find((u) => u.email === email)
         if (!user) return { ok: false, error: 'AUTORIZACAO_INVALIDA' }
 
+        // Relógio real (não a data de negócio `today`): a janela de bloqueio de 15 min conta tempo de verdade.
         const nowMs = Date.now()
         const mine = db.pinAttempts.filter((a) => a.email === email)
         const lastOk = mine.map((a) => a.ok).lastIndexOf(true)

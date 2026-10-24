@@ -6,7 +6,7 @@
 import { CLOSED_RESERVATION_STATES } from '@/data/labels'
 import { STORE_TZ, todayISO } from '@/lib/format'
 import { buildWorld, customerStats, type World } from '../fixture'
-import { at } from '../fixture/kit'
+import { at, USER } from './constants'
 import { SourceError, type Customer, type Garment, type Reservation, type SourceIssue } from '../types'
 
 export type MockSourceOptions = {
@@ -62,7 +62,7 @@ export function createMockCtx(opts: MockSourceOptions = {}): MockCtx {
     db,
     today,
     userName,
-    userId: () => db.users.find((u) => u.name === userName())?.id ?? 'u-julia',
+    userId: () => db.users.find((u) => u.name === userName())?.id ?? USER.julia.id,
     now: () => at(today, storeTime()),
     async run<T>(fn: () => T): Promise<T> {
       if (latency > 0) await new Promise((r) => setTimeout(r, latency))
