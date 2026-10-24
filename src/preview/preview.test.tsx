@@ -44,11 +44,11 @@ describe('PreviewLayout', () => {
 
   it('demais itens mostram "Em construção" dentro da prévia', async () => {
     const router = renderAt('/preview')
-    await userEvent.click(nav().getByRole('link', { name: 'Agenda' }))
-    expect(router.state.location.pathname).toBe('/preview/agenda')
+    await userEvent.click(nav().getByRole('link', { name: 'Reservas' }))
+    expect(router.state.location.pathname).toBe('/preview/reservas')
     expect(screen.getByText('Em construção')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Agenda' })).toBeInTheDocument()
-    expect(nav().getByRole('link', { name: 'Agenda' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Reservas' })).toBeInTheDocument()
+    expect(nav().getByRole('link', { name: 'Reservas' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('?como=atendimento abre já como Atendimento', () => {

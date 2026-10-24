@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
+import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { PREVIEW_BASE } from './paths'
@@ -19,6 +20,7 @@ export const previewRoutes: RouteObject = {
     { index: true, element: <PreviewPage /> },
     { path: 'acervo', element: <AcervoListPage /> },
     { path: 'acervo/:id', element: <GarmentPage /> },
+    { path: 'agenda', element: <AgendaPage /> },
     { path: 'clientes', element: <ClientesListPage /> },
     { path: 'clientes/:id', element: <CustomerPage /> },
     { path: '*', element: <PreviewComingSoon /> },

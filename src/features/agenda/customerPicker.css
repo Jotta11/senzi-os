@@ -1,0 +1,20 @@
+/* Busca de cliente (combobox). Lista em card branco com borda Areia; item ativo em Vivo-soft. */
+.cp-box { position: relative; }
+.cp-box input { width: 100%; padding-right: 32px; }
+.cp-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 22px; height: 22px;
+  background: none; border: none; border-radius: var(--r-sm); color: var(--nevoa); cursor: pointer;
+}
+.cp-clear:hover { color: var(--tinta); background: var(--surface-2); }
+.cp-list {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
+  list-style: none; margin: 0; padding: 4px; max-height: 240px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--areia-2); border-radius: var(--r-md); box-shadow: var(--shadow-2);
+}
+.cp-opt { display: flex; align-items: baseline; gap: 8px; padding: 7px 9px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; }
+.cp-opt[aria-selected="true"] { background: var(--vivo-soft); }
+.cp-name { font-weight: 550; min-width: 0; }
+.cp-sub { margin-left: auto; font-size: 11.5px; color: var(--nevoa); white-space: nowrap; }
+.cp-create { border-top: 1px solid var(--areia); border-radius: 0 0 var(--r-sm) var(--r-sm); color: var(--vivo); align-items: center; }
+.cp-empty { padding: 8px 9px; font-size: 12.5px; color: var(--nevoa); }

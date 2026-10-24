@@ -7,6 +7,7 @@ export type NavItem = { path: string; icon: IconName; label: string; perm: Perm 
 export const NAV: NavItem[] = [
   { path: '/', icon: 'dashboard', label: 'Dashboard', perm: 'dashboard.view' },
   { path: '/agenda', icon: 'agenda', label: 'Agenda', perm: 'agenda.view' },
+  { path: '/provas', icon: 'prova', label: 'Provas', perm: 'prova.view' },
   { path: '/reservas', icon: 'reservas', label: 'Reservas', perm: 'reserva.view' },
   { path: '/acervo', icon: 'acervo', label: 'Acervo', perm: 'acervo.view' },
   { path: '/clientes', icon: 'clientes', label: 'Clientes', perm: 'cliente.view' },
