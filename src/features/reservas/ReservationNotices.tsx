@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import type { ReservationDetail, Settings } from '@/data/types'
-import { daysLate } from '@/domain/money'
+import { daysLate, lateFeePercent } from '@/domain/money'
 import { brl, dateBR, dateTimeBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Icon } from '@/ui'
@@ -14,7 +14,7 @@ export function ReservationNotices({ r, today, settings }: { r: ReservationDetai
   const { can } = usePermissions()
   const href = useAppHref()
   const late = daysLate(r, today)
-  const pct = r.contract?.terms.lateFeeDailyPercent ?? settings?.lateFeeDailyPercent ?? 0
+  const pct = lateFeePercent(r, settings)
   return (
     <>
       {late > 0 && (

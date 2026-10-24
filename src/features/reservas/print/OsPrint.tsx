@@ -3,6 +3,7 @@ import { useSettings } from '@/data/hooks-reservas'
 import { PAYMENT_KIND } from '@/data/labels-ops'
 import { RESERVATION_STATE } from '@/data/labels-ops'
 import type { ReservationDetail } from '@/data/types'
+import { lateFeePercent } from '@/domain/money'
 import { brl, dateBR, maskPhone, todayISO } from '@/lib/format'
 import { Logo, Silhouette } from '@/ui'
 import { longDay } from '../reservaFormat'
@@ -16,7 +17,7 @@ export function OsPrint() {
 function Os({ r }: { r: ReservationDetail }) {
   const { can } = usePermissions()
   const settings = useSettings()
-  const pct = r.contract?.terms.lateFeeDailyPercent ?? settings.data?.lateFeeDailyPercent ?? 0
+  const pct = lateFeePercent(r, settings.data)
   const b = r.balance
   const money = can('financeiro.view')
   return (

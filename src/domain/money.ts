@@ -1,6 +1,6 @@
 /** Dinheiro: arredondamento a centavos e regras de valores de reserva (spec reservas §4.2–§4.4). */
 import { NO_RECEIVABLE_RESERVATION_STATES, OUT_RESERVATION_STATES } from '@/data/labels-ops'
-import type { Garment, Payment, PayStatus, Reservation, ReservationBalance } from '@/data/types'
+import type { Garment, Payment, PayStatus, Reservation, ReservationBalance, Settings } from '@/data/types'
 import { diffDays } from './dates'
 
 /** O que as regras de saldo leem de um pagamento. */
@@ -76,6 +76,11 @@ export function pendingTargets(totalNet: number, lateFeeAmount: number, payments
 /** Dias de atraso da devolução: só com a peça na rua (`OUT_RESERVATION_STATES`) e depois do prazo; senão 0. */
 export function daysLate(r: Pick<Reservation, 'state' | 'returnDueDate'>, today: string): number {
   return OUT_RESERVATION_STATES.includes(r.state) ? Math.max(0, diffDays(r.returnDueDate, today)) : 0
+}
+
+/** % diário da multa: o do contrato (o que a cliente assinou); sem contrato, o da configuração atual. */
+export function lateFeePercent(r: Pick<Reservation, 'contract'>, settings: Pick<Settings, 'lateFeeDailyPercent'> | null | undefined): number {
+  return r.contract?.terms.lateFeeDailyPercent ?? settings?.lateFeeDailyPercent ?? 0
 }
 
 /** Multa por atraso: `% diário` do líquido × dias corridos. */

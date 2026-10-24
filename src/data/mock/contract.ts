@@ -2,7 +2,7 @@
  * Contrato de locação em texto plano (template provisório da spec reservas §5.1, com "Senzi Club").
  * Usado pelo mundo fictício (contratos do cenário) e pela fonte em memória (gerar/regerar no rascunho).
  */
-import { minSignal, round2 } from '@/domain/money'
+import { lateFeePercent, minSignal, round2 } from '@/domain/money'
 import { brl, dateBR, maskCPF, maskPhone } from '@/lib/format'
 import type { World } from '../types-world'
 import type { Reservation } from '../types'
@@ -21,7 +21,7 @@ export function renderContract(world: World, r: Reservation, date?: string): str
   const reference = round2(garments.reduce((s, { item, g }) => s + (g?.retailReference || item.unitPrice * 4), 0))
   const paid = r.payments.filter((p) => p.state === 'pago' && (p.kind === 'sinal' || p.kind === 'integral')).reduce((s, p) => s + p.amount, 0)
   const sinal = paid > 0 ? round2(paid) : minSignal(r.totalNet, world.settings.minSignalPercent)
-  const pct = r.contract?.terms.lateFeeDailyPercent ?? world.settings.lateFeeDailyPercent
+  const pct = lateFeePercent(r, world.settings)
   const when = date ?? r.contract?.generatedAt.slice(0, 10) ?? world.today
   const number = r.contract?.number || r.code.replace('RS', 'CT')
 

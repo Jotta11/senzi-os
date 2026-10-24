@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useReturnItems, useSettings } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
-import { daysLate } from '@/domain/money'
+import { daysLate, lateFeePercent } from '@/domain/money'
 import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateTimeBR, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
@@ -24,7 +24,7 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
   const back = r.items.filter((i) => i.itemState === 'devolvido' || i.itemState === 'inspecionado')
   const [picked, setPicked] = useState<Record<string, boolean>>(() => Object.fromEntries(out.map((i) => [i.id, true])))
   const [notes, setNotes] = useState<Record<string, string>>({})
-  const pct = r.contract?.terms.lateFeeDailyPercent ?? settings.data?.lateFeeDailyPercent ?? 0
+  const pct = lateFeePercent(r, settings.data)
   const late = Math.max(0, daysLate({ state: 'em_uso', returnDueDate: r.returnDueDate }, todayISO()))
 
   function submit(e: FormEvent) {

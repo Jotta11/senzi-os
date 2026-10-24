@@ -1,4 +1,5 @@
 import type { ReservationDetail, Settings } from '@/data/types'
+import { lateFeePercent } from '@/domain/money'
 import { brl, dateBR, phoneDigits, todayISO } from '@/lib/format'
 import { firstName } from './reservaFormat'
 
@@ -22,7 +23,7 @@ export function messages(d: ReservationDetail, settings: Pick<Settings, 'lateFee
   const names = d.garments.map((g) => g.name).join(', ')
   const pecas = `${d.items.length} peça(s)`
   const { devido, pago, due } = d.balance
-  const pct = d.contract?.terms.lateFeeDailyPercent ?? settings.lateFeeDailyPercent
+  const pct = lateFeePercent(d, settings)
   return [
     { key: 'contrato', label: 'Cópia do contrato', text: `Olá, ${n}! Segue a cópia do contrato ${ct} da sua reserva na Senzi. O PDF segue em anexo.` },
     {

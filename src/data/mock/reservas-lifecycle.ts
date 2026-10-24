@@ -6,7 +6,7 @@
 import { OUT_RESERVATION_STATES } from '@/data/labels'
 import { effectiveCleaningDays, makeBlocks, realignOnReturn } from '@/domain/calendar'
 import { diffDays } from '@/domain/dates'
-import { lateFee, minSignal, round2 } from '@/domain/money'
+import { lateFee, lateFeePercent, minSignal, round2 } from '@/domain/money'
 import { brl } from '@/lib/format'
 import type { ReservasSource } from '../source-reservas'
 import { SourceError, type Payment, type Reservation } from '../types'
@@ -142,7 +142,7 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         const complete = stillOut.length === 0
         const ref = complete ? r.items.map((i) => i.returnedAt?.slice(0, 10) ?? '').sort().at(-1) || today : today
         const late = Math.max(0, diffDays(r.returnDueDate, ref))
-        r.lateFee = lateFee(r.totalNet, db.settings.lateFeeDailyPercent, late)
+        r.lateFee = lateFee(r.totalNet, lateFeePercent(r, db.settings), late)
         const notes = `${late} dia(s) de atraso${stillOut.length ? ` · ${stillOut.length} peça(s) ainda na rua` : ''}`
         kit.syncPending(r, { notes, dueAt: today })
 

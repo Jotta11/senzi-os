@@ -1,5 +1,5 @@
 import { addDays } from '@/lib/format'
-import { lateFee, minSignal } from '@/domain/money'
+import { lateFee, lateFeePercent, minSignal } from '@/domain/money'
 import { createMockCtx, type MockCtx } from './context'
 import { exceptionsMock } from './exceptions'
 import { reservas } from './reservas'
@@ -244,6 +244,20 @@ describe('reservas — retirada, devolução e cancelamento', () => {
     const done = await src.returnItems(draft.id, [{ itemId: second!.id, returned: true }])
     expect(done.state).toBe('em_inspecao')
     expect(done.payments.filter((p) => p.kind === 'multa')).toHaveLength(1)
+  })
+
+  it('multa por atraso usa o % do contrato assinado, não a configuração atual (sem contrato, a configuração)', async () => {
+    const { ctx, src } = setup()
+    const draft = await src.createDraft(input(ctx, ['Turim'], [-1, -1, -1]))
+    await signed(src, ctx, draft.id)
+    expect(ctx.reservation(draft.id).contract!.terms.lateFeeDailyPercent).toBe(20)
+    await src.confirmReservation(draft.id, { amount: draft.totalNet, method: 'pix', reference: null, notes: null })
+    const picked = await src.pickupItems(draft.id, draft.items.map((i) => ({ itemId: i.id, delivered: true })))
+    ctx.db.settings.lateFeeDailyPercent = 5 // mudou depois da assinatura
+    const r = await src.returnItems(draft.id, picked.items.map((i) => ({ itemId: i.id, returned: true })))
+    expect(r.lateFee).toBe(lateFee(r.totalNet, 20, 1))
+    expect(r.payments.find((p) => p.kind === 'multa')).toMatchObject({ state: 'pendente', amount: lateFee(r.totalNet, 20, 1) })
+    expect(lateFeePercent({ contract: null }, ctx.db.settings)).toBe(5)
   })
 
   it('cancelar sem motivo → MOTIVO_OBRIGATORIO; com motivo libera blocos e compromissos', async () => {
