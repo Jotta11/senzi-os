@@ -47,9 +47,13 @@ export function GarmentSelector({ selected, onToggle, onSwap, pickup, returnDue,
   )
   const byId = useMemo(() => new Map((avail.data ?? []).map((a) => [a.garmentId, a])), [avail.data])
   const rows = useMemo(() => {
-    const free = (g: Garment) => (byId.get(g.id) && !hard(byId.get(g.id)!) && !byId.get(g.id)!.conflicts.length ? 0 : 1)
-    return [...candidates].sort((a, b) => free(a) - free(b) || a.code.localeCompare(b.code))
-  }, [candidates, byId])
+    const rank = (g: Garment) => {
+      if (chosen.has(g.id)) return 0
+      const a = byId.get(g.id)
+      return a && !hard(a) && !a.conflicts.length ? 1 : 2
+    }
+    return [...candidates].sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code))
+  }, [candidates, byId, chosen])
 
   const hint = term ? 'busca livre' : size ? `filtrado pelo tamanho ${size} da cliente` : 'todas as peças'
   const warned = selected.filter((g) => {
@@ -63,7 +67,9 @@ export function GarmentSelector({ selected, onToggle, onSwap, pickup, returnDue,
         <span className="eyebrow">Peças</span>
         <span className="tiny muted">{hint}</span>
       </div>
-      <SearchInput value="" onChange={setQ} label="Buscar peça" placeholder="Buscar peça por código, nome ou cor… (limpe para voltar ao tamanho da cliente)" delay={280} />
+      <div onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}>
+        <SearchInput value="" onChange={setQ} label="Buscar peça" placeholder="Buscar peça por código, nome ou cor… (limpe para voltar ao tamanho da cliente)" delay={280} />
+      </div>
 
       {rows.length === 0 ? (
         <p className="rs-sel-empty" role="status">

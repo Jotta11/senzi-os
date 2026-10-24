@@ -20,7 +20,7 @@ const CREATE = '__create__'
 
 /**
  * Busca de cliente reutilizável (combobox + listbox): digita nome, telefone, CPF ou código; ↑/↓ navegam,
- * Enter escolhe (e nunca envia o formulário em volta), Esc fecha a lista. Escolhida a cliente, o campo mostra o
+ * Enter escolhe (e nunca envia o formulário em volta), Esc fecha a lista. A lista só abre ao digitar ou com ↓ (nunca ao focar). Escolhida a cliente, o campo mostra o
  * nome; digitar de novo limpa a escolha.
  */
 export function CustomerPicker({ value, onChange, allowCreate = false, onCreateRequest, label = 'Cliente', error, id }: CustomerPickerProps) {
@@ -101,7 +101,7 @@ export function CustomerPicker({ value, onChange, allowCreate = false, onCreateR
             setOpen(true)
             if (value) onChange(null)
           }}
-          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
           onBlur={() => {
             setOpen(false)
             setText(null)

@@ -51,3 +51,5 @@
 .rs-split { border-top: 1px solid var(--areia); padding-top: 8px; }
 .rs-split ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .rs-split li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.rs-value, .rs-value * { white-space: nowrap; }

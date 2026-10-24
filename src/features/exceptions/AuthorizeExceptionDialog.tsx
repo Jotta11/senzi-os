@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ERROR_MESSAGES, errorMessage } from '@/lib/errorMessages'
 import type { ExceptionKind } from '@/data/types'
@@ -20,6 +20,8 @@ export type AuthorizeExceptionDialogProps = {
   refId: string
   onAuthorized(id: string): void
   onCancel?(): void
+  /** Frase de contexto (ex.: valor do desconto), sob o subtítulo. */
+  detail?: ReactNode
 }
 
 /**
@@ -27,7 +29,7 @@ export type AuthorizeExceptionDialogProps = {
  * `ExceptionAuthorizer` do contexto (banco por padrão; memória na prévia, com a dica do PIN de demonstração).
  * Falhas vêm no retorno (`{ok:false,error}`) e usam o mesmo mapa de mensagens; exceção = falha de rede.
  */
-export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, onCancel }: AuthorizeExceptionDialogProps) {
+export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, onCancel, detail }: AuthorizeExceptionDialogProps) {
   const titleId = useId()
   const [email, setEmail] = useState('')
   const [pin, setPin] = useState('')
@@ -72,6 +74,7 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
           <p className="eyebrow">{KIND_LABEL[kind]}</p>
           <h2 id={titleId} className="display">Autorizar exceção</h2>
           <p className="muted">Um administrador precisa confirmar com o PIN dele.</p>
+          {detail && <p className="note amber">{detail}</p>}
 
           <Field
             as="select"

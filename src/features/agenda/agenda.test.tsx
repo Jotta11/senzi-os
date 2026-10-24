@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { useState } from 'react'
@@ -250,6 +250,16 @@ describe('CustomerPicker', () => {
     expect(box).toHaveAttribute('aria-controls')
     await user.click(await screen.findByRole('option', { name: /Cadastrar nova cliente/ }))
     expect(onCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('focar (ex.: foco automático do modal) não abre a lista; clicar, digitar ou ↓ abrem', async () => {
+    const user = userEvent.setup()
+    render(<Harness onCreate={vi.fn()} />)
+    const box = screen.getByRole('combobox', { name: 'Cliente' })
+    act(() => box.focus())
+    expect(screen.queryByRole('listbox')).toBeNull()
+    await user.keyboard('{ArrowDown}')
+    expect(await screen.findByRole('listbox')).toBeInTheDocument()
   })
 
   it('Esc fecha só a lista: o modal continua aberto', async () => {

@@ -216,17 +216,13 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
           kind="desconto_acima_limite"
           refType="reserva_rascunho"
           refId={draft?.id ?? `tmp-${tempId}`}
+          detail={`O desconto de ${brl(discount)} representa ${pct.toLocaleString('pt-BR')}% do valor das peças, acima do limite de ${limit}% da casa.`}
           onAuthorized={(id) => {
             setAuthOpen(false)
             submit(undefined, id)
           }}
           onCancel={() => setAuthOpen(false)}
         />
-      )}
-      {authOpen && (
-        <p className="sr-only" role="status">
-          {`O desconto de ${brl(discount)} representa ${pct.toLocaleString('pt-BR')}% do valor das peças, acima do limite de ${limit}% da casa.`}
-        </p>
       )}
       <CustomerForm
         open={newCustomer}

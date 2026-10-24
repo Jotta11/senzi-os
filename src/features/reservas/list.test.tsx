@@ -178,4 +178,39 @@ describe('Reservas — nova reserva', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(router.state.location.search).toBe('?f=rascunhos')
   })
+
+  it('Enter na busca de peças não envia o formulário; focar na cliente não abre a lista; a peça escolhida fica no topo', async () => {
+    const user = userEvent.setup()
+    const { router } = renderPreview('/preview/reservas?nova=1&peca=sz-0107')
+    const dialog = await screen.findByRole('dialog', { name: 'Nova reserva' })
+    const list = await within(dialog).findByRole('list', { name: 'Peças do acervo' })
+    await waitFor(() => expect(within(list).getAllByRole('button')[0]).toHaveTextContent('Vestido Verona'))
+    expect(within(list).getAllByRole('button')[0]).toHaveAttribute('aria-pressed', 'true')
+    const cust = within(dialog).getByLabelText('Cliente *')
+    cust.focus()
+    expect(within(dialog).queryByRole('listbox')).toBeNull()
+    await user.type(within(dialog).getByRole('searchbox'), '{Enter}')
+    expect(router.state.location.pathname).toBe('/preview/reservas')
+    expect(within(dialog).queryByText('Corrija antes de continuar:')).toBeNull()
+  })
+
+  it('sem data do evento: "Informe a data do evento."', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/reservas?nova=1&peca=sz-0107')
+    const dialog = await screen.findByRole('dialog', { name: 'Nova reserva' })
+    fireEvent.change(within(dialog).getByLabelText('Data do evento *'), { target: { value: '' } })
+    await user.click(within(dialog).getByRole('button', { name: 'Criar rascunho' }))
+    expect(await within(dialog).findByText('• Informe a data do evento.')).toBeInTheDocument()
+  })
+
+  it('peça com rascunho no período mostra a pílula âmbar (e não bloqueia)', async () => {
+    const source = newSource()
+    const capri = (await source.searchGarments({ q: 'Capri' }, { limit: 1, offset: 0 })).items[0]!
+    renderPreview(`/preview/reservas?nova=1&peca=${capri.id}`, source)
+    const dialog = await screen.findByRole('dialog', { name: 'Nova reserva' })
+    fireEvent.change(within(dialog).getByLabelText('Data do evento *'), { target: { value: '2026-11-10' } })
+    const row = await within(dialog).findByRole('button', { name: /Vestido Capri/, pressed: true })
+    const pill = await within(row).findByText(/^rascunho RS-2026-\d{4} /)
+    expect(pill).toHaveClass('amber')
+  })
 })
