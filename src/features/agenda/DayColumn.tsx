@@ -16,7 +16,8 @@ export type DayColumnProps = {
   today: string
   /** Tipo escolhido nos chips (`todos` = sem filtro). Não filtra os blocos de acervo. */
   filter: string
-  onEdit(day: string, item: AgendaItem): void
+  /** Só com `agenda.manage`: sem ela os compromissos manuais não abrem a edição. */
+  onEdit?(day: string, item: AgendaItem): void
 }
 
 /** Linha 3 do cartão: nome da cliente; sem cliente, o título (se for diferente do rótulo do tipo). */
@@ -46,7 +47,7 @@ function ItemCard({ item, date, onEdit }: { item: AgendaItem; date: string; onEd
 
   // destino: prova > reserva > cliente
   const to = item.fitting ? `/provas/${item.fitting.id}` : item.reservation ? `/reservas/${item.reservation.id}` : item.customer ? `/clientes/${item.customer.id}` : null
-  if (isManual(item) && item.state === 'agendado') {
+  if (onEdit && isManual(item) && item.state === 'agendado') {
     return (
       <button type="button" className={className} style={style} onClick={() => onEdit(date, item)}>
         {body}

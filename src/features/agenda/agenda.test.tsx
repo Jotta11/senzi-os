@@ -1,7 +1,12 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import { useState } from 'react'
+import { DataSourceProvider } from '@/data/source'
+import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
+import { AgendaPage } from './AgendaPage'
+import { CustomerPicker } from './CustomerPicker'
 import { createMockSource } from '@/data/mockSource'
 import type { DataSource } from '@/data/source'
 import { addDays } from '@/lib/format'
@@ -113,13 +118,19 @@ describe('Agenda — kanban de dias', () => {
     expect(within(col).getAllByRole('link', { name: / · Bloqueio/ })).toHaveLength(4)
   })
 
+  it('retirada com reserva e cliente vai à reserva (reserva > cliente)', async () => {
+    const user = userEvent.setup()
+    const { router } = renderPreview('/preview/agenda')
+    const today = await dayRegion('domingo, 25/10')
+    await user.click(await within(today).findByRole('link', { name: /Retirada/ }))
+    expect(router.state.location.pathname).toMatch(/^\/preview\/reservas\/.+/)
+  })
+
   it('cartão de prova leva à ficha da prova', async () => {
     const user = userEvent.setup()
     const { router } = renderPreview('/preview/agenda?dia=2026-10-24')
-    const day = await dayRegion('sábado, 24/10')
     // a prova "em curso" do mundo cai no "hoje" da fonte (25/10)
     const today = await dayRegion('domingo, 25/10')
-    void day
     const link = await within(today).findByRole('link', { name: /Prova/ })
     await user.click(link)
     expect(router.state.location.pathname).toMatch(/^\/preview\/provas\/.+/)
@@ -186,15 +197,74 @@ describe('Agenda — novo compromisso', () => {
     expect(await within(today).findAllByText('Atendimento')).not.toHaveLength(0)
   })
 
-  it('Atendimento (perfil) também vê o botão', async () => {
+  it('perfil Atendimento cria um compromisso de ponta a ponta; sem agenda.manage não há botão nem edição', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/agenda?como=atendimento')
+    const today = await dayRegion('domingo, 25/10')
+    await user.click(screen.getByRole('button', { name: /Novo compromisso/ }))
+    const dlg = await screen.findByRole('dialog', { name: 'Novo compromisso' })
+    await user.click(within(dlg).getByRole('checkbox', { name: 'Interno' }))
+    await user.type(within(dlg).getByLabelText(/Observação/), 'Fotos do balcão')
+    await user.click(within(dlg).getByRole('button', { name: 'Salvar' }))
+    expect(await within(today).findByText('Fotos do balcão')).toBeInTheDocument()
+  })
+
+  it('sem agenda.manage: sem botão e o cartão manual não é clicável', async () => {
+    const source = newSource()
+    const router = createMemoryRouter([{ path: '/agenda', element: <AgendaPage /> }], { initialEntries: ['/agenda'] })
+    render(
+      <QueryClientProvider client={newClient()}>
+        <DataSourceProvider source={source}>
+          <PreviewPermissionsProvider initialRole="atendimento" revoke={['agenda.manage']}>
+            <RouterProvider router={router} />
+          </PreviewPermissionsProvider>
+        </DataSourceProvider>
+      </QueryClientProvider>,
+    )
+    const today = await dayRegion('domingo, 25/10')
+    await within(today).findByText(/Coleta da lavanderia/)
+    expect(screen.queryByRole('button', { name: /Novo compromisso/ })).toBeNull()
+    expect(within(today).queryByRole('button', { name: /Coleta da lavanderia/ })).toBeNull()
+  })
+})
+
+describe('CustomerPicker', () => {
+  function Harness({ onCreate }: { onCreate(): void }) {
+    const [v, setV] = useState<string | null>(null)
+    return (
+      <QueryClientProvider client={newClient()}>
+        <DataSourceProvider source={newSource()}>
+          <CustomerPicker value={v} onChange={setV} allowCreate onCreateRequest={onCreate} />
+        </DataSourceProvider>
+      </QueryClientProvider>
+    )
+  }
+
+  it('allowCreate mostra "Cadastrar nova cliente" e chama onCreateRequest; aria-controls só com a lista aberta', async () => {
+    const user = userEvent.setup()
+    const onCreate = vi.fn()
+    render(<Harness onCreate={onCreate} />)
+    const box = screen.getByRole('combobox', { name: 'Cliente' })
+    expect(box).not.toHaveAttribute('aria-controls')
+    await user.click(box)
+    expect(box).toHaveAttribute('aria-controls')
+    await user.click(await screen.findByRole('option', { name: /Cadastrar nova cliente/ }))
+    expect(onCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('Esc fecha só a lista: o modal continua aberto', async () => {
     const user = userEvent.setup()
     renderPreview('/preview/agenda')
     await dayRegion('domingo, 25/10')
-    // o botão do perfil (os chips de tipo também têm um "Atendimento")
-    const chips = screen.getByRole('group', { name: 'Filtrar por tipo' })
-    const perfil = screen.getAllByRole('button', { name: 'Atendimento' }).find((b) => !chips.contains(b))!
-    await user.click(perfil)
-    expect(screen.getByRole('button', { name: /Novo compromisso/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Novo compromisso/ }))
+    const dlg = await screen.findByRole('dialog', { name: 'Novo compromisso' })
+    await user.click(within(dlg).getByRole('combobox', { name: /Cliente/ }))
+    await within(dlg).findByRole('listbox')
+    await user.keyboard('{Escape}')
+    expect(within(dlg).queryByRole('listbox')).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Novo compromisso' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useAgendaRange } from '@/data/hooks-agenda'
+import { isValidISODate } from '@/data/validation'
 import { AG_KIND } from '@/data/labels-ops'
 import type { AgendaItem, AppointmentKind } from '@/data/types'
 import { addDays, todayISO } from '@/lib/format'
@@ -15,7 +16,7 @@ type Filter = 'todos' | AppointmentKind
 const KIND_ORDER: AppointmentKind[] = ['prova', 'retirada', 'devolucao', 'atendimento', 'evento', 'servico', 'interno']
 const CHIPS: ChipOption<Filter>[] = [{ value: 'todos', label: 'Todos' }, ...KIND_ORDER.map((k) => ({ value: k as Filter, label: AG_KIND[k].label }))]
 const isFilter = (v: string | null): v is Filter => v === 'todos' || KIND_ORDER.includes(v as AppointmentKind)
-const isISODate = (v: string | null): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v)
+const isISODate = (v: string | null): v is string => isValidISODate(v)
 const GAP = 12
 
 type Metrics = { step: number; visible: number }
@@ -167,7 +168,7 @@ export function AgendaPage() {
         >
           {range.isPending && <p className="kb-loading">Carregando a agenda…</p>}
           {days.map((d) => (
-            <DayColumn key={d.date} day={d} today={today} filter={filter} onEdit={(date, item) => setModal({ date, item })} />
+            <DayColumn key={d.date} day={d} today={today} filter={filter} onEdit={canManage ? (date, item) => setModal({ date, item }) : undefined} />
           ))}
         </div>
       </div>

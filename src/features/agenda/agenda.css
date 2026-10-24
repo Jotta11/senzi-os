@@ -2,18 +2,19 @@
    Agenda — kanban de dias. Cards brancos com borda Areia sobre --fundo;
    o Cranberry Vivo só no botão primário, foco e cartão "hoje".
    ===================================================================== */
-.kb-page { min-width: 0; display: flex; flex-direction: column; }
+.kb-page { min-width: 0; max-width: 100%; display: flex; flex-direction: column; }
 
 .kb-head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 26px 32px 0; }
 .kb-title h1 { font-size: 38px; font-weight: 400; line-height: 1.05; }
 .kb-sub { font-size: 13px; color: var(--nevoa); margin-top: 4px; font-variant-numeric: tabular-nums; min-height: 1.3em; }
 .kb-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-.kb-body { padding: 18px 32px 56px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.kb-body { max-width: 100%; padding: 18px 32px 56px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 /* contêiner com rolagem horizontal e snap por coluna */
 .kb-strip {
-  display: flex; gap: var(--gap, 12px); min-width: 0;
+  display: flex; gap: var(--gap, 12px); min-width: 0; max-width: 100%;
+  contain: inline-size; /* a largura vem do contêiner, nunca do conteúdo */
   overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
   padding: 2px 2px 14px; border-radius: var(--r-lg);
   scrollbar-color: var(--areia-2) transparent;
@@ -65,7 +66,7 @@ div.kb-card:hover { background: none; }
 .kb-card.is-internal {
   border: 1px dashed var(--areia-2); border-radius: var(--r-sm); padding: 5px 8px 6px; background: var(--t-stone-bg);
 }
-.kb-card.is-internal .kb-kind { color: var(--cranberry); font-style: italic; }
+.kb-card.is-internal .kb-kind { color: var(--tinta); }
 
 /* rodapé: blocos do acervo, separados por linha tracejada */
 .kb-blocks { border-top: 1px dashed var(--areia-2); padding-top: 9px; gap: 4px; }
@@ -82,7 +83,10 @@ div.kb-card:hover { background: none; }
 .ap-spacer { flex: 1; }
 
 @media (max-width: 560px) {
-  .kb-head { padding: 18px 16px 0; }
+  .kb-head { padding: 18px 16px 0; flex-direction: column; align-items: stretch; gap: 10px; }
+  .kb-title { min-width: 0; }
+  .kb-actions { margin-left: 0; width: 100%; }
+  .kb-actions .btn-primary { flex: 1 1 100%; justify-content: center; }
   .kb-body { padding: 14px 16px 40px; }
   .ap-grid { grid-template-columns: 1fr; }
   .ap-flag { padding-top: 0; }
