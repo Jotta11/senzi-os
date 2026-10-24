@@ -6,6 +6,7 @@ import type { BlockKind, Garment, GarmentBlock } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
 import { addDays, dateBR, todayISO } from '@/lib/format'
 import { Badge, Button, DataTable, Icon, type Column } from '@/ui'
+import { STRIP_DAYS, blockOn } from './calendarDays'
 
 /** Rótulo curto dentro da célula do calendário (protótipo `SZ.BLOCK_KIND[k].tag`). */
 const BLOCK_TAG: Record<BlockKind, string> = {
@@ -18,7 +19,7 @@ const BLOCK_TAG: Record<BlockKind, string> = {
   editorial: 'EDIT',
 }
 
-const STRIP_DAYS = 45
+
 /** Semana de segunda a domingo (padrão do app). */
 const DOW = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' })
@@ -31,7 +32,6 @@ const shift = ({ y, m }: Month, n: number): Month => {
   return { y: Math.floor(t / 12), m: ((t % 12) + 12) % 12 }
 }
 const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-const blockOn = (blocks: GarmentBlock[], day: string) => blocks.find((b) => b.from <= day && day <= b.to)
 
 export function MonthGrid({ month, blocks, today }: { month: Month; blocks: GarmentBlock[]; today: string }) {
   const first = new Date(Date.UTC(month.y, month.m, 1))

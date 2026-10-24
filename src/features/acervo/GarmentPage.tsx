@@ -6,9 +6,10 @@ import { BLOCK_KIND, FIT_RUNS_LABEL, GARMENT_STATE, LENGTH_LABEL, STRETCH_LABEL 
 import type { Garment } from '@/data/types'
 import { brl, dateBR, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, type TabItem } from '@/ui'
+import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, buttonClass, type TabItem } from '@/ui'
 import { BlockModal } from './BlockModal'
 import { CalendarPane } from './CalendarPane'
+import { STRIP_DAYS, freeDays } from './calendarDays'
 import { FitModal } from './FitModal'
 import { GarmentForm } from './GarmentForm'
 import { MeasurementsModal } from './MeasurementsModal'
@@ -130,6 +131,11 @@ function Ficha({ garment: g }: { garment: Garment }) {
               Editar
             </Button>
           )}
+          {can('reserva.create') && (
+            <Link to={href('/reservas')} className={buttonClass('primary')}>
+              <Icon name="plus" size={15} /> Reservar
+            </Link>
+          )}
         </div>
       </header>
 
@@ -137,6 +143,7 @@ function Ficha({ garment: g }: { garment: Garment }) {
         <div className="gp-profile">
           <SideCard garment={g} />
           <div className="gp-main">
+            {canCost ? <EconomicsBand garment={g} /> : <AvailabilityBand garment={g} />}
             <Tabs label="Ficha da peça" tabs={tabs} selected={selected} onSelect={selectTab} className="gp-tabs" />
           </div>
         </div>
@@ -228,6 +235,77 @@ function SideCard({ garment: g }: { garment: Garment }) {
         )}
       </div>
     </aside>
+  )
+}
+
+/* ------------------------------------------------------- faixa de números */
+
+type Kpi = { label: string; value: string; note: string }
+
+/** Faixa Cranberry acima das abas (protótipo `garmentDetail`, linha de KPIs) — destaque sobre o fundo claro. */
+function KpiBand({ items, busy }: { items: Kpi[]; busy?: boolean }) {
+  return (
+    <dl className="gp-kpis" aria-busy={busy || undefined}>
+      {items.map((k) => (
+        <div key={k.label}>
+          <dt>{k.label}</dt>
+          <dd className="display">{k.value}</dd>
+          <dd className="gp-kpi-note">{k.note}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/** Com `acervo.cost`: locações, receita, resultado e payback. */
+function EconomicsBand({ garment: g }: { garment: Garment }) {
+  const ids = useMemo(() => [g.id], [g.id])
+  const econ = useGarmentEconomics(ids, true)
+  const e = econ.data?.[0]
+  const rentals = e?.rentals ?? 0
+  const revenue = e?.revenue ?? 0
+  const cost = g.acquisitionCost
+  const result = revenue - (cost ?? 0)
+  const last = g.history.filter((h) => h.to === 'retirado').map((h) => h.at).sort().at(-1)
+  const missing = cost && !e?.paidBack ? Math.max(1, Math.ceil((cost - revenue) / g.rentalPrice)) : 0
+  const pending = !econ.data
+  const v = (s: string) => (pending ? '—' : s)
+  return (
+    <KpiBand
+      busy={pending}
+      items={[
+        { label: 'Locações', value: v(String(rentals)), note: last ? `última ${dateBR(last).slice(0, 5)}` : rentals ? 'desde a compra' : 'nenhuma ainda' },
+        { label: 'Receita', value: v(brl(revenue, { cents: false })), note: rentals ? `média ${brl(revenue / rentals, { cents: false })}/locação` : 'sem locações' },
+        {
+          label: 'Resultado',
+          value: v(cost == null ? '—' : brl(result, { cents: false })),
+          note: cost == null ? 'sem custo registrado' : result >= 0 ? 'acima do investimento' : 'abaixo do investimento',
+        },
+        {
+          label: 'Payback',
+          value: v(rentals === 0 || e?.payback == null ? '—' : times(e.payback)),
+          note: e?.paidBack ? 'investimento recuperado' : missing ? `faltam ${missing} ${missing === 1 ? 'locação' : 'locações'}` : 'sem custo registrado',
+        },
+      ]}
+    />
+  )
+}
+
+/** Sem `acervo.cost` (Atendimento): só o que ajuda a atender — disponibilidade, próximo compromisso e higienização. */
+function AvailabilityBand({ garment: g }: { garment: Garment }) {
+  const categories = useCategories()
+  const today = todayISO()
+  const free = freeDays(g.blocks, today)
+  const next = g.blocks.filter((b) => b.to >= today).sort((a, b) => a.from.localeCompare(b.from))[0]
+  const days = g.cleaningDays ?? categories.data?.find((c) => c.slug === g.categorySlug)?.cleaningDays
+  return (
+    <KpiBand
+      items={[
+        { label: 'Dias livres', value: String(free), note: `nos próximos ${STRIP_DAYS} dias` },
+        { label: 'Próximo compromisso', value: next ? dateBR(next.from).slice(0, 5) : '—', note: next ? BLOCK_KIND[next.kind].label.toLowerCase() : 'agenda livre' },
+        { label: 'Higienização', value: days == null ? '—' : `${days} ${days === 1 ? 'dia' : 'dias'}`, note: 'entre uma locação e outra' },
+      ]}
+    />
   )
 }
 

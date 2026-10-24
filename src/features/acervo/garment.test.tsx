@@ -54,6 +54,21 @@ describe('Ficha da peça', () => {
     expect(await within(side).findByText('3 dias de higienização')).toBeInTheDocument()
   })
 
+  it('faixa de números: admin vê locações, receita, resultado e payback; atendimento só disponibilidade', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/acervo/sz-0107')
+    expect(await screen.findByRole('link', { name: /Reservar/ })).toBeInTheDocument()
+    const band = () => document.querySelector('.gp-kpis') as HTMLElement
+    await waitFor(() => expect(band().getAttribute('aria-busy')).toBeNull())
+    const labels = () => within(band()).getAllByRole('term').map((t) => t.textContent)
+    expect(labels()).toEqual(['Locações', 'Receita', 'Resultado', 'Payback'])
+    expect(within(band()).getByText(/^média R\$/)).toBeInTheDocument()
+
+    await verAtendimento(user)
+    expect(labels()).toEqual(['Dias livres', 'Próximo compromisso', 'Higienização'])
+    expect(within(band()).queryByText(/R\$/)).toBeNull()
+  })
+
   it('?aba=medidas abre a aba de caimento; Financeiro só com acervo.cost', async () => {
     const user = userEvent.setup()
     const { router } = renderPreview('/preview/acervo/sz-0107?aba=medidas')
