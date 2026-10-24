@@ -1,11 +1,11 @@
 /**
  * Acervo fictício portado do seed do protótipo (protótipo v0.2 L2765–2868 e caimento L3311–3324).
  * Determinístico: o que no protótipo era sorteado aqui deriva do índice da peça.
- * Datas são relativas a `today` para a agenda sempre parecer "viva".
+ * Datas são relativas a `today`.
  * Só a fonte em memória importa este arquivo — as telas nunca.
  */
 import { addDays } from '@/lib/format'
-import type { BlockKind, Category, FabricStretch, FitRuns, Garment, GarmentLength, GarmentState, SizeEquiv } from '../types'
+import type { Category, FabricStretch, FitRuns, Garment, GarmentLength, SizeEquiv } from '../types'
 
 export const CATEGORIES: Category[] = [
   { slug: 'vestido-longo', name: 'Vestido longo', cleaningDays: 3 },
@@ -104,31 +104,14 @@ const CAIMENTO: [string, FitRuns, number, number, number, number, string][] = [
   ['Capri', 'fiel', 86, 68, 94, 7, 'Organza precisa de anágua em dia de vento'],
 ]
 
-/** Estado atual e agenda de exemplo para a tela mostrar todos os tons. Offsets em dias a partir de hoje. */
-const CENARIO: Record<string, { state?: GarmentState; reason?: string; blocks?: [BlockKind, number, number, string][] }> = {
-  Verona: {
-    blocks: [
-      ['locacao', 12, 15, 'Reserva · Mariana Fontes Ribeiro — casamento'],
-      ['bloqueio_manual', 30, 32, 'Separada para prova de noiva'],
-    ],
-  },
-  Amalfi: { state: 'reservado', reason: 'Reserva confirmada', blocks: [['locacao', 2, 5, 'Reserva · Juliana Tavares Lima — formatura']] },
-  Capri: { state: 'higienizacao', reason: 'Devolvida, enviada à lavanderia', blocks: [['higienizacao', -1, 1, 'Lavanderia Palmas · lavagem a seco']] },
-  Positano: { state: 'retirado', reason: 'Retirada pela cliente', blocks: [['locacao', -2, 2, 'Locação · Camila Nogueira Alves']] },
-  Portofino: { state: 'reservado', reason: 'Reserva confirmada', blocks: [['locacao', 5, 8, 'Reserva · Ana Paula Siqueira — gala']] },
-  Ravello: { state: 'inspecao', reason: 'Devolvida, aguardando inspeção', blocks: [['inspecao', 0, 0, 'Inspeção na devolução']] },
-  Toscana: { state: 'em_uso', reason: 'Em uso no evento', blocks: [['locacao', -1, 1, 'Locação · Renata Bastos Oliveira']] },
-  Siena: { state: 'ajuste', reason: 'Enviada para ajuste', blocks: [['ajuste', 0, 2, 'Ajuste de barra com a costureira']] },
-  Milano: { state: 'manutencao', reason: 'Zíper com defeito', blocks: [['manutencao', -3, 4, 'Troca de zíper']] },
-  Firenze: { blocks: [['editorial', 20, 21, 'Ensaio de fotos da coleção']] },
-  Bari: { state: 'aguardando_devolucao', reason: 'Prazo de devolução vencendo', blocks: [['locacao', -5, -1, 'Locação · Tatiane Lopes Vieira']] },
-  Rimini: { state: 'bloqueado', reason: 'Bloqueio manual', blocks: [['bloqueio_manual', -2, 6, 'Separada para editorial de verão']] },
-  Umbria: { state: 'baixado', reason: 'Fecho quebrado sem reparo — baixada do acervo' },
-}
-
 const PREFIX: Record<string, string> = { 'bolsa-acessorio': 'Clutch ', saia: 'Saia ', macacao: 'Macacão ', conjunto: 'Conjunto ' }
-const USERS = ['Júlia Senzi', 'Ana Lima']
+/** Dias desde a aquisição da peça de índice `idx` (a compra vira conta paga `aquisicao` no financeiro). */
+export const acquiredDaysAgo = (idx: number): number => 120 + ((idx * 37) % 440)
 
+/**
+ * Peças com estado `disponivel` e sem blocos: estados, blocos e histórico de uso vêm do mundo (`world.ts`),
+ * derivados das reservas, da operação e dos bloqueios manuais.
+ */
 export function buildGarments(today: string): Garment[] {
   const catName = new Map(CATEGORIES.map((c) => [c.slug, c.name]))
   return ACERVO.map((row, idx) => {
@@ -143,16 +126,8 @@ export function buildGarments(today: string): Garment[] {
     const num = Number(size)
     const step = Number.isFinite(num) ? (num - 36) * 3 : null
     const fit = CAIMENTO.find((c) => c[0] === nm)
-    const cen = CENARIO[nm] ?? {}
-    const acquiredAt = addDays(today, -(120 + ((idx * 37) % 440)))
-    const state = cen.state ?? 'disponivel'
-
-    const history: Garment['history'] = [
-      { at: `${acquiredAt}T13:00:00.000Z`, from: null, to: 'disponivel', reason: 'Peça cadastrada no acervo', userName: USERS[0]! },
-    ]
-    if (state !== 'disponivel') {
-      history.unshift({ at: `${addDays(today, -1 - (idx % 3))}T15:30:00.000Z`, from: 'disponivel', to: state, reason: cen.reason ?? '', userName: USERS[idx % 2]! })
-    }
+    const acquiredAt = addDays(today, -acquiredDaysAgo(idx))
+    const history: Garment['history'] = [{ at: `${acquiredAt}T10:00:00-03:00`, from: null, to: 'disponivel', reason: 'Peça cadastrada no acervo', userName: 'Júlia Senzi' }]
 
     return {
       id,
@@ -172,7 +147,7 @@ export function buildGarments(today: string): Garment[] {
       style: estilo,
       occasions: OCASIOES[cat] ?? ['Festa'],
       fitNotes: FIT_NOTES[idx % FIT_NOTES.length]!,
-      state,
+      state: 'disponivel',
       rentalPrice: loc,
       acquisitionCost: custo,
       retailReference: ref,
@@ -195,7 +170,7 @@ export function buildGarments(today: string): Garment[] {
       },
       // sem imagens de rede: a tela mostra a silhueta na cor da peça
       photos: [],
-      blocks: (cen.blocks ?? []).map(([kind, a, b, note], i) => ({ id: `${id}-b${i + 1}`, kind, from: addDays(today, a), to: addDays(today, b), note })),
+      blocks: [],
       history,
     }
   })

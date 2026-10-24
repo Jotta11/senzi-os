@@ -115,8 +115,9 @@ export type GarmentFilters = {
 export type GarmentCounts = Record<StateGroup, number> & { ativas: number }
 
 /**
- * Economia unitária da peça — só para quem tem `acervo.cost` (no banco, RPC protegida).
- * `payback` = receita ÷ custo de aquisição (`null` sem custo); `paidBack` = receita ≥ custo.
+ * Economia unitária da peça — só para quem tem `acervo.cost` (no banco, RPC protegida; spec dashboard §3.3).
+ * `rentals`/`revenue` = itens de reservas realizadas (receita = Σ líquido rateado); `cleaning`/`maintenance` =
+ * despesas da Operação da peça; `payback` = receita ÷ custo de aquisição (`null` sem custo); `paidBack` = receita ≥ custo.
  */
 export type GarmentEconomics = {
   garmentId: string
@@ -125,6 +126,14 @@ export type GarmentEconomics = {
   acquisitionCost: number | null
   payback: number | null
   paidBack: boolean
+  cleaning: number
+  maintenance: number
+  /** Receita − aquisição − higienização − manutenção. */
+  result: number
+  /** Maior data de evento (ou retirada) das locações realizadas; `null` = nunca alugada. */
+  lastRental: string | null
+  /** Dias desde `lastRental`; `null` = nunca alugada. */
+  idleDays: number | null
 }
 
 export type PageRequest = { limit: number; offset: number }

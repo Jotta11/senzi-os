@@ -21,12 +21,12 @@ import type {
 } from './types'
 
 /**
- * Única porta de dados das telas de Acervo e Clientes.
+ * Porta de dados das telas de Acervo e Clientes.
  * Nesta etapa só existe a implementação em memória (`createMockSource`); no Plano 2B entra a do banco.
  * Tudo é assíncrono. Erros de regra chegam como `SourceError` (código + campo).
  * Mutações devolvem o registro atualizado.
  */
-export interface DataSource {
+export interface AcervoClientesSource {
   listCategories(): Promise<Category[]>
   /** Nomes das marcas cadastradas (para sugerir no formulário). */
   listBrands(): Promise<string[]>
@@ -34,7 +34,7 @@ export interface DataSource {
   searchGarments(f: GarmentFilters, page: PageRequest): Promise<PageResult<Garment>>
   /** Quantas peças cada chip de estado traria com os demais filtros (busca, categoria, tamanho). */
   garmentCounts(f: Omit<GarmentFilters, 'stateGroup'>): Promise<GarmentCounts>
-  /** Receita, locações e payback das peças pedidas (ids inexistentes são ignorados). Só com `acervo.cost`. */
+  /** Economia das peças pedidas (receita, despesas, payback, última locação; ids inexistentes são ignorados). Só com `acervo.cost`. */
   garmentEconomics(ids: string[]): Promise<GarmentEconomics[]>
   /** Σ custo de aquisição das peças ativas (sem baixadas). Só com `acervo.cost`. */
   acervoInvestment(): Promise<number>
@@ -68,6 +68,9 @@ export interface DataSource {
   /** Até `limit` (padrão 8) sugestões ordenadas por pontuação. */
   recommend(id: string, limit?: number): Promise<Recommendation[]>
 }
+
+/** Única porta de dados das telas: interseção das interfaces de cada área (as próximas áreas entram aqui). */
+export type DataSource = AcervoClientesSource
 
 const DataSourceContext = createContext<DataSource | null>(null)
 

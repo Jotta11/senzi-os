@@ -81,7 +81,7 @@ describe('Ficha da peça', () => {
   })
 
   it('Financeiro de peça sem locações: payback "—" e nota de receita/despesas', async () => {
-    renderPreview('/preview/acervo/sz-0128?aba=financeiro') // Capri: 0 locações na fixture
+    renderPreview('/preview/acervo/sz-0268?aba=financeiro') // Turim: nunca alugada no mundo fictício
     expect(await screen.findByText('Receita e despesas aparecem quando reservas e manutenções estiverem ativas.')).toBeInTheDocument()
     expect(screen.queryByText(/0,0×/)).toBeNull()
   })
@@ -136,9 +136,9 @@ describe('Ficha da peça', () => {
     expect(within(dialog).getByLabelText('De')).toHaveValue(TODAY)
     expect(within(dialog).getByLabelText('Até')).toHaveValue(addDays(TODAY, 3))
     await user.clear(within(dialog).getByLabelText('De'))
-    await user.type(within(dialog).getByLabelText('De'), addDays(TODAY, 13))
+    await user.type(within(dialog).getByLabelText('De'), addDays(TODAY, 7)) // locação do Verona: hoje+6 a hoje+9
     await user.clear(within(dialog).getByLabelText('Até'))
-    await user.type(within(dialog).getByLabelText('Até'), addDays(TODAY, 14))
+    await user.type(within(dialog).getByLabelText('Até'), addDays(TODAY, 8))
     await user.click(within(dialog).getByRole('button', { name: 'Bloquear' }))
     expect(await within(dialog).findByText('A peça já tem compromisso nesse período.')).toBeInTheDocument()
   })
@@ -150,7 +150,7 @@ describe('Ficha da peça', () => {
     expect(within(table).getByText('Separada para prova de noiva')).toBeInTheDocument()
     await user.click(within(table).getByRole('button', { name: /Remover/ }))
     await waitFor(() => expect(within(screen.getByRole('table', { name: 'Compromissos futuros' })).queryByText('Separada para prova de noiva')).toBeNull())
-    expect(screen.getByText('Reserva · Mariana Fontes Ribeiro — casamento')).toBeInTheDocument()
+    expect(within(screen.getByRole('table', { name: 'Compromissos futuros' })).getByText('Higienização pós-uso')).toBeInTheDocument()
   })
 
   it('enviar foto mostra miniatura; arquivo que não é imagem mostra erro', async () => {
@@ -267,7 +267,7 @@ describe('Nova peça', () => {
 
 describe('Lista — payback', () => {
   it('peça sem locações mostra "—" no Payback (não "0,0×")', async () => {
-    renderPreview('/preview/acervo?view=lista&q=capri')
+    renderPreview('/preview/acervo?view=lista&q=turim')
     const table = await screen.findByRole('table', { name: 'Peças do acervo' })
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(2))
     await waitFor(() => expect(within(table).getAllByRole('row')[1]!.textContent).toMatch(/R\$\s0/))

@@ -1,5 +1,6 @@
 import { isValidCPF } from '@/lib/cpf'
-import { buildFixture } from './fixture'
+import { buildWorld } from './fixture'
+import { REALIZED_RESERVATION_STATES } from './labels'
 import { createMockSource } from './mockSource'
 import type { DataSource } from './source'
 import { SourceError, type CustomerInput, type GarmentInput } from './types'
@@ -65,7 +66,7 @@ const customerInput = (over: Partial<CustomerInput> = {}): CustomerInput => ({
 })
 
 describe('fixture', () => {
-  const fx = buildFixture(TODAY)
+  const fx = buildWorld(TODAY)
 
   it('tem 8 categorias, 10 marcas com Ateliê Senzi e as 28 peças SZ-0107…SZ-0296', () => {
     expect(fx.categories).toHaveLength(8)
@@ -146,17 +147,18 @@ describe('mockSource — acervo', () => {
     for (const grp of ['disponivel', 'reservado', 'em_uso', 'ciclo', 'bloqueado'] as const) {
       expect(c[grp]).toBe((await src.searchGarments({ stateGroup: grp }, ALL)).total)
     }
-    expect(c.disponivel).toBe(17)
-    expect(c.reservado).toBe(2)
-    expect(c.ciclo).toBe(4)
+    expect(c.disponivel).toBe(7)
+    expect(c.reservado).toBe(7)
+    expect(c.ciclo).toBe(6)
     const verdes = await src.garmentCounts({ q: 'verde' })
     expect(verdes.ativas).toBe((await src.searchGarments({ q: 'verde' }, ALL)).total)
     const longos = await src.garmentCounts({ cat: 'vestido-longo', size: 'M' })
     expect(longos.ativas).toBe((await src.searchGarments({ cat: 'vestido-longo', size: 'M' }, ALL)).total)
   })
 
-  it('garmentEconomics e acervoInvestment: receita, payback e Σ custo das ativas', async () => {
+  it('garmentEconomics e acervoInvestment: receita das reservas realizadas, despesas da operação, payback e Σ custo das ativas', async () => {
     const src = newSource()
+    const world = buildWorld(TODAY)
     const all = await src.searchGarments({}, ALL)
     const invested = await src.acervoInvestment()
     expect(invested).toBe(all.items.reduce((s, g) => s + (g.acquisitionCost ?? 0), 0))
@@ -164,11 +166,23 @@ describe('mockSource — acervo', () => {
     expect(ec.map((e) => e.garmentId)).toEqual(['sz-0107', 'sz-0114'])
     for (const e of ec) {
       const g = all.items.find((x) => x.id === e.garmentId)!
-      expect(e.revenue).toBe(e.rentals * g.rentalPrice)
+      const items = world.reservations
+        .filter((r) => REALIZED_RESERVATION_STATES.includes(r.state))
+        .flatMap((r) => r.items.filter((i) => i.garmentId === g.id).map((i) => ({ r, i })))
+      expect(e.rentals).toBe(items.length)
+      expect(e.rentals).toBeGreaterThan(0)
+      expect(e.revenue).toBeCloseTo(items.reduce((s, x) => s + x.i.netRevenue, 0), 2)
+      expect(e.revenue).toBeLessThanOrEqual(e.rentals * g.rentalPrice)
+      const ops = world.payables.filter((p) => p.source === 'operacao' && p.garmentId === g.id)
+      expect(e.cleaning + e.maintenance).toBeCloseTo(ops.reduce((s, p) => s + p.amount, 0), 2)
+      expect(e.cleaning).toBeGreaterThan(0)
+      expect(e.result).toBeCloseTo(e.revenue - g.acquisitionCost! - e.cleaning - e.maintenance, 2)
+      expect(e.lastRental).toBe(items.map((x) => x.r.eventDate ?? x.r.pickupDate).sort().at(-1))
       expect(e.payback).toBeCloseTo(e.revenue / g.acquisitionCost!)
       expect(e.paidBack).toBe(e.revenue >= g.acquisitionCost!)
     }
-    expect(ec.some((e) => e.paidBack)).toBe(true)
+    const turim = await src.garmentEconomics(['sz-0268'])
+    expect(turim[0]).toMatchObject({ rentals: 0, revenue: 0, lastRental: null, idleDays: null, paidBack: false })
     const nova = await src.createGarment(garmentInput({ acquisitionCost: null }))
     const [e] = await src.garmentEconomics([nova.id])
     expect(e).toMatchObject({ rentals: 0, revenue: 0, payback: null, paidBack: false })
@@ -191,19 +205,19 @@ describe('mockSource — acervo', () => {
 
   it('blockGarment: sobreposto → CONFLITO_AGENDA; invertido → PERIODO_INVALIDO; hoje → bloqueado; liberar → disponível', async () => {
     const src = newSource()
-    const verona = await garmentByCode(src, 'SZ-0107')
-    const existente = verona.blocks.find((b) => b.kind === 'bloqueio_manual')!
-    const conflito = await errorOf(src.blockGarment(verona.id, existente.from, existente.to, 'outro'))
+    const bolonha = await garmentByCode(src, 'SZ-0170') // Bolonha: disponível, com bloqueio manual futuro
+    const existente = bolonha.blocks.find((b) => b.kind === 'bloqueio_manual')!
+    const conflito = await errorOf(src.blockGarment(bolonha.id, existente.from, existente.to, 'outro'))
     expect(conflito.code).toBe('CONFLITO_AGENDA')
     expect(conflito.hint).toMatch(/\d{2}\/\d{2}\/\d{4}/)
 
-    const invertido = await errorOf(src.blockGarment(verona.id, '2026-10-30', '2026-10-29', ''))
+    const invertido = await errorOf(src.blockGarment(bolonha.id, '2026-10-30', '2026-10-29', ''))
     expect(invertido.code).toBe('PERIODO_INVALIDO')
 
-    const g = await src.blockGarment(verona.id, TODAY, '2026-10-24', 'Fotos')
+    const g = await src.blockGarment(bolonha.id, TODAY, '2026-10-24', 'Fotos')
     expect(g.state).toBe('bloqueado')
     const novo = g.blocks.find((b) => b.from === TODAY)!
-    const liberada = await src.releaseBlock(verona.id, novo.id)
+    const liberada = await src.releaseBlock(bolonha.id, novo.id)
     expect(liberada.state).toBe('disponivel')
     expect(liberada.blocks.find((b) => b.id === novo.id)).toBeUndefined()
     expect(liberada.history[0]!.to).toBe('disponivel')

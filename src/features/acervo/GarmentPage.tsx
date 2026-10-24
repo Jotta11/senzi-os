@@ -266,7 +266,7 @@ function EconomicsBand({ garment: g }: { garment: Garment }) {
   const revenue = e?.revenue ?? 0
   const cost = g.acquisitionCost
   const result = revenue - (cost ?? 0)
-  const last = g.history.filter((h) => h.to === 'retirado').map((h) => h.at).sort().at(-1)
+  const last = e?.lastRental ?? null
   const missing = cost && !e?.paidBack ? Math.max(1, Math.ceil((cost - revenue) / g.rentalPrice)) : 0
   const pending = !econ.data
   const v = (s: string) => (pending ? '—' : s)

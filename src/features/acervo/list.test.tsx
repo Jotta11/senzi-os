@@ -63,14 +63,14 @@ describe('Acervo — lista', () => {
   it('cabeçalho, 24 cards na primeira página e "Carregar mais" traz o resto', async () => {
     renderPreview()
     expect(await screen.findByRole('heading', { level: 1, name: 'Acervo' })).toBeInTheDocument()
-    expect(await screen.findByText(/27 peças · 17 disponíveis/)).toBeInTheDocument()
+    expect(await screen.findByText(/27 peças · 7 disponíveis/)).toBeInTheDocument()
     await waitFor(async () => expect(await cards()).toHaveLength(24))
     const verona = within(await gallery()).getByRole('link', { name: /Vestido Verona/ })
     expect(verona).toHaveAttribute('href', '/preview/acervo/sz-0107')
     expect(within(verona).getByText('SZ-0107')).toBeInTheDocument()
     expect(within(verona).getByText('Verde esmeralda · tam. 38')).toBeInTheDocument()
     expect(within(verona).getByText('R$ 890')).toBeInTheDocument()
-    expect(within(verona).getByText('Livre')).toBeInTheDocument()
+    expect(within(verona).getByText('Reserv.')).toBeInTheDocument() // locação confirmada daqui a 6 dias
     await userEvent.click(screen.getByRole('button', { name: 'Carregar mais' }))
     await waitFor(async () => expect(await cards()).toHaveLength(27))
     expect(screen.queryByRole('button', { name: 'Carregar mais' })).toBeNull()
@@ -88,11 +88,11 @@ describe('Acervo — lista', () => {
 
   it('chips de estado mostram contagens; "Em ciclo operacional" filtra', async () => {
     const { router } = renderPreview()
-    await waitFor(() => expect(chip('Estado', /^Disponível/)).toHaveTextContent('17'))
+    await waitFor(() => expect(chip('Estado', /^Disponível/)).toHaveTextContent('7'))
     expect(chip('Estado', /^Qualquer estado/)).toHaveAttribute('aria-pressed', 'true')
     expect(chip('Estado', /^Qualquer estado/)).toHaveTextContent('27')
     await userEvent.click(chip('Estado', /^Em ciclo operacional/))
-    await waitFor(async () => expect(await cards()).toHaveLength(4))
+    await waitFor(async () => expect(await cards()).toHaveLength(6))
     expect(chip('Estado', /^Em ciclo operacional/)).toHaveAttribute('aria-pressed', 'true')
     expect(new URLSearchParams(router.state.location.search).get('st')).toBe('ciclo')
     const states = (await cards()).map((c) => c.textContent)
