@@ -25,15 +25,19 @@ describe('buildWorld', () => {
   })
 
   it('(b) nenhuma peça tem dois blocos ativos sobrepostos (exceto a higienização encostada da operação)', () => {
+    const whitelisted: string[] = []
     for (const g of w.garments) {
       for (let i = 0; i < g.blocks.length; i++) {
         for (let j = i + 1; j < g.blocks.length; j++) {
           const a = g.blocks[i]!
           const b = g.blocks[j]!
-          if (overlaps(a, b)) expect(allowedPair(a, b), `${g.name}: ${a.kind} ${a.from}–${a.to} × ${b.kind} ${b.from}–${b.to}`).toBe(true)
+          if (!overlaps(a, b)) continue
+          expect(allowedPair(a, b), `${g.name}: ${a.kind} ${a.from}–${a.to} × ${b.kind} ${b.from}–${b.to}`).toBe(true)
+          whitelisted.push(g.name.split(' ').at(-1)!)
         }
       }
     }
+    expect(whitelisted.sort()).toEqual(['Lecce', 'Parma'])
   })
 
   it('(c) Σ netRevenue dos itens = totalNet em toda reserva; totalNet = bruto − desconto', () => {
@@ -44,13 +48,16 @@ describe('buildWorld', () => {
     }
   })
 
-  it('(d) peças de reservas em uso/retirada estão em uso ou aguardando devolução', () => {
+  it('(d) itens retirados de reservas em uso/retirada estão em uso; item pendente fica reservado', () => {
     for (const r of w.reservations.filter((x) => x.state === 'em_uso' || x.state === 'retirada')) {
       for (const it of r.items) {
         const g = w.garments.find((x) => x.id === it.garmentId)!
-        expect(['em_uso', 'aguardando_devolucao'], `${r.code} ${g.name}`).toContain(g.state)
+        if (it.itemState === 'retirado') expect(['em_uso', 'aguardando_devolucao'], `${r.code} ${g.name}`).toContain(g.state)
+        if (it.itemState === 'pendente') expect(g.state, `${r.code} ${g.name}`).toBe('reservado')
       }
     }
+    expect(byName('Pisa').state).toBe('reservado')
+    expect(byName('Urbino').state).toBe('em_uso')
   })
 
   it('(e) Turim, Nápoles e Rimini nunca foram alugadas', () => {

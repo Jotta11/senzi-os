@@ -166,6 +166,17 @@ describe('calendar', () => {
       expect(deriveGarmentState({ current: 'reservado', blocks: [block({ from: '2026-10-20', to: '2026-10-26' })], links: hist, today })).toBe('disponivel')
       expect(deriveGarmentState({ current: 'reservado', blocks: [], links: [], today })).toBe('disponivel')
     })
+    it('item pendente de reserva com retirada parcial continua reservado; item devolvido não prende a peça', () => {
+      const loc = [block({ from: '2026-10-23', to: '2026-10-26' })]
+      const pend = [{ reservationId: 'r1', state: 'retirada' as const, itemState: 'pendente' as const }]
+      expect(deriveGarmentState({ current: 'disponivel', blocks: loc, links: pend, today })).toBe('reservado')
+      const parcial = [{ reservationId: 'r1', state: 'aguardando_devolucao' as const, itemState: 'pendente' as const }]
+      expect(deriveGarmentState({ current: 'disponivel', blocks: loc, links: parcial, today })).toBe('reservado')
+      const devolvido = [{ reservationId: 'r1', state: 'aguardando_devolucao' as const, itemState: 'devolvido' as const }]
+      expect(deriveGarmentState({ current: 'disponivel', blocks: loc, links: devolvido, today })).toBe('disponivel')
+      const comLimpeza = [...loc, block({ id: 'h', kind: 'higienizacao', from: '2026-10-24', to: '2026-10-25' })]
+      expect(deriveGarmentState({ current: 'disponivel', blocks: comLimpeza, links: devolvido, today })).toBe('higienizacao')
+    })
   })
   it('alternativas pontuam e limitam a 4', () => {
     const target = garment()

@@ -151,6 +151,8 @@ describe('Ficha da peça', () => {
     await user.click(within(table).getByRole('button', { name: /Remover/ }))
     await waitFor(() => expect(within(screen.getByRole('table', { name: 'Compromissos futuros' })).queryByText('Separada para prova de noiva')).toBeNull())
     expect(within(screen.getByRole('table', { name: 'Compromissos futuros' })).getByText('Higienização pós-uso')).toBeInTheDocument()
+    // a locação do Verona (hoje+6 a hoje+9) continua na agenda da peça
+    expect(within(screen.getByRole('table', { name: 'Compromissos futuros' })).getAllByRole('cell', { name: 'Locação' }).length).toBeGreaterThan(0)
   })
 
   it('enviar foto mostra miniatura; arquivo que não é imagem mostra erro', async () => {

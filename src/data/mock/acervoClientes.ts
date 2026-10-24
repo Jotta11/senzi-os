@@ -5,9 +5,10 @@
 import { REALIZED_RESERVATION_STATES, STATE_GROUP_STATES } from '@/data/labels'
 import { diffDays } from '@/domain/dates'
 import { round2 } from '@/domain/money'
-import { dateBR, normalize, onlyDigits } from '@/lib/format'
+import { dateBR, normalize, onlyDigits, STORE_TZ } from '@/lib/format'
 import { FIN_CAT } from '../fixture'
 import { addPayable } from '../fixture/finance'
+import { at } from '../fixture/kit'
 import type { AcervoClientesSource } from '../source'
 import {
   SourceError,
@@ -23,6 +24,9 @@ import {
 import { customerIssues, customerMeasurementIssues, fitIssues, garmentIssues, MAX_PHOTOS, measurementIssues } from '../validation'
 import { fail, projectCustomer, projectGarment, type MockCtx } from './context'
 import { recommendFor } from './recommend'
+
+/** `HH:MM` agora no fuso da loja. */
+const storeTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: STORE_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
 
 const nextCode = (codes: string[], prefix: 'SZ' | 'CL') => {
   const max = codes.reduce((m, c) => Math.max(m, Number(c.slice(prefix.length + 1)) || 0), 0)
@@ -226,6 +230,8 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
         }
         db.garments.push(g)
         if (g.acquisitionCost && g.acquisitionCost > 0) {
+          // Data pura da loja (`today`), nunca `toISOString()` — a compra conta no dia certo do financeiro.
+          const stamp = at(today, storeTime())
           addPayable(db, {
             description: `Compra da peça — ${g.name}`,
             supplier: 'Aquisição de acervo',
@@ -233,11 +239,11 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
             amount: g.acquisitionCost,
             dueDate: today,
             status: 'paga',
-            paidAt: new Date().toISOString(),
+            paidAt: stamp,
             paidAmount: g.acquisitionCost,
             source: 'aquisicao',
             garmentId: g.id,
-            createdAt: new Date().toISOString(),
+            createdAt: stamp,
           })
         }
         return pg(g)

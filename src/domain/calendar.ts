@@ -137,13 +137,12 @@ export function deriveGarmentState(input: { current: GarmentState; blocks: Garme
     return !(b.kind === 'locacao' && link && CLOSED_STATES.includes(link.state))
   })
   const covers = (b: GarmentBlock) => b.from <= today && b.to >= today
-  const locToday = live.find((b) => b.kind === 'locacao' && covers(b))
-  if (locToday) {
-    const st = links.find((l) => l.reservationId === locToday.reservationId)?.state
-    if (st === 'retirada' || st === 'em_uso') return 'em_uso'
-    if (st === 'aguardando_devolucao') return 'aguardando_devolucao'
-    return 'reservado'
+  // Peça já devolvida não fica presa pela locação; peça na rua já saiu acima (fato). O que sobra é plano: reservado.
+  const back = (b: GarmentBlock) => {
+    const item = links.find((l) => l.reservationId === b.reservationId)?.itemState
+    return item === 'devolvido' || item === 'inspecionado'
   }
+  if (live.some((b) => b.kind === 'locacao' && covers(b) && !back(b))) return 'reservado'
   if (live.some((b) => b.kind === 'higienizacao' && covers(b))) return 'higienizacao'
   if (live.some((b) => b.kind === 'locacao' && b.from > today)) return 'reservado'
   return 'disponivel'

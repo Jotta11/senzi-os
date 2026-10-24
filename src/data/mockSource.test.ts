@@ -148,7 +148,7 @@ describe('mockSource — acervo', () => {
       expect(c[grp]).toBe((await src.searchGarments({ stateGroup: grp }, ALL)).total)
     }
     expect(c.disponivel).toBe(7)
-    expect(c.reservado).toBe(7)
+    expect(c.reservado).toBe(8)
     expect(c.ciclo).toBe(6)
     const verdes = await src.garmentCounts({ q: 'verde' })
     expect(verdes.ativas).toBe((await src.searchGarments({ q: 'verde' }, ALL)).total)
@@ -181,6 +181,15 @@ describe('mockSource — acervo', () => {
       expect(e.payback).toBeCloseTo(e.revenue / g.acquisitionCost!)
       expect(e.paidBack).toBe(e.revenue >= g.acquisitionCost!)
     }
+    // Peça que já se pagou no mundo: receita realizada ≥ custo de aquisição.
+    const paid = world.garments.find((g) => {
+      const rev = world.reservations.filter((r) => REALIZED_RESERVATION_STATES.includes(r.state)).flatMap((r) => r.items.filter((i) => i.garmentId === g.id)).reduce((s, i) => s + i.netRevenue, 0)
+      return !!g.acquisitionCost && rev >= g.acquisitionCost
+    })!
+    expect(paid).toBeDefined()
+    const [pb] = await src.garmentEconomics([paid.id])
+    expect(pb).toMatchObject({ garmentId: paid.id, paidBack: true })
+    expect(pb!.payback!).toBeGreaterThanOrEqual(1)
     const turim = await src.garmentEconomics(['sz-0268'])
     expect(turim[0]).toMatchObject({ rentals: 0, revenue: 0, lastRental: null, idleDays: null, paidBack: false })
     const nova = await src.createGarment(garmentInput({ acquisitionCost: null }))

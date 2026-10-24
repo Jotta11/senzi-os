@@ -99,7 +99,8 @@ export function buildCurrent(w: World, rng: Rng): Record<string, Reservation> {
     const returned = o.returnedAt ? at(D(o.returnedAt[0]), o.returnedAt[1]) : null
     const states = o.items ?? garments.map(() => ITEM_BY_STATE[o.state] ?? 'pendente')
     const steps: Step[] = []
-    if (o.state !== 'rascunho') steps.push({ to: 'confirmada', at: at(created, '15:20'), reason: 'Contrato assinado e sinal recebido' })
+    const waived = key === 'sorrento' ? ` — sinal abaixo do mínimo, exceção autorizada por ${USER.julia.name}` : ''
+    if (o.state !== 'rascunho') steps.push({ to: 'confirmada', at: at(created, '15:20'), reason: `Contrato assinado e sinal recebido${waived}` })
     if (o.state === 'pronta_retirada') steps.push({ to: 'pronta_retirada', at: at(D(o.d[0] - 1), '17:00'), reason: 'Peça pronta para retirada' })
     if (OUT.includes(o.state) && picked) {
       const n = states.filter((s) => s !== 'pendente').length
