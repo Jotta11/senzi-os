@@ -3,6 +3,11 @@ import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { OperacaoPage } from '@/features/operacao/OperacaoPage'
+import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
+import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
+import { PayablesPage } from '@/features/financeiro/PayablesPage'
+import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { RequirePerm } from '@/shell/RequirePerm'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { FittingPage } from '@/features/provas/FittingPage'
@@ -31,6 +36,10 @@ export const previewRoutes: RouteObject = {
     { path: 'clientes', element: <ClientesListPage /> },
     { path: 'clientes/:id', element: <CustomerPage /> },
     { path: 'operacao', element: <OperacaoPage /> },
+    { path: 'financeiro', element: <FinanceOverviewPage /> },
+    { path: 'financeiro/receber', element: <RequirePerm perm="financeiro.geral"><ReceivablesPage /></RequirePerm> },
+    { path: 'financeiro/pagar', element: <RequirePerm perm="financeiro.geral"><PayablesPage /></RequirePerm> },
+    { path: 'financeiro/categorias', element: <RequirePerm perm="financeiro.geral"><CategoriesPage /></RequirePerm> },
     { path: 'provas', element: <ProvasListPage /> },
     { path: 'provas/:id', element: <FittingPage /> },
     { path: 'reservas', element: <ReservasListPage /> },

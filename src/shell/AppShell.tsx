@@ -2,7 +2,7 @@ import { Outlet } from 'react-router'
 import { useAuth } from '@/auth/useAuth'
 import { usePermissions } from '@/auth/usePermissions'
 import { Icon, ToastProvider } from '@/ui'
-import { NAV } from './nav'
+import { visibleNav } from './nav'
 import { Sidebar } from './Sidebar'
 import './shell.css'
 
@@ -15,7 +15,7 @@ const initials = (name: string) =>
 export function AppShell() {
   const { user, signOut } = useAuth()
   const { can } = usePermissions()
-  const items = NAV.filter((n) => can(n.perm)).map((n) => ({ to: n.path, icon: n.icon, label: n.label }))
+  const items = visibleNav(can)
   return (
     <ToastProvider>
       <div className="sb-app">

@@ -9,7 +9,7 @@ import { DataSourceProvider, type DataSource } from '@/data/source'
 import { ExceptionAuthorizerProvider, sourceAuthorizer } from '@/features/exceptions/ExceptionAuthorizer'
 import { ToastProvider } from '@/ui'
 import { AppPathContext } from '@/shell/appPath'
-import { NAV } from '@/shell/nav'
+import { visibleNav } from '@/shell/nav'
 import { Sidebar } from '@/shell/Sidebar'
 import { PREVIEW_BASE, previewHref } from './paths'
 import { PreviewPermissionsProvider } from './PreviewPermissions'
@@ -77,7 +77,7 @@ function Frame() {
   useEffect(() => {
     currentRole = role
   }, [role])
-  const items = NAV.filter((n) => can(n.perm)).map((n) => ({ to: n.path, icon: n.icon, label: n.label }))
+  const items = visibleNav(can)
   return (
     <CurrentUserNameContext.Provider value={who.userName}>
       <div className="sb-app">

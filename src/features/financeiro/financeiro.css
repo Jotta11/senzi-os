@@ -1,0 +1,97 @@
+/* =====================================================================
+   Financeiro — visão geral, contas a receber/pagar, categorias, gráficos.
+   Cards brancos com borda Areia; destaque em Cranberry só na faixa de números.
+   ===================================================================== */
+.fx-nav { display: flex; gap: 2px; margin: 14px 32px 0; border-bottom: 1px solid var(--areia); overflow-x: auto; }
+.fx-nav a { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--nevoa); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.fx-nav a:hover { color: var(--tinta); text-decoration: none; }
+.fx-nav a[aria-current="page"] { color: var(--vivo); border-bottom-color: var(--vivo); }
+
+/* faixa de números */
+.fx-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); border: 1px solid var(--areia); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; gap: 1px; background-color: var(--areia); }
+.fx-tiles > div { background: var(--surface); padding: 14px 18px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fx-tile-l { font-size: 12.5px; font-weight: 600; color: var(--nevoa); }
+.fx-tiles b { font-size: 28px; font-weight: 400; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fx-tiles .alert b { color: var(--t-amber); }
+.fx-tiles .neg b { color: var(--t-red); }
+.fx-tile-d { font-size: 12px; color: var(--nevoa); }
+
+.fx-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.fx-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.fx-sub-h { padding: 10px 16px 4px; margin: 0; }
+.fx-pad { padding: 14px 16px; }
+.fx-list { list-style: none; margin: 0; padding: 0; }
+.fx-list > li { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; }
+.fx-list > li + li { border-top: 1px solid var(--areia); }
+.fx-list .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fx-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-late { color: var(--t-red); font-weight: 650; }
+.fx-neg { color: var(--t-red); }
+.fx-card-flush .dt-wrap { border: none; border-radius: 0; }
+.fx-foot { display: flex; justify-content: flex-end; gap: 18px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--areia); font-size: 13px; font-variant-numeric: tabular-nums; }
+.fx-sub-t { display: block; font-size: 11.5px; color: var(--nevoa); }
+.fx-row-act { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.fx-filters { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.fx-filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.fx-filter-row .field { min-width: 150px; }
+.fx-filter-row .search-input { flex: 1; min-width: 200px; }
+.fx-form { display: flex; flex-direction: column; gap: 14px; }
+.fx-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.fx-fields .full { grid-column: 1 / -1; }
+.fx-chk { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+
+/* categorias */
+.fx-cat { display: flex; align-items: center; gap: 10px; padding: 10px 16px; }
+.fx-cat + .fx-cat { border-top: 1px solid var(--areia); }
+.fx-cat-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; border: 1px solid rgba(28, 26, 24, .15); }
+.fx-cat-n { font-weight: 600; font-size: 13.5px; }
+.fx-cat-u { margin-left: auto; font-size: 12px; color: var(--nevoa); white-space: nowrap; }
+.fx-cat.archived .fx-cat-n { color: var(--nevoa); text-decoration: line-through; }
+.fx-swatches { display: flex; gap: 8px; flex-wrap: wrap; border: none; padding: 0; margin: 0; }
+.fx-swatches label { cursor: pointer; }
+.fx-swatches input { position: absolute; opacity: 0; }
+.fx-swatches span { display: block; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--areia-2); }
+.fx-swatches input:checked + span { box-shadow: 0 0 0 2px var(--vivo); }
+.fx-swatches input:focus-visible + span { outline: 2px solid var(--vivo); outline-offset: 2px; }
+.fx-radios { display: flex; gap: 16px; border: none; padding: 0; margin: 0; }
+.fx-radios legend, .fx-swatches legend { font-size: 11.5px; font-weight: 600; color: var(--nevoa); padding: 0; margin-bottom: 4px; }
+
+/* gráficos */
+.fx-line { margin: 0; padding: 4px 8px 0; }
+.fx-line-plot { position: relative; height: 200px; margin: 6px 14px 0; }
+.fx-line-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fx-grid { stroke: var(--areia); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fx-area { fill: var(--vivo-soft); opacity: .7; }
+.fx-l1 { fill: none; stroke: var(--vivo); stroke-width: 2.2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.fx-l2 { fill: none; stroke: var(--t-ochre); stroke-width: 1.8; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.fx-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--surface); border: 2px solid var(--vivo); }
+.fx-dot.now { background: var(--vivo); }
+.fx-now-v { position: absolute; transform: translate(-100%, -150%); font-size: 11.5px; font-weight: 650; color: var(--vivo); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fx-line-x { position: relative; height: 22px; margin: 4px 14px 8px; }
+.fx-line-x span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--nevoa); }
+.fx-legend { margin: 0 14px 8px; font-size: 12px; color: var(--nevoa); display: flex; align-items: center; gap: 6px; }
+.fx-key { width: 16px; height: 0; border-top: 2px solid var(--vivo); display: inline-block; }
+.fx-key.k2 { border-top: 2px dashed var(--t-ochre); margin-left: 10px; }
+
+.fx-bars { --bar-1: var(--vivo); --bar-2: var(--t-wine); --bar-3: var(--t-ochre); --bar-4: var(--areia-2); list-style: none; margin: 0; padding: 4px 0; }
+.fx-bars > li { display: grid; grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 7px 16px; font-size: 13px; }
+.fx-bar-t { height: 10px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--areia); overflow: hidden; display: block; }
+.fx-bar-t > span { display: block; height: 100%; border-radius: 4px; }
+.fx-bar-v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-bar-v small { display: block; font-size: 11px; color: var(--nevoa); }
+
+.fx-cols { margin: 0; height: 190px; padding: 22px 16px 0; margin-bottom: 26px; display: grid; gap: 10px; align-items: end; border-bottom: 1px solid var(--areia); }
+.fx-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; position: relative; min-width: 0; }
+.fx-col-f { width: 100%; max-width: 38px; border-radius: 4px 4px 0 0; background: var(--areia); display: block; }
+.fx-col.now .fx-col-f { background: var(--vivo); }
+.fx-col-v { font-size: 10.5px; color: var(--nevoa); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-col-m { position: absolute; bottom: -20px; font-size: 11px; color: var(--nevoa); white-space: nowrap; }
+.fx-col.now .fx-col-v, .fx-col.now .fx-col-m { color: var(--vivo); font-weight: 600; }
+
+@media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .fx-nav { margin: 10px 16px 0; }
+  .fx-fields { grid-template-columns: minmax(0, 1fr); }
+  .fx-bars > li { grid-template-columns: minmax(0, 1fr) auto; }
+  .fx-bar-t { grid-column: 1 / -1; grid-row: 2; }
+}
