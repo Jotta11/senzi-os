@@ -78,7 +78,7 @@ export function MiniCalendar({ today }: { today: string }) {
         </tbody>
       </table>
       <p className="dash-cal-legend muted tiny">
-        <i aria-hidden="true" /> dia com compromissos · clique para abrir a agenda
+        <b className="dash-cal-now" aria-hidden="true" /> hoje · <i aria-hidden="true" /> dia com compromissos · clique para abrir a agenda
       </p>
     </Card>
   )

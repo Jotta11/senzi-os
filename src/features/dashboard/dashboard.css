@@ -96,13 +96,18 @@ a.dash-ttl:hover { color: var(--vivo); }
   width: 4px; height: 4px; border-radius: 50%; background: var(--vivo);
 }
 .dash-cal-d.today i { background: var(--beige); }
-.dash-cal-legend { margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+.dash-cal-legend { margin-top: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .dash-cal-legend i { width: 5px; height: 5px; border-radius: 50%; background: var(--vivo); display: inline-block; }
 
 /* ------------------------------------------ faturamento e ciclo */
 .dash-grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: start; }
 .dash-kpis { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 18px; }
 .dash-kpi { font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dash-cal-now { width: 9px; height: 9px; border-radius: 3px; background: var(--vivo); display: inline-block; }
+/* cabeçalho do faturamento: título na 1ª linha; período e atalho na 2ª, sem quebrar rótulos */
+.dash-rev .card-h { flex-wrap: wrap; row-gap: 8px; }
+.dash-rev .card-h .actions { flex: 1 0 100%; margin-left: 0; flex-wrap: wrap; justify-content: space-between; }
+.dash-rev .card-h h3, .dash-rev .ac-seg button, .dash-rev .btn { white-space: nowrap; }
 .dash-ciclo { display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
 .dash-ciclo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .dash-strong { font-weight: 600; }

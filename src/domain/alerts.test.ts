@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildWorld } from '@/data/fixture'
+import { addDays } from '@/lib/format'
 import { computeAlerts } from './alerts'
 
 const TODAY = '2026-10-24'
@@ -76,5 +77,19 @@ describe('computeAlerts', () => {
     const a = computeAlerts(w, TODAY).find((x) => x.kind === 'item_nao_entregue')!
     expect(a.title).toBe('SZ-0184 não foi entregue na retirada')
     expect(a.detail).toMatch(/Larissa.*· Cliente esqueceu/)
+  })
+
+  it('pagamento_pendente: crítico com retirada em até 1 dia; atenção com 2 a 3; some com 4+', () => {
+    const sev = (offset: number) => {
+      const w = buildWorld(TODAY)
+      const r = reservationOf(w, 'Parma') // saldo em aberto
+      r.pickupDate = addDays(TODAY, offset)
+      return computeAlerts(w, TODAY).find((a) => a.kind === 'pagamento_pendente' && a.route === `/reservas/${r.id}`)?.sev
+    }
+    expect(sev(0)).toBe('critico')
+    expect(sev(1)).toBe('critico')
+    expect(sev(2)).toBe('atencao')
+    expect(sev(3)).toBe('atencao')
+    expect(sev(4)).toBeUndefined()
   })
 })

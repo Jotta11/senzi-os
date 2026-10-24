@@ -17,6 +17,8 @@ const PICKUP_STATES = ['confirmada', 'pronta_retirada']
 const RISK_STATES = ['inspecao', 'higienizacao', 'ajuste', 'manutencao', 'bloqueado']
 const SEV_ORDER: Record<AlertSeverity, number> = { critico: 0, atencao: 1, info: 2 }
 const dm = (iso: string) => dateBR(iso).slice(0, 5)
+/** `dd/mm HH:MM` a partir da própria string local (sem converter o instante). */
+const dmTime = (local: string) => `${local.slice(8, 10)}/${local.slice(5, 7)} ${local.slice(11, 16)}`
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 export function computeAlerts(world: AlertWorld, today: string): Alert[] {
@@ -129,7 +131,7 @@ export function computeAlerts(world: AlertWorld, today: string): Alert[] {
       kind: 'prova_sem_resultado',
       icon: 'prova',
       title: `Prova de ${name} sem resultado registrado`,
-      detail: `${f.code} · ${dm(f.scheduledAt)} ${f.scheduledAt.slice(11, 16)}${pending > 0 ? ` · ${pending} peça(s) sem avaliação` : ''}`,
+      detail: `${f.code} · ${dmTime(f.scheduledAt)}${pending > 0 ? ` · ${pending} peça(s) sem avaliação` : ''}`,
       route: `/provas/${f.id}`,
     })
   }

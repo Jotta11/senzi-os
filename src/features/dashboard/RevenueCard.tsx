@@ -21,6 +21,7 @@ export function RevenueCard({ finance, range, onRange }: { finance: NonNullable<
   const short = OPTIONS.find((o) => o.value === range)!.short
   return (
     <Card
+      className="dash-rev"
       title="Faturamento recebido"
       meta={<span className="muted tiny">7 meses · corrente parcial</span>}
       actions={
