@@ -7,6 +7,7 @@ import { createMockSource } from '@/data/mockSource'
 import type { DataSource } from '@/data/source'
 import { addDays, todayISO } from '@/lib/format'
 import { PreviewLayout } from '@/preview/PreviewLayout'
+import { MonthGrid } from './CalendarPane'
 import { previewRoutes } from '@/preview/previewRoutes'
 
 // a fonte usa o mesmo "hoje" da tela (datas padrão do bloqueio, calendário)
@@ -163,7 +164,9 @@ describe('Ficha da peça', () => {
 
   it('atendimento edita a peça sem ver campos de custo', async () => {
     const user = userEvent.setup()
-    renderPreview('/preview/acervo/sz-0107')
+    const source = newSource()
+    const spy = vi.spyOn(source, 'updateGarment')
+    renderPreview('/preview/acervo/sz-0107', source)
     await screen.findByRole('heading', { level: 1, name: 'Vestido Verona' })
     await verAtendimento(user)
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -175,6 +178,25 @@ describe('Ficha da peça', () => {
     await user.type(nome, 'Vestido Verona II')
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Vestido Verona II' })).toBeInTheDocument()
+    expect(spy).toHaveBeenCalledTimes(1)
+    const patch = spy.mock.calls[0]![1]
+    expect(patch).not.toHaveProperty('acquisitionCost')
+    expect(patch).not.toHaveProperty('retailReference')
+  })
+})
+
+describe('Calendário — semana começa na segunda', () => {
+  const cells = (c: HTMLElement) => [...c.querySelectorAll('.gp-cal > div')].slice(7)
+  it('cabeçalho seg…dom; 1º/10/2026 (quinta) na 4ª coluna; 1º/11/2026 (domingo) na 7ª', () => {
+    const { container } = render(<MonthGrid month={{ y: 2026, m: 9 }} blocks={[]} today="2026-10-23" />)
+    const dows = [...container.querySelectorAll('.gp-cal > .dow')].map((d) => d.textContent)
+    expect(dows).toEqual(['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'])
+    const out = cells(container)
+    expect(out.findIndex((d) => d.textContent?.startsWith('1'))).toBe(3)
+    expect(out.slice(0, 3).every((d) => d.classList.contains('pad'))).toBe(true)
+
+    const nov = render(<MonthGrid month={{ y: 2026, m: 10 }} blocks={[]} today="2026-10-23" />).container
+    expect(cells(nov).findIndex((d) => d.textContent?.startsWith('1'))).toBe(6)
   })
 })
 

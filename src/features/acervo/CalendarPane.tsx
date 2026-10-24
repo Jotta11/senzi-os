@@ -19,7 +19,8 @@ const BLOCK_TAG: Record<BlockKind, string> = {
 }
 
 const STRIP_DAYS = 45
-const DOW = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+/** Semana de segunda a domingo (padrão do app). */
+const DOW = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' })
 
 type Month = { y: number; m: number } // m 0–11
@@ -32,10 +33,10 @@ const shift = ({ y, m }: Month, n: number): Month => {
 const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 const blockOn = (blocks: GarmentBlock[], day: string) => blocks.find((b) => b.from <= day && day <= b.to)
 
-function MonthGrid({ month, blocks, today }: { month: Month; blocks: GarmentBlock[]; today: string }) {
+export function MonthGrid({ month, blocks, today }: { month: Month; blocks: GarmentBlock[]; today: string }) {
   const first = new Date(Date.UTC(month.y, month.m, 1))
   const days = new Date(Date.UTC(month.y, month.m + 1, 0)).getUTCDate()
-  const pad = first.getUTCDay()
+  const pad = (first.getUTCDay() + 6) % 7 // segunda = 0 … domingo = 6
   const name = monthName.format(first)
   return (
     <div className="gp-month">
@@ -81,9 +82,9 @@ export function CalendarPane({ garment: g }: { garment: Garment }) {
   const strip = Array.from({ length: STRIP_DAYS }, (_, i) => {
     const day = addDays(today, i)
     const b = blockOn(g.blocks, day)
-    return { day, tone: b ? BLOCK_KIND[b.kind].tone : 'green', label: b ? BLOCK_KIND[b.kind].label : 'Disponível' }
+    return { day, free: !b, tone: b ? BLOCK_KIND[b.kind].tone : 'green', label: b ? BLOCK_KIND[b.kind].label : 'Disponível' }
   })
-  const busy = strip.filter((s) => s.label !== 'Disponível').length
+  const busy = strip.filter((s) => !s.free).length
   const used = [...new Set(g.blocks.map((b) => b.kind))]
   const future = g.blocks.filter((b) => b.to >= today).sort((a, b) => a.from.localeCompare(b.from))
 

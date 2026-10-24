@@ -111,7 +111,8 @@
 }
 .gp-select:focus { outline: none; border-color: var(--vivo); box-shadow: 0 0 0 3px var(--vivo-soft); }
 label.btn { cursor: pointer; }
-label.btn:focus-within { outline: 2px solid var(--vivo); outline-offset: 2px; }
+/* o input de arquivo é sr-only: o foco do teclado aparece no rótulo-botão */
+label.btn:focus-within { outline: 2px solid var(--vivo); outline-offset: 2px; border-color: var(--vivo); box-shadow: 0 0 0 3px var(--vivo-soft); }
 label.btn.is-disabled { opacity: .45; cursor: not-allowed; }
 .gp-ph-b { display: flex; flex-direction: column; gap: 14px; }
 .gp-ph-empty { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 8px; }
