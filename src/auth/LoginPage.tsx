@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Card, Field } from '@/ui'
+import { Button, Card, Field, Logo } from '@/ui'
 import { getSupabase } from '@/lib/supabase'
 import { MSG_NO_CLIENT } from './authErrors'
 import { useAuth } from './useAuth'
@@ -55,7 +55,7 @@ export function LoginPage() {
   return (
     <main className="login">
       <aside className="login-brand">
-        <span className="login-logo">Senzi</span>
+        <Logo className="login-logo" />
         <p>Senzi OS · back-office do Senzi Club</p>
       </aside>
       <div className="login-form">

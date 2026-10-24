@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
-import { Icon, type IconName } from '@/ui'
+import { Icon, Logo, type IconName } from '@/ui'
 import './shell.css'
 
 export type SidebarItem = { to: string; icon: IconName; label: string; count?: number }
@@ -30,8 +30,8 @@ export function Sidebar({ items, search, footer, activePath, linkTo }: SidebarPr
   return (
     <aside className="sb-rail">
       <div className="sb-brand">
-        <span className="sb-mark">Senzi</span>
-        <span className="sb-os">OS</span>
+        <Logo className="sb-logo" />
+        <Logo variant="mark" className="sb-logo-mark" />
       </div>
       {search && (
         <button type="button" className="sb-search" aria-label="Buscar">

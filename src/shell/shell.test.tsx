@@ -92,9 +92,9 @@ describe('shell', () => {
     expect(authMock.signOut).toHaveBeenCalled()
   })
 
-  it('sidebar mostra a marca Senzi', () => {
+  it('sidebar mostra a logo Senzi Club', () => {
     setup('admin')
-    expect(screen.getByText('Senzi')).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'Senzi Club' }).length).toBeGreaterThan(0)
   })
 
   it('rota desconhecida mostra Página não encontrada com link para /', () => {

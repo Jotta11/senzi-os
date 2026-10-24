@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Card, Field } from '@/ui'
+import { Button, Card, Field, Logo } from '@/ui'
 import { PASSWORD_MAX_BYTES, PASSWORD_MIN, validateNewPassword } from './passwordRules'
 import { useAuth } from './useAuth'
 import './auth.css'
@@ -32,7 +32,7 @@ export function NewPasswordPage() {
   return (
     <main className="login">
       <aside className="login-brand">
-        <span className="login-logo">Senzi</span>
+        <Logo className="login-logo" />
         <p>Senzi OS · back-office do Senzi Club</p>
       </aside>
       <div className="login-form">
