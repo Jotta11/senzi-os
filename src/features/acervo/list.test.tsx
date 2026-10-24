@@ -176,6 +176,16 @@ describe('Acervo — lista', () => {
     expect(chip('Tamanho', /^M$/)).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('?st=todos (ou valor desconhecido) cai no padrão: "Qualquer estado" marcado, sem baixadas', async () => {
+    for (const st of ['todos', 'xyz']) {
+      const { unmount } = renderPreview(`/preview/acervo?st=${st}`)
+      await waitFor(async () => expect(await cards()).toHaveLength(24))
+      expect(chip('Estado', /^Qualquer estado/)).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByText('27 resultados')).toBeInTheDocument()
+      unmount()
+    }
+  })
+
   it('sem resultado mostra o vazio', async () => {
     renderPreview('/preview/acervo?q=zzzz')
     expect(await screen.findByText('Nenhuma peça encontrada')).toBeInTheDocument()

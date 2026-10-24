@@ -182,6 +182,7 @@ export function createMockSource(opts: MockSourceOptions = {}): DataSource {
         }),
       ),
 
+    // Exclui `baixado` de propósito (o protótipo somava todas): peça baixada não conta como investimento do acervo.
     acervoInvestment: () =>
       run(() => db.garments.filter((g) => g.state !== 'baixado').reduce((s, g) => s + (g.acquisitionCost ?? 0), 0)),
 

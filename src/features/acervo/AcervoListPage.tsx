@@ -33,7 +33,9 @@ function saveMode(m: Mode) {
 
 const GROUPS: Exclude<StateGroup, 'todos'>[] = ['disponivel', 'reservado', 'em_uso', 'ciclo', 'bloqueado']
 const SIZE_FILTERS: SizeEquiv[] = ['P', 'M', 'G', 'GG']
-const isGroup = (v: string | null): v is StateGroup => !!v && v in STATE_GROUP_LABEL
+/** Só os grupos que os chips de Estado oferecem: `?st=todos` (baixadas incluídas, nenhum chip marcado) ou valores
+ *  desconhecidos caem no padrão (tudo menos baixadas, "Qualquer estado"). */
+const isGroup = (v: string | null): v is Exclude<StateGroup, 'todos'> => !!v && (GROUPS as string[]).includes(v)
 const isSize = (v: string | null): v is SizeEquiv => !!v && (SIZE_FILTERS as string[]).includes(v)
 
 const times = (n: number) => `${n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×`
@@ -100,6 +102,8 @@ export function AcervoListPage() {
     if (viewParam) setParam('view', null, true)
   }
 
+  // Total do cabeçalho (e "investidos") contam só as peças ativas: exclui `baixado` de propósito,
+  // diferente do protótipo (que somava as 28) — peça baixada não infla o acervo.
   const s = summary.data
   const subtitle = s
     ? `${s.ativas} ${s.ativas === 1 ? 'peça' : 'peças'} · ${s.disponivel} ${s.disponivel === 1 ? 'disponível' : 'disponíveis'}` +
