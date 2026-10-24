@@ -2,7 +2,8 @@
  * Ferramentas do mundo fictício: sorteio determinístico, instantes locais e montagem de reservas
  * já coerentes (rateio de desconto, saldo, contrato, histórico de estados). Só o fixture usa.
  */
-import { balance, prorate, round2 } from '@/domain/money'
+import { balance, round2 } from '@/domain/money'
+import { priceItems } from '../mock/pricing'
 import type {
   Channel,
   Contract,
@@ -81,24 +82,23 @@ export type ReservationSpec = {
 /** Monta a reserva (código provisório; `world.ts` numera em ordem cronológica no fim). */
 export function makeReservation(w: World, spec: ReservationSpec): Reservation {
   const id = `res-${String(w.reservations.length + 1).padStart(4, '0')}`
-  const alloc = prorate(spec.items.map((i) => ({ gross: i.garment.rentalPrice })), spec.discount)
-  const gross = round2(spec.items.reduce((s, i) => s + i.garment.rentalPrice, 0))
-  const items: ReservationItem[] = spec.items.map((it, k) => ({
-    id: `${id}-i${k + 1}`,
-    reservationId: id,
-    garmentId: it.garment.id,
-    unitPrice: it.garment.rentalPrice,
-    grossAmount: it.garment.rentalPrice,
-    itemDiscount: 0,
-    allocatedOrderDiscount: alloc[k]!.alloc,
-    netRevenue: alloc[k]!.net,
-    itemState: it.state,
-    pickedUpAt: it.pickedUpAt ?? null,
-    returnedAt: it.returnedAt ?? null,
-    pickupNote: it.pickupNote ?? null,
-    returnNote: it.returnNote ?? null,
-    alterationNotes: it.alteration ?? null,
-  }))
+  const priced = priceItems(
+    id,
+    spec.items.map((it) => ({ garmentId: it.garment.id, unitPrice: it.garment.rentalPrice, alterationNotes: it.alteration ?? null })),
+    spec.discount,
+  )
+  const gross = priced.totalGross
+  const items: ReservationItem[] = priced.items.map((item, k) => {
+    const it = spec.items[k]!
+    return {
+      ...item,
+      itemState: it.state,
+      pickedUpAt: it.pickedUpAt ?? null,
+      returnedAt: it.returnedAt ?? null,
+      pickupNote: it.pickupNote ?? null,
+      returnNote: it.returnNote ?? null,
+    }
+  })
   const payments: Payment[] = spec.payments.map((p, k) => ({
     id: `${id}-p${k + 1}`,
     reservationId: id,

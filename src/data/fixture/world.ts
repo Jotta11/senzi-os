@@ -30,6 +30,7 @@ import type {
   Reservation,
   Settings,
 } from '../types'
+import { renderContract } from '../mock/contract'
 import { buildCustomers } from './customers'
 import { buildFinance } from './finance'
 import { buildAppointments, buildFittings } from './fittings'
@@ -162,6 +163,7 @@ function number(w: World): void {
     r.code = code('RS', r.createdAt)
     if (r.contract) r.contract.number = r.code.replace('RS', 'CT')
   }
+  for (const r of w.reservations) if (r.contract) r.contract.bodyRendered = renderContract(w, r)
   w.fittings.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt) || a.id.localeCompare(b.id))
   for (const f of w.fittings) f.code = code('PR', f.scheduledAt)
 }

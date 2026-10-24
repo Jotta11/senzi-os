@@ -4,7 +4,8 @@
  * e uma `no_show`. Compromissos: os automáticos das reservas e os manuais (atendimento, serviço, internos).
  */
 import { addDays } from '@/lib/format'
-import type { Appointment, AppointmentKind, AppointmentState, FitOutcome, FittingSession, FittingState, Garment, Reservation } from '../types'
+import { addAppointment, addReservationAppointments } from '../mock/appointments'
+import type { AppointmentState, FitOutcome, FittingSession, FittingState, Garment, Reservation } from '../types'
 import { at, EVENTOS, USER, type Rng } from './kit'
 import type { World } from './world'
 
@@ -64,24 +65,6 @@ function addFitting(w: World, s: FitSpec): FittingSession {
   const appt: AppointmentState = s.state === 'agendada' || s.state === 'em_curso' ? 'agendado' : s.state === 'no_show' ? 'no_show' : 'concluido'
   addAppointment(w, { kind: 'prova', startsAt: s.when, title: 'Prova', notes: s.notes ?? null, state: appt, customerId: s.customer, fittingId: id, assignedTo: s.attendant })
   return f
-}
-
-type ApptSpec = Partial<Appointment> & Pick<Appointment, 'kind' | 'startsAt' | 'title' | 'state'>
-export function addAppointment(w: World, a: ApptSpec): Appointment {
-  const appt: Appointment = {
-    id: `ag-${String(w.appointments.length + 1).padStart(4, '0')}`,
-    notes: null,
-    customerId: null,
-    reservationId: null,
-    fittingId: null,
-    garmentId: null,
-    assignedTo: null,
-    internal: a.kind === 'interno',
-    createdBy: USER.julia.id,
-    ...a,
-  }
-  w.appointments.push(appt)
-  return appt
 }
 
 /** Locação finalizada da peça/cliente mais próxima depois de `from` (ainda sem prova vinculada). */
@@ -217,12 +200,24 @@ export function buildAppointments(w: World, refs: Record<string, Reservation>): 
     const allOut = out === r.items.length
     const back = r.state === 'devolvida' || r.state === 'em_inspecao' || r.state === 'finalizada'
     const closed = r.state === 'cancelada' || r.state === 'no_show'
-    const base = { customerId: r.customerId, reservationId: r.id, garmentId: r.items.length === 1 ? r.items[0]!.garmentId : null, assignedTo: turn++ % 2 ? USER.bruna.id : USER.ana.id, createdBy: r.createdBy }
     const st = (done: boolean): AppointmentState => (closed ? 'cancelado' : done ? 'concluido' : 'agendado')
-    const add = (kind: AppointmentKind, date: string, time: string, title: string, state: AppointmentState) => addAppointment(w, { ...base, kind, startsAt: at(date, time), title, state })
-    add('retirada', r.pickupDate, TIMES[key]?.retirada ?? '10:00', 'Retirada', r.state === 'no_show' ? 'no_show' : st(allOut))
-    if (r.eventDate) add('evento', r.eventDate, '19:00', r.eventType ?? 'Evento', closed ? 'cancelado' : r.eventDate < w.today ? 'concluido' : 'agendado')
-    add('devolucao', r.returnDueDate, TIMES[key]?.devolucao ?? '11:00', 'Devolução', st(back))
+    addReservationAppointments(w, r, {
+      assignedTo: turn++ % 2 ? USER.bruna.id : USER.ana.id,
+      createdBy: r.createdBy,
+      times: TIMES[key],
+      state: (kind) =>
+        kind === 'retirada'
+          ? r.state === 'no_show'
+            ? 'no_show'
+            : st(allOut)
+          : kind === 'evento'
+            ? closed
+              ? 'cancelado'
+              : r.eventDate! < w.today
+                ? 'concluido'
+                : 'agendado'
+            : st(back),
+    })
   }
 
   const juliana = w.customers[3]!.id

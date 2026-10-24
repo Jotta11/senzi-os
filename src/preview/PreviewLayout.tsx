@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 import { CurrentUserNameContext } from '@/auth/useCurrentUserName'
 import { usePermissions } from '@/auth/usePermissions'
 import { createMockSource } from '@/data/mockSource'
+import { DEMO_PIN } from '@/data/mock/exceptions'
 import { DataSourceProvider, type DataSource } from '@/data/source'
+import { ExceptionAuthorizerProvider, sourceAuthorizer } from '@/features/exceptions/ExceptionAuthorizer'
 import { ToastProvider } from '@/ui'
 import { AppPathContext } from '@/shell/appPath'
 import { NAV } from '@/shell/nav'
@@ -41,23 +43,28 @@ export type PreviewLayoutProps = {
 
 /**
  * Moldura da prévia visual (pública, sem login, sem banco): mesma Sidebar do app com links para /preview/*,
- * faixa "Prévia visual · dados fictícios" e seletor "Ver como". Provê `DataSource`, permissões simuladas e o
- * prefixo de rotas para as telas.
+ * faixa "Prévia visual · dados fictícios" e seletor "Ver como". Provê `DataSource`, autorizador de exceções em
+ * memória, permissões simuladas e o prefixo de rotas para as telas.
  */
 export function PreviewLayout({ source, queryClient }: PreviewLayoutProps) {
   // `?como=atendimento` abre já nesse perfil (links de conferência); depois vale o seletor.
   const [params] = useSearchParams()
   const initialRole = params.get('como') === 'atendimento' ? 'atendimento' : 'admin'
+  const src = source ?? previewSource()
+  // Exceções por PIN gravadas no mesmo mundo da prévia (Júlia Senzi, PIN de demonstração).
+  const authorizer = useMemo(() => sourceAuthorizer(src, `PIN de demonstração: ${DEMO_PIN}`), [src])
   return (
     <QueryClientProvider client={queryClient ?? previewClient()}>
-      <DataSourceProvider source={source ?? previewSource()}>
-        <PreviewPermissionsProvider initialRole={initialRole}>
-          <AppPathContext.Provider value={PREVIEW_BASE}>
-            <ToastProvider>
-              <Frame />
-            </ToastProvider>
-          </AppPathContext.Provider>
-        </PreviewPermissionsProvider>
+      <DataSourceProvider source={src}>
+        <ExceptionAuthorizerProvider value={authorizer}>
+          <PreviewPermissionsProvider initialRole={initialRole}>
+            <AppPathContext.Provider value={PREVIEW_BASE}>
+              <ToastProvider>
+                <Frame />
+              </ToastProvider>
+            </AppPathContext.Provider>
+          </PreviewPermissionsProvider>
+        </ExceptionAuthorizerProvider>
       </DataSourceProvider>
     </QueryClientProvider>
   )

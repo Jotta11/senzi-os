@@ -20,6 +20,7 @@ import type {
   Recommendation,
 } from './types'
 import type { AgendaSource } from './source-agenda'
+import type { ExceptionsSource, ReservasSource } from './source-reservas'
 
 /**
  * Porta de dados das telas de Acervo e Clientes.
@@ -71,7 +72,7 @@ export interface AcervoClientesSource {
 }
 
 /** Única porta de dados das telas: interseção das interfaces de cada área (as próximas áreas entram aqui). */
-export type DataSource = AcervoClientesSource & AgendaSource
+export type DataSource = AcervoClientesSource & AgendaSource & ReservasSource & ExceptionsSource
 
 const DataSourceContext = createContext<DataSource | null>(null)
 

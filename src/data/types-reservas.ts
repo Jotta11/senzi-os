@@ -2,7 +2,7 @@
  * Tipos de Reservas (spec `docs/superpowers/specs/telas/reservas.md`, §6).
  * Sem pré-reserva: o primeiro estado é `rascunho`.
  */
-import type { BlockKind } from './types'
+import type { BlockKind, Customer, Garment } from './types'
 
 export type ReservationState =
   | 'rascunho'
@@ -78,6 +78,8 @@ export type Contract = {
   signedBy: string | null
   signerName: string | null
   signatureKind: 'presencial' | null
+  /** Observação de quem marcou como assinado. */
+  signatureNotes?: string | null
   pdfPath: string | null
 }
 
@@ -91,6 +93,8 @@ export type ExceptionAuthorization = {
   authorizedByName: string
   authorizedByRole: string
   authorizedAt: string
+  /** `reserva` (id da reserva) ou `reserva_rascunho` (id temporário, religado ao criar o rascunho). */
+  refType?: string
 }
 
 export type ReservationHistoryEntry = {
@@ -172,3 +176,50 @@ export type AvailabilityResult = {
   reason: string | null
   window: { from: string; to: string; cleaningDays: number }
 }
+
+/** Linha da lista de reservas (spec §2.1). `payStatus` é `null` em rascunho/cancelada/no-show; `due` é 0 nesses estados. */
+export type ReservationRow = {
+  id: string
+  code: string
+  state: ReservationState
+  customerName: string
+  garments: { code: string; shortName: string }[]
+  eventDate: string | null
+  eventType: string | null
+  pickupDate: string
+  returnDueDate: string
+  /** Dias de atraso (só com peça na rua e devolução vencida). */
+  daysLate: number
+  payStatus: PayStatus | null
+  totalNet: number
+  due: number
+}
+
+/** Ficha da reserva: joins e valores derivados. `conflicts` só em rascunho (peças que não passariam na confirmação). */
+export type ReservationDetail = Reservation & {
+  customer: Customer
+  /** Na ordem dos itens. */
+  garments: Garment[]
+  conflicts: AvailabilityResult[]
+  fittingCode: string | null
+  fittingDate: string | null
+  minSignal: number
+  depositSuggested: number
+}
+
+/** Sinal pago na confirmação. */
+export type SignalInput = { amount: number; method: PaymentMethod; reference: string | null; notes: string | null }
+
+export type PaymentInput = {
+  kind: PaymentKind
+  method: PaymentMethod
+  amount: number
+  reference: string | null
+  notes: string | null
+  /** `caucao` só para estorno da caução (não mexe no saldo). */
+  refersTo?: 'caucao' | null
+}
+
+export type ContractSignInput = { signedAt: string; signerName: string; notes: string | null }
+
+export type ConfirmResult = { ok: true; reservation: Reservation } | { ok: false; conflicts: AvailabilityResult[] }

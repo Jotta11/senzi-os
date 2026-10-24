@@ -4,8 +4,9 @@
  * cliente com estatísticas recalculadas das reservas).
  */
 import { CLOSED_RESERVATION_STATES } from '@/data/labels'
-import { todayISO } from '@/lib/format'
+import { STORE_TZ, todayISO } from '@/lib/format'
 import { buildWorld, customerStats, type World } from '../fixture'
+import { at } from '../fixture/kit'
 import { SourceError, type Customer, type Garment, type Reservation, type SourceIssue } from '../types'
 
 export type MockSourceOptions = {
@@ -21,6 +22,10 @@ export type MockCtx = {
   db: World
   today: string
   userName(): string
+  /** Id de quem está usando (pelo nome; padrão a administradora). */
+  userId(): string
+  /** Instante "agora" no fuso da loja, no dia `today` da fonte (`aaaa-mm-ddThh:mm:00-03:00`). */
+  now(): string
   /** Simula a ida ao servidor: espera, roda a operação e devolve uma cópia (ninguém mexe no estado por fora). */
   run<T>(fn: () => T): Promise<T>
   fail(issues: SourceIssue[], hint?: string): never
@@ -38,6 +43,10 @@ export function fail(issues: SourceIssue[], hint?: string): never {
   throw new SourceError(first!.code, { field: first!.field, issues, hint })
 }
 
+/** `HH:MM` agora no fuso da loja. */
+export const storeTime = (): string =>
+  new Intl.DateTimeFormat('en-GB', { timeZone: STORE_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
+
 export function createMockCtx(opts: MockSourceOptions = {}): MockCtx {
   const latency = opts.latencyMs ?? 150
   const today = opts.today ?? todayISO()
@@ -48,10 +57,13 @@ export function createMockCtx(opts: MockSourceOptions = {}): MockCtx {
     if (!x) throw new SourceError('NAO_ENCONTRADO')
     return x
   }
+  const userName = opts.userName ?? (() => 'Júlia Senzi')
   return {
     db,
     today,
-    userName: opts.userName ?? (() => 'Júlia Senzi'),
+    userName,
+    userId: () => db.users.find((u) => u.name === userName())?.id ?? 'u-julia',
+    now: () => at(today, storeTime()),
     async run<T>(fn: () => T): Promise<T> {
       if (latency > 0) await new Promise((r) => setTimeout(r, latency))
       return clone(fn())

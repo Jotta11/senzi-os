@@ -1,9 +1,9 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getSupabase } from '@/lib/supabase'
 import { ERROR_MESSAGES, errorMessage } from '@/lib/errorMessages'
 import type { ExceptionKind } from '@/data/types'
 import { Button, Field } from '@/ui'
+import { useExceptionAuthorizer } from './ExceptionAuthorizer'
 import './exceptions.css'
 
 export type { ExceptionKind }
@@ -14,8 +14,6 @@ const KIND_LABEL: Record<ExceptionKind, string> = {
   dispensa_sinal_minimo: 'Dispensa do sinal mínimo',
 }
 
-type Admin = { id: string; full_name: string; email: string }
-
 export type AuthorizeExceptionDialogProps = {
   kind: ExceptionKind
   refType: string
@@ -25,9 +23,9 @@ export type AuthorizeExceptionDialogProps = {
 }
 
 /**
- * Autorização de exceção por PIN de um administrador presente no balcão.
- * Falhas de autenticação vêm no retorno (`{ok:false,error}`); erros de requisição
- * vêm como exceção da RPC — os dois caminhos usam o mesmo mapa de mensagens.
+ * Autorização de exceção por PIN de um administrador presente no balcão. Administradores e autorização vêm do
+ * `ExceptionAuthorizer` do contexto (banco por padrão; memória na prévia, com a dica do PIN de demonstração).
+ * Falhas vêm no retorno (`{ok:false,error}`) e usam o mesmo mapa de mensagens; exceção = falha de rede.
  */
 export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, onCancel }: AuthorizeExceptionDialogProps) {
   const titleId = useId()
@@ -37,17 +35,9 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
   const [error, setError] = useState<string | null>(null)
   const [reasonError, setReasonError] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
+  const authorizer = useExceptionAuthorizer()
 
-  const admins = useQuery({
-    queryKey: ['active_admins'],
-    queryFn: async () => {
-      const sb = getSupabase()
-      if (!sb) return []
-      const { data, error } = await sb.rpc('list_active_admins')
-      if (error) throw error
-      return (data ?? []) as Admin[]
-    },
-  })
+  const admins = useQuery({ queryKey: ['active_admins'], queryFn: () => authorizer.listActiveAdmins() })
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -57,29 +47,15 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
       setReasonError(ERROR_MESSAGES.MOTIVO_OBRIGATORIO)
       return
     }
-    const sb = getSupabase()
-    if (!sb) return
     setBusy(true)
     try {
-      const { data, error: rpcError } = await sb.rpc('authorize_exception', {
-        p_admin_email: email,
-        p_pin: pin,
-        p_kind: kind,
-        p_reason: reason.trim(),
-        p_ref_type: refType,
-        p_ref_id: refId,
-      })
-      if (rpcError) {
-        if (rpcError.message === 'MOTIVO_OBRIGATORIO') setReasonError(ERROR_MESSAGES.MOTIVO_OBRIGATORIO)
-        else setError(errorMessage(rpcError))
-        return
-      }
-      const result = data as { ok: boolean; id?: string; error?: string } | null
-      if (result?.ok && result.id) {
+      const result = await authorizer.authorize({ email, pin, kind, reason: reason.trim(), refType, refId })
+      if (result.ok) {
         onAuthorized(result.id)
         return
       }
-      setError(errorMessage(result?.error ?? ''))
+      if (result.error === 'MOTIVO_OBRIGATORIO') setReasonError(ERROR_MESSAGES.MOTIVO_OBRIGATORIO)
+      else setError(errorMessage(result.error))
     } catch {
       setError(errorMessage(null))
     } finally {
@@ -121,6 +97,7 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             required
+            hint={authorizer.demoHint}
           />
           <Field as="textarea" label="Motivo" value={reason} onChange={(e) => setReason(e.target.value)} error={reasonError} rows={3} />
 
