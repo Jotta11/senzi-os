@@ -118,39 +118,55 @@ export function useIdealMeasurements(garmentId: string | null | undefined) {
 
 /* ------------------------------------------------------------------ mutações */
 
-function afterGarment(qc: QueryClient, g: Garment) {
+/**
+ * Alcance da mutação: `local` só mexe na ficha e nas listas/sugestões da própria área; `world` muda o que
+ * outras áreas mostram (agenda, operação, painel, financeiro, inteligência) e refaz tudo (`invalidateWorld`).
+ */
+type Reach = 'local' | 'world'
+
+function afterGarment(qc: QueryClient, g: Garment, reach: Reach) {
   qc.setQueryData(dataKeys.garment(g.id), g)
+  if (reach === 'world') {
+    void invalidateWorld(qc)
+    return
+  }
   void qc.invalidateQueries({ queryKey: dataKeys.garments })
   void qc.invalidateQueries({ queryKey: dataKeys.recommendations() })
   void qc.invalidateQueries({ queryKey: dataKeys.ideal(g.id) })
   void qc.invalidateQueries({ queryKey: dataKeys.brands })
 }
 
-function afterCustomer(qc: QueryClient, c: Customer) {
+function afterCustomer(qc: QueryClient, c: Customer, reach: Reach) {
   qc.setQueryData(dataKeys.customer(c.id), c)
+  if (reach === 'world') {
+    void invalidateWorld(qc)
+    return
+  }
   void qc.invalidateQueries({ queryKey: dataKeys.customers })
   void qc.invalidateQueries({ queryKey: dataKeys.recommendations(c.id) })
 }
 
-/** Mutação de peça: grava a ficha devolvida no cache e invalida listas e sugestões. */
-function useGarmentMutation<V>(fn: (v: V) => Promise<Garment>) {
+/** Mutação de peça: grava a ficha devolvida no cache e invalida listas e sugestões (ou o mundo todo, com `world`). */
+function useGarmentMutation<V>(fn: (v: V) => Promise<Garment>, reach: Reach = 'local') {
   const qc = useQueryClient()
-  return useMutation({ mutationFn: fn, onSuccess: (g) => afterGarment(qc, g) })
+  return useMutation({ mutationFn: fn, onSuccess: (g) => afterGarment(qc, g, reach) })
 }
 
-/** Mutação de cliente: grava a ficha devolvida no cache e invalida a lista e as sugestões dela. */
-function useCustomerMutation<V>(fn: (v: V) => Promise<Customer>) {
+/** Mutação de cliente: grava a ficha devolvida no cache e invalida a lista e as sugestões dela (ou o mundo todo, com `world`). */
+function useCustomerMutation<V>(fn: (v: V) => Promise<Customer>, reach: Reach = 'local') {
   const qc = useQueryClient()
-  return useMutation({ mutationFn: fn, onSuccess: (c) => afterCustomer(qc, c) })
+  return useMutation({ mutationFn: fn, onSuccess: (c) => afterCustomer(qc, c, reach) })
 }
 
+/** Peça nova entra no painel, na inteligência e, com custo, vira conta paga (aquisição) no financeiro. */
 export function useCreateGarment() {
   const src = useDataSource()
-  return useGarmentMutation((input: GarmentInput) => src.createGarment(input))
+  return useGarmentMutation((input: GarmentInput) => src.createGarment(input), 'world')
 }
+/** Nome, preço e custo aparecem na agenda, nas reservas, na operação e na inteligência. */
 export function useUpdateGarment(id: string) {
   const src = useDataSource()
-  return useGarmentMutation((input: Partial<GarmentInput>) => src.updateGarment(id, input))
+  return useGarmentMutation((input: Partial<GarmentInput>) => src.updateGarment(id, input), 'world')
 }
 export function useUpdateFit(id: string) {
   const src = useDataSource()
@@ -172,22 +188,24 @@ export function useSetCover(id: string) {
   const src = useDataSource()
   return useGarmentMutation((photoId: string) => src.setCover(id, photoId))
 }
+/** Bloquear/liberar muda o estado e a agenda da peça: painel, agenda, operação ("Bloqueadas") e inteligência. */
 export function useBlockGarment(id: string) {
   const src = useDataSource()
-  return useGarmentMutation((v: { from: string; to: string; note: string }) => src.blockGarment(id, v.from, v.to, v.note))
+  return useGarmentMutation((v: { from: string; to: string; note: string }) => src.blockGarment(id, v.from, v.to, v.note), 'world')
 }
 export function useReleaseBlock(id: string) {
   const src = useDataSource()
-  return useGarmentMutation((blockId: string) => src.releaseBlock(id, blockId))
+  return useGarmentMutation((blockId: string) => src.releaseBlock(id, blockId), 'world')
 }
 
+/** Cliente nova/editada aparece na agenda, nas reservas, no financeiro e nos alertas (aniversário). */
 export function useCreateCustomer() {
   const src = useDataSource()
-  return useCustomerMutation((input: CustomerInput) => src.createCustomer(input))
+  return useCustomerMutation((input: CustomerInput) => src.createCustomer(input), 'world')
 }
 export function useUpdateCustomer(id: string) {
   const src = useDataSource()
-  return useCustomerMutation((input: Partial<CustomerInput>) => src.updateCustomer(id, input))
+  return useCustomerMutation((input: Partial<CustomerInput>) => src.updateCustomer(id, input), 'world')
 }
 export function useAddMeasurement(id: string) {
   const src = useDataSource()

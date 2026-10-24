@@ -5,6 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { createMockSource } from '@/data/mockSource'
 import type { DataSource } from '@/data/source'
 import type { ReservationRow } from '@/data/types'
+import { addDays } from '@/lib/format'
 import { PreviewLayout } from '@/preview/PreviewLayout'
 import { previewRoutes } from '@/preview/previewRoutes'
 
@@ -34,6 +35,30 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('Operação — tela', () => {
+  it('bloquear a peça na ficha do Acervo leva a peça para "Bloqueadas" sem recarregar (cache de 30 s da prévia)', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    // peça disponível sem compromisso de hoje a hoje+3 (o período padrão do bloqueio)
+    const all = (await source.searchGarments({}, { limit: 500, offset: 0 })).items
+    const free = all.find((g) => g.state === 'disponivel' && g.blocks.every((b) => b.to < TODAY || b.from > addDays(TODAY, 3)))!
+    const router = createMemoryRouter(
+      [{ path: '/preview', element: <PreviewLayout source={source} queryClient={new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30_000 } } })} />, children: previewRoutes.children }],
+      { initialEntries: ['/preview/operacao'] },
+    )
+    render(<RouterProvider router={router} />)
+    expect(within(await card('Bloqueadas')).queryByText(free.name)).toBeNull()
+
+    await act(() => router.navigate(`/preview/acervo/${free.id}`))
+    await user.click(await screen.findByRole('button', { name: 'Bloquear' }))
+    const dialog = screen.getByRole('dialog', { name: 'Bloquear peça' })
+    await user.type(within(dialog).getByLabelText('Motivo'), 'Ensaio de fotos')
+    await user.click(within(dialog).getByRole('button', { name: 'Bloquear' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    await act(() => router.navigate('/preview/operacao'))
+    expect(await within(await card('Bloqueadas')).findByText(free.name)).toBeInTheDocument()
+  })
+
   it('mostra título, subtítulo, tiles, nota fixa e as filas do cenário', async () => {
     renderPreview('/preview/operacao', newSource())
     expect(await screen.findByRole('heading', { level: 1, name: 'Operação' })).toBeInTheDocument()
