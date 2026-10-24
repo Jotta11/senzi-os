@@ -42,7 +42,7 @@ export const userName = (id: string): string => Object.values(USER).find((u) => 
 export const EVENTOS = ['Casamento', 'Formatura', 'Aniversário de 15 anos', 'Festa corporativa', 'Casamento civil', 'Baile de gala', 'Premiação', 'Jantar de noivado', 'Formatura de Medicina']
 export const LOCAIS = ['Espaço Jardins · Palmas', 'Clube Ipê · Palmas', 'Hotel Serrano · Araguaína', 'Casa de Festas Bela Vista', 'Salão Vila Real · Gurupi', 'Resort Lago Norte · Palmas']
 
-export type PaySpec = { kind: PaymentKind; method: PaymentMethod; amount: number; paidAt: string | null; state?: PaymentState; dueAt?: string | null; notes?: string | null; by?: string }
+export type PaySpec = { kind: PaymentKind; method: PaymentMethod; amount: number; paidAt: string | null; state?: PaymentState; dueAt?: string | null; notes?: string | null; by?: string; refersTo?: 'caucao' }
 export type ItemSpec = { garment: Garment; state: ItemState; pickedUpAt?: string | null; returnedAt?: string | null; pickupNote?: string | null; returnNote?: string | null; alteration?: string | null }
 export type Step = { to: ReservationState; at: string; reason: string | null; by?: string }
 
@@ -104,7 +104,7 @@ export function makeReservation(w: World, spec: ReservationSpec): Reservation {
     dueAt: p.dueAt ?? null,
     reference: null,
     notes: p.notes ?? null,
-    refersTo: null,
+    refersTo: p.refersTo ?? null,
     createdBy: p.by ?? spec.createdBy,
     createdAt: p.paidAt ?? spec.createdAt,
   }))
@@ -149,7 +149,7 @@ export function makeReservation(w: World, spec: ReservationSpec): Reservation {
     totalGross: gross,
     discount: spec.discount,
     totalNet,
-    depositAmount: 0,
+    depositAmount: round2(spec.payments.filter((p) => p.kind === 'caucao').reduce((s, p) => s + p.amount, 0)),
     lateFee,
     notes: spec.notes ?? null,
     cancelReason: spec.cancelReason ?? null,

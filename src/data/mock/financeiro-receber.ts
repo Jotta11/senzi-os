@@ -16,7 +16,7 @@ export function financeiroReceber(ctx: MockCtx): Receber {
   const avulso = (id: string): Receivable => {
     const r = db.receivables.find((x) => x.id === id)
     if (r) return r
-    if (allReceivables(db, today).some((x) => x.id === id)) throw new SourceError('ESTADO_INVALIDO')
+    if (allReceivables(db).some((x) => x.id === id)) throw new SourceError('ESTADO_INVALIDO')
     throw new SourceError('NAO_ENCONTRADO')
   }
   const dayKey = (r: Receivable) => r.receivedAt ?? r.dueDate
@@ -24,7 +24,7 @@ export function financeiroReceber(ctx: MockCtx): Receber {
   return {
     listReceivables: (f) =>
       run(() => {
-        const all = allReceivables(db, today)
+        const all = allReceivables(db)
         const money = all.filter((r) => !r.isCustody)
         const open = money.filter(isOpenReceivable)
         const overdue = open.filter((r) => receivableStatus(r, today) === 'vencido')

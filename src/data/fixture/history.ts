@@ -10,7 +10,7 @@ import { addDays } from '@/lib/format'
 import type { Garment, InspectionFinding, InspectionResult, MaintenanceKind, PaymentMethod, Reservation } from '../types'
 import { addOperationExpense, FIN_CAT } from './finance'
 import { acquiredDaysAgo } from './garments'
-import { at, EVENTOS, LOCAIS, makeReservation, USER, type Rng } from './kit'
+import { at, EVENTOS, LOCAIS, makeReservation, USER, type PaySpec, type Rng } from './kit'
 import type { World } from './world'
 
 export const POP: Record<string, 0 | 1 | 2 | 3> = {
@@ -51,6 +51,14 @@ export function finalizeRental(w: World, rng: Rng, o: RentalOpts): Reservation {
   const by = rng.pick([USER.ana.id, USER.bruna.id, USER.julia.id])
   const customer = w.customers.find((c) => c.id === o.customerId)!
   const inspDay = addDays(o.ret, 1)
+  // Algumas locações recentes tiveram caução, devolvida depois da inspeção (sem sorteio: não mexe na semente)
+  const deposit: PaySpec[] =
+    w.reservations.length % 4 === 1 && o.pickup >= addDays(w.today, -60)
+      ? [
+          { kind: 'caucao', method: 'pix', amount: 150, paidAt: at(o.pickup, '10:30') },
+          { kind: 'estorno', method: 'pix', amount: 150, paidAt: at(inspDay, '10:00'), refersTo: 'caucao', notes: 'Devolução da caução' },
+        ]
+      : []
   const r = makeReservation(w, {
     customerId: o.customerId,
     state: 'finalizada',
@@ -67,6 +75,7 @@ export function finalizeRental(w: World, rng: Rng, o: RentalOpts): Reservation {
     payments: [
       { kind: 'sinal', method, amount: sinal, paidAt: at(created, '15:20') },
       { kind: 'saldo', method, amount: net - sinal, paidAt: at(o.pickup, '10:30') },
+      ...deposit,
     ],
     steps: [
       { to: 'confirmada', at: at(created, '15:20'), reason: 'Contrato assinado e sinal recebido' },

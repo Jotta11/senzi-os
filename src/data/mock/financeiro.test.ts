@@ -55,6 +55,14 @@ describe('Financeiro — visão geral', () => {
     expect(o.monthly[11]!.k).toBe('2026-10')
   })
 
+  it('mundo padrão: caução em custódia > 0 e há caução devolvida (estorno refersTo caucao)', async () => {
+    const { ctx, src } = setup()
+    expect((await src.financeOverview('90')).custody).toBeGreaterThan(0)
+    const returned = ctx.db.reservations.filter((r) => r.state === 'finalizada' && r.payments.some((p) => p.kind === 'estorno' && p.refersTo === 'caucao'))
+    expect(returned.length).toBeGreaterThan(0)
+    for (const r of returned) expect(balance(r.totalNet, r.lateFee, r.payments).caucao).toBe(0)
+  })
+
   it('caução paga não entra no Recebido; estorno de receita subtrai; estorno de caução não', async () => {
     const { ctx, src } = setup()
     const before = (await src.financeOverview('30')).received
@@ -216,7 +224,7 @@ describe('Financeiro — categorias', () => {
 
   it('criar: nome único por tipo (sem acento/caixa), mesmo nome em outro tipo vale; arquivar some das escolhas; excluir sem uso', async () => {
     const { src } = setup()
-    expect(await code(src.createFinCategory({ name: '  ', type: 'despesa' }))).toBe('NOME_OBRIGATORIO')
+    expect(await code(src.createFinCategory({ name: '  ', type: 'despesa' }))).toBe('NOME_CATEGORIA_OBRIGATORIO')
     expect(await code(src.createFinCategory({ name: 'ALUGUEL', type: 'despesa' }))).toBe('CATEGORIA_DUPLICADA')
     const c = await src.createFinCategory({ name: 'Aluguel', type: 'receita' })
     expect(c.isSystem).toBe(false)

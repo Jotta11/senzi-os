@@ -84,7 +84,7 @@ export function reservationReceivables(world: FinanceWorld): Receivable[] {
 }
 
 /** Parcelas de reserva + avulsos. */
-export function allReceivables(world: FinanceWorld, today: string): Receivable[] {
+export function allReceivables(world: FinanceWorld): Receivable[] {
   return [...reservationReceivables(world), ...world.receivables]
 }
 

@@ -48,6 +48,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SALDO_EM_ABERTO: 'Retirada com saldo pendente exige autorização.',
   ESTADO_INVALIDO: 'Esta ação não está disponível no estado atual.',
   DESCRICAO_OBRIGATORIA: 'Informe a descrição.',
+  NOME_CATEGORIA_OBRIGATORIO: 'Informe o nome.',
   CATEGORIA_OBRIGATORIA: 'Escolha a categoria.',
   VENCIMENTO_OBRIGATORIO: 'Informe o vencimento.',
   DATA_FUTURA: 'A data não pode ser futura.',

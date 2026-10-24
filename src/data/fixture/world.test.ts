@@ -162,7 +162,7 @@ describe('buildWorld', () => {
     for (const r of fin) {
       expect(r.items).toHaveLength(1)
       expect(r.items[0]!.itemState).toBe('inspecionado')
-      expect(r.payments.map((p) => p.kind)).toEqual(['sinal', 'saldo'])
+      expect(r.payments.map((p) => p.kind).filter((k) => k !== 'caucao' && k !== 'estorno')).toEqual(['sinal', 'saldo'])
       expect(r.balance.status).toBe('pago')
       expect(r.contract?.signedAt).toBeTruthy()
       expect(w.inspections.some((i) => i.reservationId === r.id)).toBe(true)

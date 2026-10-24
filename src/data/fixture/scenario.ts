@@ -43,7 +43,7 @@ const paid = (kind: PaySpec['kind'], method: PaySpec['method'], amount: number, 
 
 export const CURRENT: Record<string, Cur> = {
   portofino: { c: 9, g: ['Portofino'], state: 'em_uso', d: [-5, -4, -2], eventType: 'Baile de gala', ago: 22, pickedAt: [-5, '10:00'], pay: (n, D) => [paid('integral', 'pix', n, at(D(-22), '15:20'))], notes: 'Cliente avisou que devolveria segunda-feira. Sem retorno desde então.' },
-  ostuni: { c: 7, g: ['Ostuni'], state: 'em_uso', d: [-3, -2, 0], eventType: 'Casamento', ago: 26, pickedAt: [-3, '14:00'], pay: (_, D) => [paid('sinal', 'pix', 490, at(D(-26), '15:20')), paid('saldo', 'credito', 490, at(D(-3), '14:00'))] },
+  ostuni: { c: 7, g: ['Ostuni'], state: 'em_uso', d: [-3, -2, 0], eventType: 'Casamento', ago: 26, pickedAt: [-3, '14:00'], pay: (_, D) => [paid('sinal', 'pix', 490, at(D(-26), '15:20')), paid('saldo', 'credito', 490, at(D(-3), '14:00')), paid('caucao', 'pix', 200, at(D(-3), '14:00'))] },
   firenze: { c: 4, g: ['Firenze'], state: 'pronta_retirada', d: [0, 1, 3], eventType: 'Formatura de Direito', ago: 31, pay: (_, D) => [paid('sinal', 'pix', 525, at(D(-31), '15:20')), paid('saldo', 'debito', 525, at(D(-1), '16:00'))], alteration: 'Barra ajustada para salto 8 cm — feita em 06/09.' },
   sorrento: {
     c: 2, g: ['Sorrento'], state: 'confirmada', d: [1, 2, 4], eventType: 'Casamento', ago: 38, pay: (_, D) => [paid('sinal', 'pix', 400, at(D(-38), '15:20'))], notes: 'Saldo combinado para o ato da retirada.',
@@ -69,7 +69,7 @@ export const CURRENT: Record<string, Cur> = {
   },
   milano: {
     c: 13, g: ['Milano'], state: 'em_uso', d: [-1, 0, 2], eventType: 'Festa corporativa', venue: 'Hotel Serrano · Araguaína', channel: 'loja', ago: 11, by: USER.ana.id,
-    pickedAt: [-1, '17:10'], pickupNote: 'Entregue com capa protetora.', pay: (n, D) => [paid('sinal', 'pix', Math.round(n / 2), at(D(-11), '15:20'))],
+    pickedAt: [-1, '17:10'], pickupNote: 'Entregue com capa protetora.', pay: (n, D) => [paid('sinal', 'pix', Math.round(n / 2), at(D(-11), '15:20')), paid('caucao', 'pix', 150, at(D(-1), '17:10'))],
     notes: 'Cliente pagou metade; combinou o restante por PIX até as 18h de hoje.',
     auth: (D) => [byAdmin('retirada_com_saldo', 270, 'Pagamento combinado para as 18h de hoje; cliente recorrente com histórico limpo.', at(D(-1), '17:05'))],
   },

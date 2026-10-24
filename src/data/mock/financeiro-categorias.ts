@@ -11,7 +11,7 @@ type Categorias = Pick<FinanceiroSource, 'listFinCategories' | 'createFinCategor
 const PALETTE = ['#7A2E3A', '#5E6B3C', '#1D4E63', '#B4633F', '#A98BC4', '#C9A961', '#3C3F46', '#C98A99']
 
 export function financeiroCategorias(ctx: MockCtx): Categorias {
-  const { db, today, run, fail } = ctx
+  const { db, run, fail } = ctx
   const find = (id: string): FinCategory => {
     const c = db.finCategories.find((x) => x.id === id)
     if (!c) throw new SourceError('NAO_ENCONTRADO')
@@ -32,7 +32,7 @@ export function financeiroCategorias(ctx: MockCtx): Categorias {
 
     createFinCategory: (i) =>
       run(() => {
-        if (!i.name?.trim()) fail([{ code: 'NOME_OBRIGATORIO', field: 'name' }])
+        if (!i.name?.trim()) fail([{ code: 'NOME_CATEGORIA_OBRIGATORIO', field: 'name' }])
         if (duplicated(i.name, i.type)) fail([{ code: 'CATEGORIA_DUPLICADA', field: 'name' }])
         const c: FinCategory = { id: ctx.newId('fc'), name: i.name.trim(), type: i.type, color: i.color ?? PALETTE[db.finCategories.length % PALETTE.length]!, isSystem: false, archived: false }
         db.finCategories.push(c)
@@ -45,7 +45,7 @@ export function financeiroCategorias(ctx: MockCtx): Categorias {
         notSystem(c)
         const name = i.name ?? c.name
         const type = i.type ?? c.type
-        if (!name.trim()) fail([{ code: 'NOME_OBRIGATORIO', field: 'name' }])
+        if (!name.trim()) fail([{ code: 'NOME_CATEGORIA_OBRIGATORIO', field: 'name' }])
         if (type !== c.type && usage(id) > 0) fail([{ code: 'CATEGORIA_EM_USO', field: 'type' }])
         if (duplicated(name, type, id)) fail([{ code: 'CATEGORIA_DUPLICADA', field: 'name' }])
         Object.assign(c, { name: name.trim(), type, color: i.color ?? c.color })
