@@ -74,22 +74,26 @@ async function openFitting(user: ReturnType<typeof userEvent.setup>, who: RegExp
 describe('Provas — lista', () => {
   it('abre em "Em aberto", com 4 tiles e a taxa no subtítulo; "Todas" inclui a concluída', async () => {
     const user = userEvent.setup()
-    renderPreview('/preview/provas')
+    const source = newSource()
+    // números esperados saem da própria fonte (fittingKpis), não do ajuste fino do fixture
+    const k = await source.fittingKpis()
+    expect(k.open).toBe(2)
+    renderPreview('/preview/provas', source)
     expect(await screen.findByRole('heading', { level: 1, name: 'Provas' })).toBeInTheDocument()
-    expect(await screen.findByText('27 sessões · 71% de conversão')).toBeInTheDocument()
+    expect(await screen.findByText(`${k.total} sessões · ${Math.round(k.rate * 100)}% de conversão`)).toBeInTheDocument()
     const chips = within(screen.getByRole('group', { name: 'Situação' }))
     expect(chips.getByRole('button', { name: 'Em aberto' })).toHaveAttribute('aria-pressed', 'true')
 
     const terms = within(await screen.findByLabelText('Números das provas')).getAllByRole('term').map((t) => t.textContent)
     expect(terms).toEqual(['Em aberto', 'Convertidas', 'Sem conversão', 'Taxa de conversão'])
-    expect(screen.getByText('sobre 24 provas encerradas')).toBeInTheDocument()
+    expect(screen.getByText(`sobre ${k.closed} provas encerradas`)).toBeInTheDocument()
 
     const table = await screen.findByRole('table', { name: 'Provas' })
-    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(3)) // cabeçalho + 2 abertas
+    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(k.open + 1)) // cabeçalho + abertas
     expect(within(table).queryByText('Concluída')).toBeNull()
 
     await user.click(chips.getByRole('button', { name: 'Todas' }))
-    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Provas' })).getAllByRole('row')).toHaveLength(28))
+    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Provas' })).getAllByRole('row')).toHaveLength(k.total + 1))
     expect(within(screen.getByRole('table', { name: 'Provas' })).getByText('Concluída')).toBeInTheDocument()
   })
 })
@@ -104,6 +108,7 @@ describe('Provas — agendar', () => {
   it('cadastrando cliente nova com CPF inválido: mostra "CPF inválido." no campo e não cria nada', async () => {
     const user = userEvent.setup()
     const { source } = renderPreview('/preview/provas')
+    const before = (await source.listFittings('todas', { limit: 50, offset: 0 })).total
     await user.click(await screen.findByRole('button', { name: 'Agendar prova' }))
     const dlg = await screen.findByRole('dialog', { name: 'Agendar prova' })
     await user.click(within(dlg).getByRole('combobox', { name: 'Cliente *' }))
@@ -116,7 +121,7 @@ describe('Provas — agendar', () => {
 
     expect(await within(dlg).findByText('CPF inválido.')).toBeInTheDocument()
     expect(within(dlg).getByLabelText('CPF *')).toHaveAttribute('aria-invalid', 'true')
-    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(27)
+    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(before)
     const found = await source.searchCustomers('Beatriz Nogueira', 'nome', { limit: 5, offset: 0 })
     expect(found.items).toHaveLength(0)
   })
@@ -124,6 +129,7 @@ describe('Provas — agendar', () => {
   it('com cliente existente cria a prova e navega para a ficha nova', async () => {
     const user = userEvent.setup()
     const { router, source } = renderPreview('/preview/provas')
+    const before = (await source.listFittings('todas', { limit: 50, offset: 0 })).total
     await user.click(await screen.findByRole('button', { name: 'Agendar prova' }))
     const dlg = await screen.findByRole('dialog', { name: 'Agendar prova' })
     await user.type(within(dlg).getByRole('combobox', { name: 'Cliente *' }), 'Mariana')
@@ -131,7 +137,7 @@ describe('Provas — agendar', () => {
     await user.click(within(dlg).getByRole('button', { name: 'Agendar prova' }))
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/preview\/provas\/.+/))
     expect(await screen.findByRole('heading', { level: 1, name: /^Prova PR-2026-/ })).toBeInTheDocument()
-    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(28)
+    expect((await source.listFittings('todas', { limit: 50, offset: 0 })).total).toBe(before + 1)
     expect(await screen.findByRole('status')).toHaveTextContent(/Prova agendada\s*PR-2026-\d{4} · 25\/10/)
   })
 

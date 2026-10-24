@@ -5,13 +5,13 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { vi } from 'vitest'
 import { createMockSource } from '@/data/mockSource'
 import type { DataSource } from '@/data/source'
-import { addDays, todayISO } from '@/lib/format'
+import { addDays } from '@/lib/format'
 import { PreviewLayout } from '@/preview/PreviewLayout'
 import { MonthGrid } from './CalendarPane'
 import { previewRoutes } from '@/preview/previewRoutes'
 
-// a fonte usa o mesmo "hoje" da tela (datas padrão do bloqueio, calendário)
-const TODAY = todayISO()
+// relógio fixo: a fonte e a tela usam o mesmo "hoje" (datas padrão do bloqueio, calendário)
+const TODAY = '2026-10-24'
 const newSource = () => createMockSource({ latencyMs: 0, today: TODAY })
 const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
@@ -27,7 +27,11 @@ function renderPreview(path: string, source: DataSource = newSource()) {
 const verAtendimento = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Atendimento' }))
 const tabs = () => within(screen.getByRole('tablist', { name: 'Ficha da peça' })).getAllByRole('tab').map((t) => t.textContent?.replace(/\s*\d+\(\d+\)$/, ''))
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-24T15:00:00Z') })
+})
+afterEach(() => vi.useRealTimers())
 
 describe('Ficha da peça', () => {
   it('cabeçalho com código · categoria · marca; admin vê 7 abas, atendimento 6 (sem Financeiro)', async () => {

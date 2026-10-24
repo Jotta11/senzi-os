@@ -4,9 +4,10 @@ import type { FittingItem, FittingSession } from '@/data/types-agenda'
 import type { Payment } from '@/data/types-reservas'
 import { addDays } from '@/lib/format'
 import { checkAvailability, deriveGarmentState, makeBlocks, alternatives, realignOnReturn, effectiveCleaningDays } from './calendar'
-import { dayRange, diffDays, longDate, monthLabel, nextBirthday, relativeDay, weekdayIndex, weekStart } from './dates'
+import { dayRange, daysInMonth, diffDays, lastMonths, longDate, monthAbbr, monthLabel, nextBirthday, relativeDay, shiftMonth, weekdayIndex, weekStart } from './dates'
+import { systemCategoryId, systemCategoryIds } from './fin-categories'
 import { conversionRate, fittingStats } from './fittings'
-import { balance, depositSuggestion, discountNeedsException, lateFee, minSignal, prorate } from './money'
+import { balance, daysLate, depositSuggestion, discountNeedsException, hasReceivable, lateFee, lateFeePercent, minSignal, openReceivableDue, pendingTargets, prorate } from './money'
 import { DEFAULT_SETTINGS } from './settings'
 
 const categories: Category[] = [
@@ -44,6 +45,61 @@ describe('dates', () => {
   it('rótulos longos', () => {
     expect(longDate('2026-10-23')).toBe('sexta-feira, 23 de outubro')
     expect(monthLabel('2026-10-05')).toBe('Outubro de 2026')
+  })
+})
+
+describe('dates — meses', () => {
+  it('daysInMonth, shiftMonth (virada de ano), monthAbbr e lastMonths (o corrente vai até hoje)', () => {
+    expect(daysInMonth(2026, 2)).toBe(28)
+    expect(daysInMonth(2028, 2)).toBe(29)
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12')
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01')
+    expect(shiftMonth('2026-10', -13)).toBe('2025-09')
+    expect(monthAbbr('2026-10')).toBe('out')
+    expect(lastMonths('2026-02-10', 3)).toEqual([
+      { month: '2025-12', from: '2025-12-01', to: '2025-12-31' },
+      { month: '2026-01', from: '2026-01-01', to: '2026-01-31' },
+      { month: '2026-02', from: '2026-02-01', to: '2026-02-10' },
+    ])
+  })
+})
+
+describe('money — a receber, multa e atraso', () => {
+  const r = (state: Parameters<typeof hasReceivable>[0]['state'], payments: Payment[] = [pay({ kind: 'sinal', amount: 300 })]) => ({ state, totalNet: 1000, lateFee: 0, payments })
+  it('openReceivableDue: saldo nos estados com conta a receber; 0 em rascunho, cancelada e no-show', () => {
+    for (const st of ['confirmada', 'em_uso', 'em_inspecao', 'finalizada'] as const) expect(openReceivableDue(r(st))).toBe(700)
+    for (const st of ['rascunho', 'cancelada', 'no_show'] as const) {
+      expect(hasReceivable({ state: st })).toBe(false)
+      expect(openReceivableDue(r(st))).toBe(0)
+    }
+  })
+  it('pendingTargets: saldo da locação primeiro, o resto é multa; Σ = due', () => {
+    expect(pendingTargets(1000, 200, [pay({ kind: 'sinal', amount: 300 })])).toEqual({ saldo: 700, multa: 200 })
+    expect(pendingTargets(1000, 200, [pay({ kind: 'integral', amount: 1000 })])).toEqual({ saldo: 0, multa: 200 })
+    expect(pendingTargets(1000, 0, [pay({ kind: 'integral', amount: 1000 }), pay({ kind: 'estorno', amount: 100 })])).toEqual({ saldo: 100, multa: 0 })
+  })
+  it('daysLate só com a peça na rua e depois do prazo; lateFeePercent prefere o contrato', () => {
+    expect(daysLate({ state: 'em_uso', returnDueDate: '2026-10-21' }, '2026-10-24')).toBe(3)
+    expect(daysLate({ state: 'em_uso', returnDueDate: '2026-10-25' }, '2026-10-24')).toBe(0)
+    expect(daysLate({ state: 'em_inspecao', returnDueDate: '2026-10-21' }, '2026-10-24')).toBe(0)
+    const contract = { terms: { lateFeeDailyPercent: 15, deposit: 0 } } as Parameters<typeof lateFeePercent>[0]['contract']
+    expect(lateFeePercent({ contract }, { lateFeeDailyPercent: 20 })).toBe(15)
+    expect(lateFeePercent({ contract: null }, { lateFeeDailyPercent: 20 })).toBe(20)
+    expect(lateFeePercent({ contract: null }, undefined)).toBe(0)
+  })
+})
+
+describe('fin-categories', () => {
+  it('acha categorias de sistema pela systemKey, nunca pelo id', () => {
+    const cats = [
+      { id: 'x1', systemKey: 'locacao' as const },
+      { id: 'x2', systemKey: 'manutencao' as const },
+      { id: 'x3', systemKey: 'ajuste' as const },
+      { id: 'x4', systemKey: null },
+    ]
+    expect(systemCategoryId(cats, 'locacao')).toBe('x1')
+    expect(systemCategoryId(cats, 'aquisicao')).toBeNull()
+    expect(systemCategoryIds(cats, ['manutencao', 'ajuste'])).toEqual(['x2', 'x3'])
   })
 })
 

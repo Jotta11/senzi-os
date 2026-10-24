@@ -108,10 +108,12 @@ describe('provas', () => {
     expect(k.closed).toBe(c.closed)
     expect(k.converted).toBe(c.converted)
     expect(k.rate).toBe(c.rate ?? 0)
-    expect(k.total).toBe(27)
+    expect(k.total).toBe(all.total)
     expect(k.open).toBe(abertas.total)
-    expect(k.converted).toBe(17)
-    expect(k.lost).toBe(6)
+    expect(k.converted).toBe(all.items.filter((f) => f.state === 'convertida').length)
+    expect(k.lost).toBe(all.items.filter((f) => f.state === 'perdida').length)
+    // o cenário (spec agenda-provas §7) tem provas de todos os desfechos
+    expect(Math.min(k.open, k.converted, k.lost, k.closed - k.converted - k.lost)).toBeGreaterThan(0)
   })
 
   it('getFitting traz itens com peça e favorito', async () => {
