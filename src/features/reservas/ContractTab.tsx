@@ -7,12 +7,14 @@ import { Button, EmptyState, Icon, buttonClass, useToast } from '@/ui'
 
 export type ContractTabProps = { r: ReservationDetail; onSign(): void; onWhatsApp(): void }
 
+
 /** Aba Contrato: número, situação da assinatura, ações (visualizar, copiar, imprimir, assinar) e o texto. */
 export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
   const { can } = usePermissions()
   const href = useAppHref()
   const toast = useToast()
   const c = r.contract
+  const phone = r.customer.phone.replace(/\D/g, '')
   const closed = r.state === 'cancelada' || r.state === 'no_show'
 
   async function copy() {
@@ -51,7 +53,7 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
             </Button>
           )}
           {c && can('cliente.view') && r.state !== 'rascunho' && (
-            <Button size="sm" icon="seta" onClick={onWhatsApp}>
+            <Button size="sm" icon="seta" disabled={!phone} title={phone ? undefined : 'Cliente sem telefone'} onClick={onWhatsApp}>
               Enviar no WhatsApp
             </Button>
           )}

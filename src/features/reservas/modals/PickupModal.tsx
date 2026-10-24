@@ -1,22 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { usePermissions } from '@/auth/usePermissions'
+import { useAddNote } from '@/data/hooks'
 import { usePickupItems } from '@/data/hooks-reservas'
-import type { Garment, ReservationDetail } from '@/data/types'
+import type { ReservationDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateBR } from '@/lib/format'
-import { Button, Field, Icon, Modal, Silhouette, useToast } from '@/ui'
+import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { AuthorizeExceptionDialog } from '../../exceptions/AuthorizeExceptionDialog'
+import { GarmentThumb } from '../GarmentThumb'
 
 export type PickupModalProps = { r: ReservationDetail; onClose(): void; onReceive(): void }
-
-function Thumb({ g }: { g: Garment }) {
-  const cover = g.photos.find((p) => p.isCover) ?? g.photos[0]
-  return (
-    <span className="rd-thumb sm" aria-hidden="true">
-      {cover ? <img src={cover.url} alt="" /> : <Silhouette categorySlug={g.categorySlug} style={g.style} length={g.length} colorHex={g.colorHex} />}
-    </span>
-  )
-}
 
 /**
  * Registrar retirada (spec §3.5): conferência por peça (marcada por padrão). Com saldo em aberto a entrega exige
@@ -24,11 +17,13 @@ function Thumb({ g }: { g: Garment }) {
  */
 export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
   const pickup = usePickupItems(r.id)
+  const addNote = useAddNote(r.customer.id)
   const toast = useToast()
   const { can } = usePermissions()
   const open = r.items.filter((i) => i.itemState === 'pendente' || i.itemState === 'nao_entregue')
   const [picked, setPicked] = useState<Record<string, boolean>>(() => Object.fromEntries(open.map((i) => [i.id, true])))
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [pickupNote, setPickupNote] = useState('')
   const [guidance, setGuidance] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
   const due = r.balance.due
@@ -40,6 +35,8 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
       { decisions: open.map((i) => ({ itemId: i.id, delivered: !!picked[i.id], note: notes[i.id]?.trim() || undefined })), exceptionId },
       {
         onSuccess: (res) => {
+          // Observação da retirada vira memória de atendimento da cliente (só quem pode anotar)
+          if (can('cliente.note') && pickupNote.trim()) addNote.mutate({ content: `Retirada — ${pickupNote.trim()}`, channel: 'presencial', pinned: false })
           const by = res.authorizations.find((a) => a.id === exceptionId)?.authorizedByName
           if (by) toast({ title: 'Retirada autorizada', description: `${brl(due)} em aberto · autorizada por ${by}.` })
           const pending = res.items.filter((i) => i.itemState === 'pendente' || i.itemState === 'nao_entregue').length
@@ -110,7 +107,7 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
                 <li key={it.id}>
                   <label className="rd-conf-h">
                     <input type="checkbox" checked={!!picked[it.id]} onChange={(e) => setPicked((p) => ({ ...p, [it.id]: e.target.checked }))} />
-                    <Thumb g={g} />
+                    <GarmentThumb garment={g} small />
                     <span>
                       <b>{g.name}</b> <span className="mono tiny muted">{g.code}</span>
                       <span className="tiny muted rd-block">
@@ -133,6 +130,7 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
               )
             })}
           </ul>
+          {can('cliente.note') && <Field label="Observação da retirada" placeholder="Peça entregue com capa protetora e cabide" value={pickupNote} onChange={(e) => setPickupNote(e.target.value)} />}
           <label className="rd-chk">
             <input type="checkbox" checked={guidance} onChange={(e) => setGuidance(e.target.checked)} /> Orientações de uso e devolução explicadas
           </label>

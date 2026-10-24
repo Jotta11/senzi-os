@@ -16,7 +16,7 @@ const HINT: Record<PaymentKind, string> = {
   estorno: 'Devolução de valor à cliente — inclusive da caução.',
 }
 
-export type PaymentModalProps = { r: ReservationDetail; initial?: { kind: PaymentKind; amount: number }; onClose(): void }
+export type PaymentModalProps = { r: ReservationDetail; initial?: { kind: PaymentKind; amount: number; fromDeposit?: boolean }; onClose(): void }
 
 /** Lançar pagamento (spec §3.4). O valor acompanha o tipo (saldo, caução sugerida, estorno). */
 export function PaymentModal({ r, initial, onClose }: PaymentModalProps) {
@@ -24,7 +24,7 @@ export function PaymentModal({ r, initial, onClose }: PaymentModalProps) {
   const toast = useToast()
   const b = r.balance
   const [kind, setKind] = useState<PaymentKind>(initial?.kind ?? (b.pago > 0 ? 'saldo' : 'sinal'))
-  const [fromDeposit, setFromDeposit] = useState(b.caucao > 0)
+  const [fromDeposit, setFromDeposit] = useState(initial?.fromDeposit ?? b.caucao > 0)
   const [method, setMethod] = useState<PaymentMethod>('pix')
   const [amount, setAmount] = useState((initial?.amount ?? b.due).toFixed(2))
   const [reference, setReference] = useState('')

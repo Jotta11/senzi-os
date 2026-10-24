@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
-import { useMarkReady, useRemoveDraftItem, useReservation, useReturnDeposit, useSettings } from '@/data/hooks-reservas'
+import { useMarkReady, useRemoveDraftItem, useReservation, useSettings } from '@/data/hooks-reservas'
 import { longDay } from './reservaFormat'
 import type { AvailabilityResult, PaymentKind, ReservationDetail } from '@/data/types'
 import { SourceError } from '@/data/types'
@@ -16,12 +16,14 @@ import { AddItemModal } from './modals/AddItemModal'
 import { CancelModal } from './modals/CancelModal'
 import { ConfirmModal } from './modals/ConfirmModal'
 import { ConflictModal } from './modals/ConflictModal'
+import { DepositModal } from './modals/DepositModal'
 import { PaymentModal } from './modals/PaymentModal'
 import { PickupModal } from './modals/PickupModal'
 import { ReturnModal } from './modals/ReturnModal'
 import { SignContractModal } from './modals/SignContractModal'
 import { WhatsAppModal } from './modals/WhatsAppModal'
 import { PaymentsTab } from './PaymentsTab'
+import type { WaKey } from './whatsapp'
 import { ReservationForm } from './ReservationForm'
 import { ReservationItems } from './ReservationItems'
 import { ReservationNotices } from './ReservationNotices'
@@ -31,7 +33,7 @@ import '../acervo/garment.css'
 import './reservas.css'
 import './reserva-detail.css'
 
-type Dialog = 'edit' | 'confirm' | 'payment' | 'pickup' | 'return' | 'sign' | 'cancel' | 'noshow' | 'whatsapp' | 'add' | 'conflict' | 'refund' | null
+type Dialog = 'edit' | 'confirm' | 'payment' | 'pickup' | 'return' | 'sign' | 'cancel' | 'noshow' | 'whatsapp' | 'add' | 'conflict' | 'refund' | 'deposit' | null
 type TabKey = 'pagamentos' | 'contrato' | 'historico'
 
 /** Ficha da reserva: cabeçalho com ações por estado e permissão (spec §2.2), faixas, lateral, peças e abas. */
@@ -79,11 +81,11 @@ function Ficha({ r }: { r: ReservationDetail }) {
   const settings = useSettings()
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<Dialog>(null)
+  const [waKey, setWaKey] = useState<WaKey | undefined>()
   const [payInit, setPayInit] = useState<{ kind: PaymentKind; amount: number } | undefined>()
   const [conflicts, setConflicts] = useState<AvailabilityResult[]>([])
   const ready = useMarkReady(r.id)
   const removeItem = useRemoveDraftItem(r.id)
-  const refund = useReturnDeposit(r.id)
   const close = () => setDialog(null)
   const launch = (initial?: { kind: PaymentKind; amount: number }) => {
     setPayInit(initial)
@@ -131,18 +133,11 @@ function Ficha({ r }: { r: ReservationDetail }) {
       },
     })
   }
-  function returnDeposit() {
-    refund.mutate('pix', {
-      onSuccess: () => toast({ title: 'Caução devolvida', description: `${r.code} · estorno da caução lançado.` }),
-      onError: (err) => toast({ title: 'Não foi possível devolver a caução', description: errorMessage(err), tone: 'error' }),
-    })
-  }
-
   const tabs: TabItem[] = [
     ...(money
-      ? [{ key: 'pagamentos', label: <TabLabel n={r.payments.length}>Pagamentos</TabLabel>, content: () => <PaymentsTab r={r} onLaunch={launch} onReturnDeposit={returnDeposit} /> }]
+      ? [{ key: 'pagamentos', label: <TabLabel n={r.payments.length}>Pagamentos</TabLabel>, content: () => <PaymentsTab r={r} onLaunch={launch} onReturnDeposit={() => setDialog('deposit')} /> }]
       : []),
-    { key: 'contrato', label: 'Contrato', content: () => <ContractTab r={r} onSign={() => setDialog('sign')} onWhatsApp={() => setDialog('whatsapp')} /> },
+    { key: 'contrato', label: 'Contrato', content: () => <ContractTab r={r} onSign={() => setDialog('sign')} onWhatsApp={() => { setWaKey('contrato'); setDialog('whatsapp') }} /> },
     { key: 'historico', label: 'Histórico', content: () => <HistoryTab r={r} /> },
   ]
   const aba = params.get('aba')
@@ -189,7 +184,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
           {show.noshow && <Button icon="x" onClick={() => setDialog('noshow')}>Marcar no-show</Button>}
           {show.cancel && <Button icon="x" onClick={() => setDialog('cancel')}>Cancelar</Button>}
           {show.wa && (
-            <Button icon="seta" disabled={!phone} title={phone ? undefined : 'Cliente sem telefone'} onClick={() => setDialog('whatsapp')}>
+            <Button icon="seta" disabled={!phone} title={phone ? undefined : 'Cliente sem telefone'} onClick={() => { setWaKey(undefined); setDialog('whatsapp') }}>
               Enviar no WhatsApp
             </Button>
           )}
@@ -225,12 +220,13 @@ function Ficha({ r }: { r: ReservationDetail }) {
       )}
       {dialog === 'conflict' && <ConflictModal r={r} conflicts={conflicts} onClose={close} />}
       {dialog === 'payment' && <PaymentModal r={r} initial={payInit} onClose={close} />}
-      {dialog === 'refund' && <PaymentModal r={r} initial={{ kind: 'estorno', amount: r.balance.pago }} onClose={close} />}
+      {dialog === 'deposit' && <DepositModal r={r} onClose={close} />}
+      {dialog === 'refund' && <PaymentModal r={r} initial={{ kind: 'estorno', amount: r.balance.pago, fromDeposit: false }} onClose={close} />}
       {dialog === 'pickup' && <PickupModal r={r} onClose={close} onReceive={() => launch()} />}
       {dialog === 'return' && <ReturnModal r={r} onClose={close} />}
       {dialog === 'sign' && <SignContractModal r={r} onClose={close} />}
-      {(dialog === 'cancel' || dialog === 'noshow') && <CancelModal r={r} mode={dialog === 'cancel' ? 'cancel' : 'noshow'} onClose={close} onRefund={() => setDialog('refund')} />}
-      {dialog === 'whatsapp' && <WhatsAppModal r={r} onClose={close} />}
+      {(dialog === 'cancel' || dialog === 'noshow') && <CancelModal r={r} mode={dialog === 'cancel' ? 'cancel' : 'noshow'} onClose={close} onRefund={() => setDialog('refund')} canRefund={can('financeiro.payment')} />}
+      {dialog === 'whatsapp' && <WhatsAppModal r={r} initialKey={waKey} onClose={close} />}
       {dialog === 'add' && <AddItemModal r={r} onClose={close} />}
     </div>
   )

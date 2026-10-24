@@ -1,6 +1,6 @@
 import { RESERVATION_STATE } from '@/data/labels-ops'
 import type { ReservationDetail } from '@/data/types'
-import { dateBR } from '@/lib/format'
+import { dateTimeBR } from '@/lib/format'
 import { EmptyState } from '@/ui'
 import { firstName } from './reservaFormat'
 
@@ -18,12 +18,11 @@ export function HistoryTab({ r }: { r: ReservationDetail }) {
         <ol className="rd-timeline">
           {rows.map((h) => {
             const st = RESERVATION_STATE[h.toState]
-            const time = new Date(h.occurredAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Araguaina' })
             return (
               <li key={h.id}>
                 <span className="rd-dot" data-tone={st.tone} aria-hidden="true" />
                 <span className="muted tiny rd-when">
-                  {dateBR(h.occurredAt).slice(0, 5)} {time}
+                  {dateTimeBR(h.occurredAt).slice(0, 5)} {dateTimeBR(h.occurredAt).slice(11, 16)}
                 </span>
                 <div>
                   <b>{st.label}</b>

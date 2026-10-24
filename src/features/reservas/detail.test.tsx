@@ -161,17 +161,14 @@ describe('Reservas — ficha', () => {
     renderPreview(`/preview/reservas/${row.id}`, source)
     await screen.findByRole('heading', { level: 1, name: row.code })
     await user.click(screen.getByRole('button', { name: 'Atendimento' }))
-    expect(screen.getByText('Saldo')).toBeInTheDocument()
+    expect(screen.getAllByText('Saldo').length).toBeGreaterThan(0)
     expect(screen.getByRole('tab', { name: /Pagamentos/ })).toBeInTheDocument()
     for (const t of [/Custo/, /Payback/, /Resultado/]) expect(screen.queryByText(t)).toBeNull()
   })
 
-  it('Pagamentos lista os lançamentos e oferece "Receber" no saldo pendente', async () => {
+  it('Pagamentos lista os lançamentos e oferece "Receber" no saldo pendente (Sorrento)', async () => {
     const source = newSource()
-    const row = await find(source, draftOf('Capri'))
-    await signed(source, row.id)
-    const d = (await source.getReservation(row.id))!
-    await source.confirmReservation(row.id, { amount: d.minSignal, method: 'pix', reference: null, notes: null })
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Sorrento')(r))
     renderPreview(`/preview/reservas/${row.id}`, source)
     const panel = await screen.findByRole('tabpanel')
     expect(await within(panel).findByText('Sinal')).toBeInTheDocument()
@@ -207,6 +204,64 @@ describe('Reservas — ficha', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
     expect(within(dialog).getByLabelText('Texto da mensagem').textContent).toMatch(/^Olá, Mariana! Sua reserva .* está confirmada\./)
     expect(within(dialog).getByRole('link', { name: 'Abrir WhatsApp' }).getAttribute('href')).toMatch(/^https:\/\/wa\.me\/55\d{10,11}\?text=/)
+  })
+
+  it('retirada: "Observação da retirada" vira nota de atendimento da cliente (só com cliente.note)', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'pronta_retirada')
+    const d = (await source.getReservation(row.id))!
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: /Registrar retirada|Retirar o restante/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar retirada' })
+    await user.type(within(dialog).getByLabelText('Observação da retirada'), 'Entregue com capa')
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar retirada' }))
+    await waitFor(async () => {
+      const c = (await source.getCustomer(d.customerId))!
+      expect(c.interactions.some((i) => i.content === 'Retirada — Entregue com capa' && i.channel === 'presencial' && !i.pinned)).toBe(true)
+    })
+  })
+
+  it('Devolver caução pergunta a forma (padrão PIX) e lança o estorno com ela', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'finalizada')
+    await source.registerPayment(row.id, { kind: 'caucao', method: 'pix', amount: 100, reference: null, notes: null })
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Devolver caução' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Devolver caução' })
+    const select = within(dialog).getByLabelText('Forma da devolução')
+    expect(select).toHaveValue('pix')
+    await user.selectOptions(select, 'dinheiro')
+    await user.click(within(dialog).getByRole('button', { name: 'Devolver caução' }))
+    await waitFor(async () => {
+      const p = (await source.getReservation(row.id))!.payments.find((x) => x.kind === 'estorno')
+      expect(p).toMatchObject({ method: 'dinheiro', refersTo: 'caucao', amount: 100 })
+    })
+  })
+
+  it('aba Contrato: "Enviar no WhatsApp" abre com a mensagem do contrato', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
+    renderPreview(`/preview/reservas/${row.id}?aba=contrato`, source)
+    const panel = await screen.findByRole('tabpanel')
+    await user.click(await within(panel).findByRole('button', { name: 'Enviar no WhatsApp' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
+    expect(within(dialog).getByLabelText('Mensagem')).toHaveValue('contrato')
+  })
+
+  it('cancelar → "Lançar estorno" abre o lançamento de estorno de receita com o valor pago', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Sorrento')(r))
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }))
+    const cancel = await screen.findByRole('dialog', { name: 'Cancelar reserva' })
+    await user.click(within(cancel).getByRole('button', { name: 'Lançar estorno' }))
+    const pay = await screen.findByRole('dialog', { name: 'Lançar pagamento' })
+    expect(within(pay).getByLabelText('Tipo')).toHaveValue('estorno')
+    expect(within(pay).getByLabelText('Valor (R$)')).toHaveValue(400)
   })
 
   it('reserva inexistente mostra "Reserva não encontrada"', async () => {

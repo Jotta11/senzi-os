@@ -112,6 +112,23 @@ describe('buildWorld', () => {
     expect(r.items.map((i) => i.itemState).sort()).toEqual(['devolvido', 'retirado'])
   })
 
+  it('(j) reserva viva com valor a receber tem um saldo pendente, vencendo na retirada', () => {
+    const live: ReservationState[] = ['confirmada', 'pronta_retirada', 'retirada', 'em_uso', 'aguardando_devolucao']
+    const rows = w.reservations.filter((r) => live.includes(r.state))
+    let withSaldo = 0
+    for (const r of rows) {
+      const multa = r.payments.filter((p) => p.kind === 'multa' && p.state === 'pendente').reduce((s, p) => s + p.amount, 0)
+      const saldos = r.payments.filter((p) => p.kind === 'saldo' && p.state === 'pendente')
+      const expected = Math.round((r.balance.due - multa) * 100) / 100
+      if (expected > 0.005) {
+        withSaldo++
+        expect(saldos, r.code).toHaveLength(1)
+        expect(saldos[0]).toMatchObject({ amount: expected, dueAt: r.pickupDate })
+      } else expect(saldos, r.code).toHaveLength(0)
+    }
+    expect(withSaldo).toBeGreaterThanOrEqual(3)
+  })
+
   it('operação: higienização, manutenção, ajuste, bloqueada, inspeção e baixada', () => {
     const st = (n: string) => byName(n).state
     expect(st('Trastevere')).toBe('higienizacao')

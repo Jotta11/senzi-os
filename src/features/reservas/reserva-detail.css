@@ -4,7 +4,8 @@
    ===================================================================== */
 .rd-actions { max-width: 760px; justify-content: flex-end; }
 .rd-main { display: flex; flex-direction: column; gap: 16px; }
-.rd-main .tabs { margin-top: 4px; }
+.rd-main .tabs { margin: 0 0 10px; }
+.rd-page .gp-head .ac-sub { font-family: var(--f-ui); font-size: 13.5px; letter-spacing: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rd-page .ac-body > .note { margin: 0; }
 .rd-block { display: block; }
 .rd-alter { display: inline-flex; align-items: center; gap: 4px; color: var(--t-ochre); }

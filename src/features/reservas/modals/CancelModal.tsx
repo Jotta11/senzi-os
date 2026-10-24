@@ -5,10 +5,10 @@ import { errorMessage } from '@/lib/errorMessages'
 import { brl } from '@/lib/format'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
 
-export type CancelModalProps = { r: ReservationDetail; mode: 'cancel' | 'noshow'; onClose(): void; onRefund(): void }
+export type CancelModalProps = { r: ReservationDetail; mode: 'cancel' | 'noshow'; onClose(): void; onRefund(): void; canRefund: boolean }
 
 /** Cancelar reserva (motivo obrigatório; nota com a política quando já há pagamento) ou marcar no-show. */
-export function CancelModal({ r, mode, onClose, onRefund }: CancelModalProps) {
+export function CancelModal({ r, mode, onClose, onRefund, canRefund }: CancelModalProps) {
   const cancel = useCancelReservation(r.id)
   const noShow = useMarkNoShow(r.id)
   const toast = useToast()
@@ -85,7 +85,7 @@ export function CancelModal({ r, mode, onClose, onRefund }: CancelModalProps) {
             <Icon name="alerta" size={14} />
             <span>
               Já foram recebidos {brl(r.balance.pago)}. {isCancel ? 'Política do contrato (cláusula 7): até 15 dias antes da retirada devolução integral; entre 14 e 7 dias, retenção de 30%; a menos de 7 dias, 50%.' : 'No não comparecimento a retenção é integral (cláusula 7.4).'}{' '}
-              {r.balance.pago > 0 && (
+              {canRefund && (
                 <button type="button" className="rs-alt" onClick={onRefund}>
                   Lançar estorno
                 </button>

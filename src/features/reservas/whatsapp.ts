@@ -1,5 +1,6 @@
 import type { ReservationDetail, Settings } from '@/data/types'
 import { brl, dateBR, phoneDigits, todayISO } from '@/lib/format'
+import { firstName } from './reservaFormat'
 
 export type WaKey = 'contrato' | 'confirmacao' | 'retirada' | 'devolucao' | 'atraso' | 'saldo'
 export type WaMessage = { key: WaKey; label: string; text: string }
@@ -10,14 +11,13 @@ export function waLink(phone: string, text: string): string {
 }
 
 const dm = (iso: string) => dateBR(iso).slice(0, 5)
-const first = (name: string) => name.trim().split(/\s+/)[0] ?? name
 
 /**
  * As 6 mensagens da spec §5.4 (Decisão 8: sem `{link}`, entra a frase "O PDF segue em anexo."),
  * com saudação pelo primeiro nome da cliente.
  */
 export function messages(d: ReservationDetail, settings: Pick<Settings, 'lateFeeDailyPercent'>, today: string = todayISO()): WaMessage[] {
-  const n = first(d.customer.fullName)
+  const n = firstName(d.customer.fullName)
   const ct = d.contract?.number ?? d.code.replace('RS', 'CT')
   const names = d.garments.map((g) => g.name).join(', ')
   const pecas = `${d.items.length} peça(s)`

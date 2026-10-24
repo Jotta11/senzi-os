@@ -2,19 +2,11 @@ import { Link } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { GARMENT_STATE } from '@/data/labels'
 import { ITEM_STATE } from '@/data/labels-ops'
-import type { Garment, ReservationDetail } from '@/data/types'
+import type { ReservationDetail } from '@/data/types'
 import { brl, dateTimeBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Badge, Button, Icon, Silhouette } from '@/ui'
-
-function Thumb({ g }: { g: Garment }) {
-  const cover = g.photos.find((p) => p.isCover) ?? g.photos[0]
-  return (
-    <span className="rd-thumb" aria-hidden="true">
-      {cover ? <img src={cover.url} alt="" loading="lazy" /> : <Silhouette categorySlug={g.categorySlug} style={g.style} length={g.length} colorHex={g.colorHex} />}
-    </span>
-  )
-}
+import { Badge, Button, Icon } from '@/ui'
+import { GarmentThumb } from './GarmentThumb'
 
 export type ReservationItemsProps = {
   r: ReservationDetail
@@ -57,7 +49,7 @@ export function ReservationItems({ r, canEditDraft, onAdd, onRemove, removing }:
           return (
             <li key={it.id} className="rd-item">
               <Link to={to} className="rd-thumb-link" aria-label={`Abrir ${g.name}`} tabIndex={-1}>
-                <Thumb g={g} />
+                <GarmentThumb garment={g} />
               </Link>
               <div className="rd-item-c">
                 <Link to={to} className="rd-item-n">

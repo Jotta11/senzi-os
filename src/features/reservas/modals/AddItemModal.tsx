@@ -17,13 +17,21 @@ export function AddItemModal({ r, onClose }: { r: ReservationDetail; onClose(): 
   }
 
   async function save() {
-    try {
-      for (const g of extra) await add.mutateAsync(g.id)
-      toast({ title: extra.length === 1 ? 'Peça adicionada' : 'Peças adicionadas', description: `${r.code} · contrato regerado.` })
-      onClose()
-    } catch (err) {
-      toast({ title: 'Não foi possível adicionar', description: errorMessage(err), tone: 'error' })
+    const done: Garment[] = []
+    for (const g of extra) {
+      try {
+        await add.mutateAsync(g.id)
+        done.push(g)
+      } catch (err) {
+        // Para no primeiro erro e diz o que já entrou, para não deixar o conjunto pela metade em silêncio
+        setExtra((p) => p.filter((x) => !done.some((d) => d.id === x.id)))
+        const added = done.length ? `Já adicionada(s): ${done.map((d) => d.name).join(', ')}. ` : ''
+        toast({ title: `Não foi possível adicionar ${g.name}`, description: `${added}${errorMessage(err)}`, tone: 'error' })
+        return
+      }
     }
+    toast({ title: extra.length === 1 ? 'Peça adicionada' : 'Peças adicionadas', description: `${r.code} · contrato regerado.` })
+    onClose()
   }
 
   return (

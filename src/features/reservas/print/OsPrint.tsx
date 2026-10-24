@@ -4,7 +4,7 @@ import { PAYMENT_KIND } from '@/data/labels-ops'
 import { RESERVATION_STATE } from '@/data/labels-ops'
 import type { ReservationDetail } from '@/data/types'
 import { brl, dateBR, maskPhone, todayISO } from '@/lib/format'
-import { Logo } from '@/ui'
+import { Logo, Silhouette } from '@/ui'
 import { longDay } from '../reservaFormat'
 import { PrintShell, STORE_PLACEHOLDER } from './PrintShell'
 
@@ -47,7 +47,15 @@ function Os({ r }: { r: ReservationDetail }) {
             const cover = g?.photos.find((p) => p.isCover) ?? g?.photos[0]
             return (
               <li key={it.id}>
-                {cover ? <img src={cover.url} alt="" className="pr-photo" /> : <span className="pr-photo" aria-hidden="true" />}
+                {cover ? (
+                  <img src={cover.url} alt="" className="pr-photo" />
+                ) : g ? (
+                  <span className="pr-photo" aria-hidden="true">
+                    <Silhouette categorySlug={g.categorySlug} style={g.style} length={g.length} colorHex={g.colorHex} />
+                  </span>
+                ) : (
+                  <span className="pr-photo" aria-hidden="true" />
+                )}
                 <div>
                   <b>
                     {g?.code} · {g?.name}
