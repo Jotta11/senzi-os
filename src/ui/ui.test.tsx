@@ -206,6 +206,23 @@ describe('DataTable e EmptyState', () => {
     expect(row).not.toHaveFocus()
   })
 
+  it('células levam o cabeçalho em data-label (rótulo do cartão no celular) quando ele é texto', () => {
+    render(
+      <DataTable
+        caption="Peças"
+        rows={[{ id: '1', code: 'SZ-0107' }]}
+        rowKey={(r) => r.id}
+        columns={[
+          { key: 'code', header: 'Código', render: (r) => r.code },
+          { key: 'acao', header: <span className="sr-only">Ações</span>, render: () => 'abrir' },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('table')).toHaveClass('dt-stack')
+    expect(screen.getByRole('cell', { name: 'SZ-0107' })).toHaveAttribute('data-label', 'Código')
+    expect(screen.getByRole('cell', { name: 'abrir' })).not.toHaveAttribute('data-label')
+  })
+
   it('EmptyState mostra título e descrição', () => {
     render(<EmptyState title="Nenhuma peça encontrada" description="Ajuste os filtros ou cadastre uma nova peça." />)
     expect(screen.getByText('Nenhuma peça encontrada')).toBeInTheDocument()

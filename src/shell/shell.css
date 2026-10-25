@@ -66,7 +66,7 @@
 .sb-center { min-height: 60vh; display: grid; place-items: center; color: var(--nevoa); }
 
 /* tablet: trilho de ícones, ainda em Cranberry */
-@media (max-width: 1024px) {
+@media (min-width: 641px) and (max-width: 1024px) {
   .sb-app { grid-template-columns: 68px minmax(0, 1fr); }
   .sb-brand { padding: 20px 0 16px; display: flex; justify-content: center; }
   .sb-logo { display: none; }
@@ -84,17 +84,91 @@
   .sb-signout { margin-left: 0; padding: 6px; }
 }
 @media (max-width: 760px) { .sb-pad { padding: 20px 16px; } }
-/* celular: barra no topo com os itens em linha (rolagem horizontal) */
-@media (max-width: 560px) {
-  .sb-app { grid-template-columns: minmax(0, 1fr); }
-  .sb-rail {
-    position: sticky; top: 0; height: auto; z-index: 10;
-    flex-direction: row; align-items: center; overflow-x: auto; padding: 6px 8px;
+
+/* App instalado no iPhone/iPad: a barra de status fica por cima (black-translucent); respeita o recorte. */
+@media (min-width: 641px) {
+  .sb-rail { padding-top: env(safe-area-inset-top, 0px); }
+  .sb-content { padding-top: env(safe-area-inset-top, 0px); }
+}
+
+/* ------------------------------------------------------------ celular
+   Barra do topo com a logo, gaveta lateral (a própria sidebar) e abas fixas embaixo. */
+.sb-top, .sb-tabs, .sb-scrim, .sb-close { display: none; }
+
+@media (max-width: 640px) {
+  :root { --tabbar-h: 62px; }
+  .sb-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+
+  .sb-top {
+    position: sticky; top: 0; z-index: 30;
+    display: grid; grid-template-columns: 44px 1fr 44px; align-items: center;
+    padding: env(safe-area-inset-top, 0px) 6px 0;
+    min-height: calc(54px + env(safe-area-inset-top, 0px));
+    background: var(--cranberry); color: var(--beige);
+    box-shadow: 0 1px 0 var(--rail-line);
   }
-  .sb-brand { padding: 0 8px; }
-  .sb-logo-mark { width: 20px; }
-  .sb-search, .sb-who, .sb-av { display: none; }
-  .sb-nav { flex-direction: row; padding: 0; }
-  .sb-nav a { padding: 8px 10px; }
-  .sb-foot { margin-top: 0; border-top: 0; flex-direction: row; padding: 0 4px; }
+  .sb-top :focus-visible { outline-color: var(--beige); }
+  .sb-top-btn {
+    width: 44px; height: 44px; display: grid; place-items: center;
+    background: none; border: none; border-radius: var(--r-md); color: var(--beige); cursor: pointer;
+  }
+  button.sb-top-btn:active { background: var(--rail-hover); }
+  .sb-top-logo { justify-self: center; color: var(--beige); display: block; padding: 6px; }
+  .sb-top-logo svg { display: block; width: 84px; height: auto; }
+
+  /* gaveta */
+  .sb-rail {
+    position: fixed; z-index: 60; top: 0; bottom: 0; left: 0; height: auto;
+    width: min(304px, 86vw);
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    transform: translateX(-102%); visibility: hidden;
+    transition: transform .26s cubic-bezier(.32, .72, 0, 1), visibility 0s linear .26s;
+    box-shadow: 8px 0 40px rgba(28, 26, 24, .28);
+    overscroll-behavior: contain;
+  }
+  .sb-rail[data-open="true"] { transform: none; visibility: visible; transition: transform .26s cubic-bezier(.32, .72, 0, 1); }
+  .sb-brand { display: flex; align-items: center; justify-content: space-between; padding: 18px 12px 18px 22px; }
+  .sb-logo { width: 118px; }
+  .sb-close {
+    display: grid; place-items: center; width: 40px; height: 40px;
+    background: none; border: none; border-radius: var(--r-md); color: var(--beige-dim); cursor: pointer;
+  }
+  .sb-close:active { background: var(--rail-hover); }
+  .sb-nav a { padding: 11px 12px; font-size: 15px; gap: 12px; }
+  .sb-nav a svg { width: 18px; height: 18px; }
+  .sb-nav a.sb-sub { margin-left: 30px; padding: 8px 12px; font-size: 14px; }
+  .sb-foot { padding: 16px 18px; }
+
+  .sb-scrim {
+    display: block; position: fixed; inset: 0; z-index: 55;
+    background: rgba(28, 26, 24, .42); animation: sb-fade .2s ease-out;
+  }
+
+  /* abas */
+  .sb-tabs {
+    position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 4px 4px env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, .94);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
+    border-top: 1px solid var(--areia);
+  }
+  .sb-tabs a, .sb-tabs button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 54px; padding: 4px 2px; border: none; background: none; cursor: pointer;
+    color: var(--nevoa); font-size: 11px; font-weight: 550; letter-spacing: .01em;
+    text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  .sb-tabs svg { padding: 4px 14px; box-sizing: content-box; border-radius: 999px; transition: background .15s, color .15s; }
+  .sb-tabs span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-tabs a[aria-current="page"], .sb-tabs button[data-on="true"] { color: var(--cranberry); font-weight: 650; }
+  .sb-tabs a[aria-current="page"] svg, .sb-tabs button[data-on="true"] svg { background: var(--vivo-soft); color: var(--vivo); }
+  .sb-tabs a:hover { text-decoration: none; }
+
+  .sb-content { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); }
+}
+@keyframes sb-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sb-rail, .sb-rail[data-open="true"] { transition: none; }
+  .sb-scrim { animation: none; }
 }

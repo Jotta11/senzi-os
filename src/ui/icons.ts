@@ -45,6 +45,10 @@ export const ICONS = {
   regua: 'M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4',
   usuarioMais: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M18 9v6M15 12h6',
   historico: 'M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 5v4h4M12 7.5v5l3.4 2',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  mais: 'M5 10.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 10.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM19 10.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z',
+  instalar: 'M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14',
+  compartilhar: 'M12 3.5v11M8 7.5l4-4 4 4M8.5 11H6v9.5h12V11h-2.5',
 } as const
 
 export type IconName = keyof typeof ICONS

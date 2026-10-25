@@ -19,4 +19,4 @@
 .toast-x:hover { color: var(--vivo); background: var(--surface-2); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-@media (max-width: 560px) { .toasts { right: 16px; left: 16px; bottom: 16px; width: auto; } }
+@media (max-width: 640px) { .toasts { right: 16px; left: 16px; bottom: calc(12px + var(--tabbar-h, 0px) + env(safe-area-inset-bottom, 0px)); width: auto; } }

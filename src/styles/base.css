@@ -142,8 +142,10 @@ img { max-width: 100%; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .spread { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 hr.sep { border: none; border-top: 1px solid var(--areia); margin: 0; }
+/* `top/left: 0` ancoram o texto oculto no bloco posicionado mais próximo: sem isso ele fica onde estaria no fluxo
+   e, dentro de uma área com rolagem horizontal (tabelas, abas), escapa dela e alarga a página no celular. */
 .sr-only {
-  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  position: absolute; top: 0; left: 0; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
@@ -197,6 +199,24 @@ hr.sep { border: none; border-top: 1px solid var(--areia); margin: 0; }
 .dt .al-center { text-align: center; }
 .dt-click { cursor: pointer; }
 .dt-click:hover td { background: var(--surface-2); }
+
+/* celular: cada linha vira um cartão — 1ª coluna como título, as demais em "rótulo · valor" */
+@media (max-width: 640px) {
+  .dt-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .dt-stack, .dt-stack tbody, .dt-stack tr, .dt-stack td { display: block; width: 100%; }
+  .dt-stack tr { padding: 12px 14px; border-bottom: 1px solid var(--areia); }
+  .dt-stack tr:last-child { border-bottom: none; }
+  .dt-stack td { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 3px 0; border: none; text-align: right; }
+  .dt-stack td.al-left, .dt-stack td.al-center { text-align: right; }
+  .dt-stack td::before { content: attr(data-label); flex: none; max-width: 45%; text-align: left; color: var(--nevoa); font-size: 12px; font-family: var(--f-ui); font-weight: 500; }
+  .dt-stack td:not([data-label])::before, .dt-stack td[data-label=""]::before { content: none; }
+  .dt-stack td:not([data-label]) { justify-content: flex-end; }
+  .dt-stack td > * { min-width: 0; }
+  .dt-stack td:first-child { display: block; text-align: left; font-size: 14px; font-weight: 600; padding: 0 0 6px; }
+  .dt-stack td:first-child::before { content: none; }
+  .dt-click:hover td { background: none; }
+  .dt-click:active { background: var(--surface-2); }
+}
 
 /* ---------------------------------------------------------------- busca */
 .search-input {

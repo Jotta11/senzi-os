@@ -15,7 +15,8 @@
     "test:db": "vitest run --project db",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
-    "bootstrap:admin": "node scripts/bootstrap-admin.ts"
+    "bootstrap:admin": "node scripts/bootstrap-admin.ts",
+    "icons": "node scripts/pwa-icons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

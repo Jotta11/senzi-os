@@ -20,7 +20,10 @@
 .pv-seg button + button { border-left: 1px solid var(--areia-2); }
 .pv-seg button:hover { background: var(--surface-2); }
 .pv-seg button[aria-pressed="true"] { background: var(--vivo-soft); color: var(--vivo); font-weight: 600; }
-@media (max-width: 560px) {
-  .pv-band { padding: 8px 16px; }
-  .pv-viewas { margin-left: 0; }
+@media (max-width: 640px) {
+  .pv-band { padding: 7px 16px; gap: 8px; flex-wrap: nowrap; font-size: 12px; }
+  .pv-band-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0; }
+  .pv-viewas { flex: none; gap: 6px; }
+  .pv-seg button { padding: 4px 8px; font-size: 12px; }
+  .pv-band-more, .pv-viewas-l { display: none; }
 }

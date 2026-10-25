@@ -21,12 +21,12 @@ export type DataTableProps<T> = {
   empty?: ReactNode
 }
 
-/** Tabela simples com cabeçalho fixo de estilo, rolagem horizontal própria (nunca a da página). */
+/** Tabela simples com cabeçalho fixo de estilo, rolagem horizontal própria (nunca a da página). No celular, cada linha vira um cartão. */
 export function DataTable<T>({ columns, rows, rowKey, onRowClick, caption, empty }: DataTableProps<T>) {
   if (rows.length === 0 && empty) return <>{empty}</>
   return (
     <div className="dt-wrap">
-      <table className="dt">
+      <table className="dt dt-stack">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr>
@@ -45,7 +45,11 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, caption, empty
               onClick={onRowClick ? () => onRowClick(r) : undefined}
             >
               {columns.map((c) => (
-                <td key={c.key} className={[c.align && `al-${c.align}`, c.className].filter(Boolean).join(' ') || undefined}>
+                <td
+                  key={c.key}
+                  className={[c.align && `al-${c.align}`, c.className].filter(Boolean).join(' ') || undefined}
+                  data-label={typeof c.header === 'string' ? c.header : undefined}
+                >
                   {c.render(r)}
                 </td>
               ))}

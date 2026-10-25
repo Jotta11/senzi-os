@@ -1,3 +1,5 @@
+import { MARK_PATH, MARK_VIEWBOX } from './brandMark'
+
 /** Traçados do logo oficial Senzi Club (arquivos SENZI-02 e SENZI-05 em docs/marca), recortados ao conteúdo. */
 const WORDMARK_PATHS = [
   'M100.15,437.35c0-5.37,4.07-8.98,9.06-8.98,4.62,0,8.3,3.06,8.3,7.63,0,3.65-2.31,5.03-4.66,6.54-1.3.8-2.05,1.47-2.05,2.73,0,3.98,7.67,8.85,21.27,8.85,14.85,0,25.96-5.79,25.96-17.53,0-13.42-14.35-17.58-26.55-21.1l-2.31-.71c-9.56-2.77-27.31-7.72-27.31-24.16,0-14.77,14.3-22.73,32.76-22.73s30.16,8.35,30.16,16.65c0,4.61-3.48,8.22-8.6,8.22-4.41,0-7.93-2.73-7.93-6.92,0-3.4,2.3-5.08,4.45-6.67,1.34-.97,1.85-1.59,1.85-2.56,0-3.65-7.85-7.72-19.51-7.72-14.26,0-25.08,6.17-25.08,17.45,0,12.88,14.05,16.86,24.58,19.92l2.31.67c12.67,3.69,29.82,8.6,29.82,24.87,0,15.02-14.6,23.32-34.27,23.32s-32.26-8.14-32.26-17.79Z',
@@ -12,31 +14,23 @@ const WORDMARK_PATHS = [
 ]
 /** As 4 últimas formas são o "CLUB": traço fino demais em tamanho de tela, então ganham contorno. */
 const CLUB_FROM = 5
-const MARK_PATH = 'M186.3,525.98c0-17.79,13.01-30.67,30.41-45.68l154.83-139.57c8.63-7.57,14.74-13.81,18.86-20.18l-5.45-5.84c-11.28.8-25.1,1.2-39.84,1.33l-122.96.4c-15.41.13-24.83,5.97-25.24,25.1l-1.05,44.22h-2.66l1.73-70.25c.53-24.83,14.2-29.75,35.19-29.75,43.82,0,120.31.66,170.91.8h.8c0,23.9-4.78,36.12-27.62,55.91l-81.93,73.83,65.73,84.06c12.61,16.34,21.92,27.89,33.86,27.89,9.29,0,14.47-7.17,14.47-22.18v-70.38h2.65v78.88c0,25.1-10.22,40.24-29.61,40.24s-32.93-15.14-48.47-34.92l-63.74-80.87-37.31,33.6c-9.03,7.44-17.4,15.93-17.4,24.43,0,6.91,5.32,8.63,9.16,9.83,7.44,2.13,23.51,6.91,23.51,24.44,0,15-11.69,24.83-27.62,24.83-17.79,0-31.2-12.35-31.2-30.14Z'
 
-export type LogoProps = { variant?: 'wordmark' | 'mark'; className?: string; title?: string }
+export type LogoProps = { variant?: 'wordmark' | 'name' | 'mark'; className?: string; title?: string }
+
+const VIEWBOX = { wordmark: '100 342 395 158', name: '100 342 395 117', mark: MARK_VIEWBOX }
 
 /**
  * Logo Senzi Club em SVG inline. A cor vem de `currentColor`: Beige sobre o Cranberry da sidebar,
- * Cranberry sobre fundo claro. `wordmark` = "senzi CLUB"; `mark` = o "Z" sozinho (espaços estreitos).
+ * Cranberry sobre fundo claro. `wordmark` = "senzi CLUB"; `name` = só "senzi" (barra do celular, onde o
+ * "CLUB" ficaria fino demais); `mark` = o "Z" sozinho (espaços estreitos).
  */
 export function Logo({ variant = 'wordmark', className, title = 'Senzi Club' }: LogoProps) {
-  const wordmark = variant === 'wordmark'
+  const paths = variant === 'wordmark' ? WORDMARK_PATHS : variant === 'name' ? WORDMARK_PATHS.slice(0, CLUB_FROM) : [MARK_PATH]
   return (
-    <svg
-      className={className}
-      viewBox={wordmark ? '100 342 395 158' : '186 285 223 271'}
-      fill="currentColor"
-      role="img"
-      aria-label={title}
-    >
-      {wordmark ? (
-        WORDMARK_PATHS.map((d, i) => (
-          <path key={d} d={d} {...(i >= CLUB_FROM && { stroke: 'currentColor', strokeWidth: 1.6 })} />
-        ))
-      ) : (
-        <path d={MARK_PATH} />
-      )}
+    <svg className={className} viewBox={VIEWBOX[variant]} fill="currentColor" role="img" aria-label={title}>
+      {paths.map((d, i) => (
+        <path key={d} d={d} {...(variant === 'wordmark' && i >= CLUB_FROM && { stroke: 'currentColor', strokeWidth: 1.6 })} />
+      ))}
     </svg>
   )
 }

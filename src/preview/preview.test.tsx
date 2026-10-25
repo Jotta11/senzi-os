@@ -20,7 +20,7 @@ const nav = () => within(screen.getByRole('navigation', { name: /navegação pri
 describe('PreviewLayout', () => {
   it('mostra a faixa da prévia e o seletor "Ver como"', () => {
     renderAt('/preview/acervo')
-    expect(screen.getByText('Prévia visual · dados fictícios')).toBeInTheDocument()
+    expect(screen.getByText((_, el) => el?.classList.contains('pv-band-t') === true)).toHaveTextContent('Prévia visual · dados fictícios')
     expect(screen.getByRole('group', { name: 'Ver como' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Administrador' })).toHaveAttribute('aria-pressed', 'true')
   })

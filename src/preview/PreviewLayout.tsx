@@ -112,7 +112,9 @@ function PreviewBand() {
     <div className="pv-band">
       <p className="pv-band-t">
         <span className="pv-band-dot" aria-hidden="true" />
-        Prévia visual · dados fictícios
+        <span>
+          Prévia visual<span className="pv-band-more"> · dados fictícios</span>
+        </span>
       </p>
       <div className="pv-viewas">
         <span className="pv-viewas-l" id="pv-viewas-l">

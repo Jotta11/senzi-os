@@ -15,6 +15,23 @@ pnpm lint         # ESLint
 pnpm build        # build de produção
 ```
 
+## App instalável (PWA)
+
+O Senzi OS instala como app no celular, tablet e computador (ícone: o "Z" da Senzi em Beige sobre Cranberry).
+
+- **Android / Chrome / Edge:** botão **Instalar app** na sidebar (ou no menu ☰ do celular).
+- **iPhone / iPad:** no Safari, *Compartilhar → Adicionar à Tela de Início* (o botão Instalar app explica).
+- **Onde o app abre:** em `/` quando `VITE_SUPABASE_URL` está definido no build; senão em `/preview`
+  (prévia com dados fictícios). Para forçar outro caminho: `VITE_PWA_START_URL`.
+- **Offline e atualização:** o service worker (gerado no `pnpm build` a partir de `src/pwa/sw.js`) guarda a
+  versão atual do app e as fontes; dados do Supabase nunca vão para o cache. Cada build é uma versão nova e o
+  app mostra o aviso "Nova versão disponível · Atualizar". O service worker só roda no build de produção
+  (`pnpm build && pnpm preview`), não no `pnpm dev`.
+- **Hospedagem:** precisa de HTTPS e de fallback de SPA (toda rota desconhecida → `index.html`); sirva
+  `sw.js` e `manifest.webmanifest` sem cache longo.
+- **Ícones:** já versionados em `public/`. Se a marca ou as cores mudarem, rode `pnpm icons` (precisa do
+  Google Chrome instalado).
+
 ## Conectar ao Supabase
 
 Requer Node ≥ 22.18 (o script `bootstrap:admin` roda TypeScript com o type stripping nativo).
