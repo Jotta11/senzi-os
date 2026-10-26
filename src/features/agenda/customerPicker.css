@@ -1,5 +1,7 @@
 /* Busca de cliente (combobox). Lista em card branco com borda Areia; item ativo em Vivo-soft. */
-.cp-box { position: relative; }
+.cp-row { display: flex; gap: 8px; align-items: stretch; }
+.cp-box { position: relative; flex: 1; min-width: 0; }
+.cp-add { flex: none; width: 40px; padding: 0; justify-content: center; }
 .cp-box input { width: 100%; padding-right: 32px; }
 .cp-clear {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);

@@ -7,7 +7,7 @@ export type CustomerPickerProps = {
   /** Id da cliente escolhida (ou `null`). */
   value: string | null
   onChange(id: string | null): void
-  /** Mostra "Cadastrar nova cliente" no fim da lista. */
+  /** Mostra o botão "+" ao lado do campo e "Cadastrar nova cliente" no fim da lista. */
   allowCreate?: boolean
   onCreateRequest?(): void
   label?: string
@@ -82,61 +82,77 @@ export function CustomerPicker({ value, onChange, allowCreate = false, onCreateR
   return (
     <div className={['field', 'cp', error && 'has-error'].filter(Boolean).join(' ')}>
       <label htmlFor={inputId}>{label}</label>
-      <div className="cp-box">
-        <input
-          id={inputId}
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={open ? listId : undefined}
-          aria-autocomplete="list"
-          aria-activedescendant={open && options.length ? optId(activeIdx) : undefined}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${inputId}-error` : undefined}
-          autoComplete="off"
-          placeholder="Buscar por nome, telefone ou código"
-          value={shown}
-          onChange={(e) => {
-            setText(e.target.value)
-            setActive(0)
-            setOpen(true)
-            if (value) onChange(null)
-          }}
-          onClick={() => setOpen(true)}
-          onBlur={() => {
-            setOpen(false)
-            setText(null)
-          }}
-          onKeyDown={onKeyDown}
-        />
-        {value && (
-          <button type="button" className="cp-clear" aria-label="Limpar cliente" onClick={() => { onChange(null); setText(null) }}>
-            <Icon name="x" size={13} />
+      <div className="cp-row">
+        <div className="cp-box">
+          <input
+            id={inputId}
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={open ? listId : undefined}
+            aria-autocomplete="list"
+            aria-activedescendant={open && options.length ? optId(activeIdx) : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${inputId}-error` : undefined}
+            autoComplete="off"
+            placeholder="Buscar por nome, telefone ou código"
+            value={shown}
+            onChange={(e) => {
+              setText(e.target.value)
+              setActive(0)
+              setOpen(true)
+              if (value) onChange(null)
+            }}
+            onClick={() => setOpen(true)}
+            onBlur={() => {
+              setOpen(false)
+              setText(null)
+            }}
+            onKeyDown={onKeyDown}
+          />
+          {value && (
+            <button type="button" className="cp-clear" aria-label="Limpar cliente" onClick={() => { onChange(null); setText(null) }}>
+              <Icon name="x" size={13} />
+            </button>
+          )}
+          {open && (
+            <ul id={listId} role="listbox" aria-label="Clientes" className="cp-list">
+              {options.map((o, i) => (
+                <li
+                  key={o.key}
+                  id={optId(i)}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  className={['cp-opt', o.key === CREATE && 'cp-create'].filter(Boolean).join(' ')}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => choose(o.key)}
+                >
+                  {o.key === CREATE && <Icon name="usuarioMais" size={14} />}
+                  <span className="cp-name">{o.label}</span>
+                  {o.sub && <span className="cp-sub">{o.sub}</span>}
+                </li>
+              ))}
+              {options.length === 0 && (
+                <li className="cp-empty" role="presentation">
+                  {found.isFetching ? 'Buscando…' : 'Nenhuma cliente encontrada.'}
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
+        {allowCreate && (
+          <button
+            type="button"
+            className="btn cp-add"
+            aria-label="Cadastrar nova cliente"
+            title="Cadastrar nova cliente"
+            onClick={() => {
+              setOpen(false)
+              onCreateRequest?.()
+            }}
+          >
+            <Icon name="plus" size={16} />
           </button>
-        )}
-        {open && (
-          <ul id={listId} role="listbox" aria-label="Clientes" className="cp-list">
-            {options.map((o, i) => (
-              <li
-                key={o.key}
-                id={optId(i)}
-                role="option"
-                aria-selected={i === activeIdx}
-                className={['cp-opt', o.key === CREATE && 'cp-create'].filter(Boolean).join(' ')}
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setActive(i)}
-                onClick={() => choose(o.key)}
-              >
-                {o.key === CREATE && <Icon name="usuarioMais" size={14} />}
-                <span className="cp-name">{o.label}</span>
-                {o.sub && <span className="cp-sub">{o.sub}</span>}
-              </li>
-            ))}
-            {options.length === 0 && (
-              <li className="cp-empty" role="presentation">
-                {found.isFetching ? 'Buscando…' : 'Nenhuma cliente encontrada.'}
-              </li>
-            )}
-          </ul>
         )}
       </div>
       {error && (

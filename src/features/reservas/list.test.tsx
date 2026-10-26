@@ -170,6 +170,15 @@ describe('Reservas — nova reserva', () => {
     expect((await source.getFitting(fit.id))!.session.state).toBe('convertida')
   })
 
+  it('botão "+" ao lado da cliente abre "Nova cliente"; cadastrada, ela fica escolhida na reserva', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/reservas?nova=1')
+    const dlg = await screen.findByRole('dialog', { name: 'Nova reserva' })
+    await user.click(within(dlg).getByRole('button', { name: 'Cadastrar nova cliente' }))
+    const form = await screen.findByRole('dialog', { name: 'Nova cliente' })
+    expect(form).toBeInTheDocument()
+  })
+
   it('fechar remove os parâmetros da URL', async () => {
     const user = userEvent.setup()
     const { router } = renderPreview('/preview/reservas?nova=1&peca=sz-0107&f=rascunhos')

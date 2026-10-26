@@ -105,6 +105,16 @@ describe('Provas — agendar', () => {
     return screen.findByRole('dialog', { name: 'Agendar prova' })
   }
 
+  it('botão "+" ao lado da cliente abre o cadastro de cliente nova', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/provas')
+    await user.click(await screen.findByRole('button', { name: 'Agendar prova' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Agendar prova' })
+    await user.click(within(dlg).getByRole('button', { name: 'Cadastrar nova cliente' }))
+    expect(within(dlg).getByRole('group', { name: 'Nova cliente' })).toBeInTheDocument()
+    expect(within(dlg).getByLabelText('CPF *')).toBeInTheDocument()
+  })
+
   it('cadastrando cliente nova com CPF inválido: mostra "CPF inválido." no campo e não cria nada', async () => {
     const user = userEvent.setup()
     const { source } = renderPreview('/preview/provas')
