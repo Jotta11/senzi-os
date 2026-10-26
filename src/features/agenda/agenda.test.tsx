@@ -313,3 +313,58 @@ describe('Agenda — editar e cancelar compromisso manual', () => {
     expect(screen.queryByRole('dialog', { name: 'Editar compromisso' })).toBeNull()
   })
 })
+
+describe('Agenda — vistas Dia e Mês', () => {
+  it('Semana é a vista padrão; Dia lista os compromissos do dia em linhas e as setas andam um dia', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/agenda')
+    await dayRegion('domingo, 25/10')
+    expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'Dia' }))
+    expect(screen.getByText('Domingo, 25 de outubro')).toBeInTheDocument()
+    const day = await dayRegion('domingo, 25/10')
+    const rows = await within(day).findAllByRole('listitem')
+    expect(rows.length).toBeGreaterThan(0)
+    expect(day.querySelectorAll('.kb-card.is-row')).toHaveLength(rows.length)
+    expect(screen.queryByLabelText('Dias da agenda, role para os lados')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Próximo' }))
+    expect(screen.getByText('Segunda-feira, 26 de outubro')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Hoje' }))
+    expect(screen.getByText('Domingo, 25 de outubro')).toBeInTheDocument()
+  })
+
+  it('dia sem compromissos mostra o estado vazio', async () => {
+    renderPreview('/preview/agenda?vista=dia&dia=2026-10-17')
+    await screen.findByText('Nenhum compromisso neste dia')
+  })
+
+  it('Mês começa na segunda, cobre semanas inteiras, marca hoje e o clique no dia abre a vista Dia', async () => {
+    const user = userEvent.setup()
+    const { router } = renderPreview('/preview/agenda?vista=mes')
+    expect(screen.getByText('Outubro de 2026')).toBeInTheDocument()
+    const grid = screen.getByRole('group', { name: 'Outubro de 2026' })
+    const days = await within(grid).findAllByRole('button')
+    // 28/09 (segunda) → 01/11 (domingo) = 5 semanas
+    expect(days).toHaveLength(35)
+    expect(days[0]).toHaveAccessibleName(/^segunda, 28\/09/)
+    expect(days[34]).toHaveAccessibleName(/^domingo, 01\/11/)
+    const today = await within(grid).findByRole('button', { name: /^domingo, 25\/10, \d+ compromissos?$/ })
+    expect(today).toHaveClass('today')
+
+    await user.click(today)
+    expect(router.state.location.search).toBe('?vista=dia')
+    expect(screen.getByText('Domingo, 25 de outubro')).toBeInTheDocument()
+  })
+
+  it('setas do Mês trocam de mês', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/agenda?vista=mes')
+    await user.click(screen.getByRole('button', { name: 'Próximo' }))
+    expect(screen.getByText('Novembro de 2026')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Anterior' }))
+    await user.click(screen.getByRole('button', { name: 'Anterior' }))
+    expect(screen.getByText('Setembro de 2026')).toBeInTheDocument()
+  })
+})

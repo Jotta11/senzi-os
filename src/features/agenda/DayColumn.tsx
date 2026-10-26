@@ -26,12 +26,22 @@ function lineThree(i: AgendaItem): string | null {
   return i.title && i.title !== AG_KIND[i.kind].label ? i.title : null
 }
 
-function ItemCard({ item, date, onEdit }: { item: AgendaItem; date: string; onEdit: DayColumnProps['onEdit'] }) {
+type ItemCardProps = {
+  item: AgendaItem
+  date: string
+  onEdit: DayColumnProps['onEdit']
+  /** `row` = linha larga da vista Dia, com reserva, peças e observação. */
+  variant?: 'card' | 'row'
+}
+
+export function ItemCard({ item, date, onEdit, variant = 'card' }: ItemCardProps) {
   const href = useAppHref()
   const k = AG_KIND[item.kind]
   const done = item.state === 'concluido' || item.state === 'no_show'
   const who = lineThree(item)
-  const className = ['kb-card', item.internal && 'is-internal', done && 'done'].filter(Boolean).join(' ')
+  const className = ['kb-card', variant === 'row' && 'is-row', item.internal && 'is-internal', done && 'done'].filter(Boolean).join(' ')
+  const ref = item.fitting?.code ?? item.reservation?.code
+  const extra = variant === 'row' ? [ref, ...item.garments.map((g) => `${g.code} ${g.name}`)].filter(Boolean).join(' · ') : ''
   const style = { '--ev-tone': `var(--t-${k.tone})` } as CSSProperties
   const body = (
     <>
@@ -42,6 +52,8 @@ function ItemCard({ item, date, onEdit }: { item: AgendaItem; date: string; onEd
         {item.state === 'no_show' && <span className="kb-state"> · não compareceu</span>}
       </span>
       {who && <span className="kb-who">{who}</span>}
+      {extra && <span className="kb-extra mono">{extra}</span>}
+      {variant === 'row' && item.notes && <span className="kb-note">{item.notes}</span>}
     </>
   )
 
@@ -68,9 +80,25 @@ function ItemCard({ item, date, onEdit }: { item: AgendaItem; date: string; onEd
   )
 }
 
+/** Peças do acervo paradas no dia (higienização, manutenção…), com "+N peças" além das 4 primeiras. */
+export function GarmentBlocks({ day, className = 'kb-blocks' }: { day: AgendaDay; className?: string }) {
+  const href = useAppHref()
+  return (
+    <ul className={className} aria-label="Peças bloqueadas">
+      {day.garmentBlocks.map((b) => (
+        <li key={`${b.garmentId}-${b.kind}`}>
+          <Link to={href(`/acervo/${b.garmentId}`)} className="kb-block" style={{ '--ev-tone': `var(--t-${BLOCK_KIND[b.kind].tone})` } as CSSProperties}>
+            <span className="mono">{b.garmentCode}</span> · {BLOCK_LABEL(b.kind)}
+          </Link>
+        </li>
+      ))}
+      {day.moreBlocks > 0 && <li className="kb-more">+{day.moreBlocks} peças</li>}
+    </ul>
+  )
+}
+
 /** Coluna de um dia: compromissos por horário (filtrados por tipo) + blocos do acervo. */
 export function DayColumn({ day, today, filter, onEdit }: DayColumnProps) {
-  const href = useAppHref()
   const isToday = day.date === today
   const items = day.items.filter((i) => filter === 'todos' || i.kind === filter)
   return (
@@ -102,18 +130,7 @@ export function DayColumn({ day, today, filter, onEdit }: DayColumnProps) {
             ))}
           </ul>
         )}
-        {(day.garmentBlocks.length > 0 || day.moreBlocks > 0) && (
-          <ul className="kb-blocks" aria-label="Peças bloqueadas">
-            {day.garmentBlocks.map((b) => (
-              <li key={`${b.garmentId}-${b.kind}`}>
-                <Link to={href(`/acervo/${b.garmentId}`)} className="kb-block" style={{ '--ev-tone': `var(--t-${BLOCK_KIND[b.kind].tone})` } as CSSProperties}>
-                  <span className="mono">{b.garmentCode}</span> · {BLOCK_LABEL(b.kind)}
-                </Link>
-              </li>
-            ))}
-            {day.moreBlocks > 0 && <li className="kb-more">+{day.moreBlocks} peças</li>}
-          </ul>
-        )}
+        {(day.garmentBlocks.length > 0 || day.moreBlocks > 0) && <GarmentBlocks day={day} />}
       </div>
     </section>
   )
