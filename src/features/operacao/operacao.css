@@ -10,7 +10,7 @@
 .op-tiles .alert b { color: var(--t-amber); }
 .op-tile-d { font-size: 12px; color: var(--nevoa); }
 
-.op-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.op-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
 .op-grid .wide { grid-column: 1 / -1; }
 .op-card-d { margin: 0; padding: 0 16px 10px; font-size: 12.5px; color: var(--nevoa); border-bottom: 1px solid var(--areia); }
 .op-card-h { gap: 8px; }

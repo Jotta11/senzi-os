@@ -16,7 +16,7 @@
 .fx-tiles .neg b { color: var(--t-red); }
 .fx-tile-d { font-size: 12px; color: var(--nevoa); }
 
-.fx-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.fx-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
 .fx-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .fx-sub-h { padding: 10px 16px 4px; margin: 0; }
 .fx-pad { padding: 14px 16px; }

@@ -247,3 +247,9 @@ hr.sep { border: none; border-top: 1px solid var(--areia); margin: 0; }
 
 /* ------------------------------------------------------------ silhueta */
 .silhouette { display: block; width: 100%; height: auto; border-radius: var(--r-md); }
+
+/* Grades de cards lado a lado: os cards de uma linha ficam da mesma altura (sem vãos de fundo) e o
+   corpo cresce para ocupar o card; gráficos de colunas aproveitam a altura extra. */
+:is(.in-grid, .op-grid, .dash-agenda-block, .dash-grid-2, .fx-grid2) > .card { display: flex; flex-direction: column; }
+:is(.in-grid, .op-grid, .dash-agenda-block, .dash-grid-2, .fx-grid2) > .card > .card-b { flex: 1; display: flex; flex-direction: column; }
+:is(.in-grid, .op-grid, .dash-agenda-block, .dash-grid-2, .fx-grid2) > .card > .card-b > .fx-cols { flex: 1; height: auto; min-height: 190px; }

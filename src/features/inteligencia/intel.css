@@ -71,7 +71,7 @@
 .in-sec-h { display: flex; flex-direction: column; gap: 3px; }
 .in-sec-h h2 { font-size: 28px; line-height: 1.1; }
 .in-sec-lead { margin: 0; font-size: 13px; color: var(--nevoa); max-width: 760px; }
-.in-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.in-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
 .in-grid-wide { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
 .in-span2 { grid-column: 1 / -1; }
 .in-chart-h { margin: 0 14px; font-size: 11.5px; font-weight: 650; color: var(--nevoa); }

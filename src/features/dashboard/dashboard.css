@@ -16,7 +16,9 @@
 .dash-more { margin-left: auto; }
 
 /* -------------------------------------------------------------- alertas */
-.dash-alert-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.dash-alert-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 1100px) { .dash-alert-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .dash-alert-row { grid-template-columns: minmax(0, 1fr); } }
 .dash-alert {
   display: flex; align-items: flex-start; gap: 10px;
   background: var(--surface); border: 1px solid var(--areia); border-left-width: 3px;
@@ -54,7 +56,7 @@ a.dash-tile:hover { text-decoration: none; box-shadow: var(--shadow-2); }
 .dash-tiles .alert b { color: var(--t-red); }
 
 /* ----------------------------------------------- agenda de hoje + mês */
-.dash-agenda-block { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.dash-agenda-block { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: stretch; }
 .dash-ag-list { list-style: none; margin: 0; padding: 0; }
 .dash-ag-item {
   display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center;
@@ -100,7 +102,7 @@ a.dash-ttl:hover { color: var(--vivo); }
 .dash-cal-legend i { width: 5px; height: 5px; border-radius: 50%; background: var(--vivo); display: inline-block; }
 
 /* ------------------------------------------ faturamento e ciclo */
-.dash-grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: start; }
+.dash-grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: stretch; }
 .dash-kpis { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 18px; }
 .dash-kpi { font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .dash-cal-now { width: 9px; height: 9px; border-radius: 3px; background: var(--vivo); display: inline-block; }
