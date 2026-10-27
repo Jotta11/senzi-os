@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { getSupabase } from '@/lib/supabase'
 import {
   MSG_DEACTIVATED,
   MSG_NO_CLIENT,
+  MSG_OFFLINE,
   MSG_PASSWORD_UPDATE,
   MSG_PROFILE,
   passwordUpdateMessage,
@@ -78,14 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [supabase, queryClient, applyUser],
   )
 
+  // Sessão salva no aparelho: o app fica conectado até a pessoa sair. Sem internet para renovar o acesso
+  // (PWA aberto sem sinal), a sessão continua guardada — mostra o aviso e tenta de novo, nunca a tela de login.
   const resolveSession = useCallback(async () => {
     if (!supabase) return
     try {
-      const { data } = await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getSession()
       if (data.session) void loadUser(data.session.user.id)
+      else if (error && isAuthRetryableFetchError(error)) setLoadError(MSG_OFFLINE)
       else setStatus('signed_out')
-    } catch {
-      setStatus('signed_out')
+    } catch (err) {
+      if (isAuthRetryableFetchError(err)) setLoadError(MSG_OFFLINE)
+      else setStatus('signed_out')
     }
   }, [supabase, loadUser])
 
@@ -137,10 +143,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (id && pendingRef.current !== id) later(id)
       }
     })
+    // Voltou a internet sem usuário carregado (aviso de sem conexão ou perfil não carregado): tenta de novo.
+    const onOnline = () => {
+      if (alive && !userRef.current) void resolveSession()
+    }
+    window.addEventListener('online', onOnline)
     return () => {
       alive = false
       sub.subscription.unsubscribe()
       unsubCache()
+      window.removeEventListener('online', onOnline)
     }
   }, [supabase, loadUser, resolveSession, applyUser, queryClient])
 

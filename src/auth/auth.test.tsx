@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AuthRetryableFetchError } from '@supabase/supabase-js'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -207,6 +208,26 @@ describe('auth', () => {
     fakeClient({ getSession: () => Promise.reject(new Error('boom')) })
     renderApp()
     expect(await screen.findByLabelText('E-mail')).toBeInTheDocument()
+  })
+
+  it('sem internet para renovar a sessão: avisa, não pede login e entra quando a conexão volta', async () => {
+    let online = false
+    const c = fakeClient({
+      row: active,
+      getSession: () =>
+        Promise.resolve(
+          online
+            ? { data: { session: { user: { id: 'u1' } } }, error: null }
+            : { data: { session: null }, error: new AuthRetryableFetchError('Failed to fetch', 0) },
+        ),
+    })
+    renderApp()
+    expect(await screen.findByText(/Sem internet para confirmar seu acesso/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('E-mail')).toBeNull()
+    online = true
+    window.dispatchEvent(new Event('online'))
+    expect(await screen.findByText('conteúdo do app')).toBeInTheDocument()
+    expect(c.auth.signOut).not.toHaveBeenCalled()
   })
 
   describe('desativação no meio da sessão (I3)', () => {
