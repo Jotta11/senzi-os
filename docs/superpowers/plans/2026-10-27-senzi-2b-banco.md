@@ -90,3 +90,30 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      Quando todas saem, compromisso 'retirada' → concluido com startsAt = pickedUpAt.
   3. returnItems devolução completa: compromisso 'devolucao' → concluido com startsAt = agora.
   4. Busca ⌘K (src/features/search) usa useReservations('todas', limit 1000) → no banco, listReservations com filtro por texto seria bom.
+- Área 2 (Agenda e Provas), migration `20261027000300_agenda.sql`. Decisões que afetam as próximas áreas:
+  1. Tabelas `appointment`, `fitting_session`, `fitting_item`. `appointment.reservation_id` e `fitting_session.reservation_id`
+     estão **sem FK**: a área 3 cria `reservation` e acrescenta as FKs (`alter table ... add constraint`).
+  2. Instantes do app saem de `public.store_instant()` (`aaaa-mm-ddTHH:MM:SS-03:00`, fuso da loja), como `at()` da fonte em
+     memória — a agenda agrupa pelos 10 primeiros caracteres. Data + hora local → `public.store_at(date, time)`. Usar os
+     dois nas próximas áreas para instantes que a tela fatia (ex.: `pickedUpAt`, `startsAt`).
+  3. Pontos de extensão para a área 3 (substituir com `create or replace`, mesma assinatura):
+     `appointment_reservation_json(reserva, tipo)` → `{reservation:{id,code}, garments:[{id,code,name}], pendingPickupItems | itemsOut}`
+     (hoje `{}`); `fitting_reservation_json(reserva)` → `{id, code, customerName, eventDate}` (hoje null);
+     `reservation_has_garment(reserva, peça)` (hoje false; alimenta `fittingStatsOf.converted`).
+  4. Funções internas prontas e testadas para a área 3 chamar: `appointment_insert(kind, starts_at, title, notes, customer,
+     reservation, fitting, garment, assigned_to, state default 'agendado')` (compromissos da confirmação: retirada 10:00,
+     evento 19:00 se há data — título = tipo do evento ou "Evento", devolução 11:00; `garment_id` só com uma peça) e
+     `fitting_convert(prova, reserva, cliente)` (NAO_ENCONTRADO / PROVA_ENCERRADA / PARAMETRO_INVALIDO campo customerId;
+     marca `convertida`, liga a reserva, `ended_at`, conclui o compromisso `prova`). Quem chama decide não converter quando
+     a mesma prova já está ligada ao rascunho (`current.fittingId === input.fittingId`, ver `reservas-draft.ts`).
+     Retirada/devolução concluídas: `update appointment set state='concluido', starts_at=...` (Notas do merge, itens 2 e 3).
+  5. `listUsers` = RPC `list_staff()` (usuários ativos, por nome; exige `agenda.view` ou `prova.view`; inclui e-mail porque
+     `AppUser` tem e-mail).
+  6. `create_fitting` com `newCustomer` chama `create_customer` na mesma transação (exige `cliente.create`; se a prova falhar,
+     a cliente não fica). Horário vazio = 15:00; horário inválido → HORARIO_OBRIGATORIO (a fonte em memória passou a validar
+     igual: `appointmentIssues`/`fittingIssues` em `src/data/validation.ts`, usadas pela fonte em memória e pelo adaptador).
+  7. `updateAppointment` no adaptador valida o formulário antes da RPC; o banco checa ESTADO_INVALIDO antes da validação
+     (como a fonte em memória). A tela só abre edição de compromisso manual, então a ordem não aparece na prática.
+  8. Rotas reais `/agenda`, `/provas`, `/provas/:id` (RequirePerm prova.view). O botão "Gerar reserva" da prova leva a
+     `/reservas?nova=1&prova=…`, que no app real segue "Em breve" até a área 3. `src/app/liveScreens.test.tsx` garante que
+     as telas ligadas só chamam métodos que a fonte do Supabase tem — estender a lista de telas a cada área.

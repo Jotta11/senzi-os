@@ -5,10 +5,11 @@
 import { isValidCPF } from '@/lib/cpf'
 import { errorMessage } from '@/lib/errorMessages'
 import { onlyDigits } from '@/lib/format'
-import type { CustomerInput, CustomerMeasurementInput, FitInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
+import type { AppointmentInput, CustomerInput, CustomerMeasurementInput, FitInput, FittingInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 
 /** Problemas de uma peça (cadastro: tudo; edição com `partial`: só os campos enviados). */
 export function garmentIssues(input: Partial<GarmentInput>, partial = false): SourceIssue[] {
@@ -114,5 +115,38 @@ export function customerIssues(input: Partial<CustomerInput>, today: string, par
   if (input.email && !EMAIL_RE.test(input.email.trim())) out.push({ code: 'EMAIL_INVALIDO', field: 'email' })
   // medidas (cm) que vierem junto: mesmas faixas da peça; altura até 300
   if (input.measurement) out.push(...rangeIssues(input.measurement))
+  return out
+}
+
+/** `HH:MM` de 00:00 a 23:59. */
+export function isValidTime(s: string | null | undefined): boolean {
+  return !!s && HHMM.test(s)
+}
+
+/**
+ * Problemas de um compromisso manual, na ordem do formulário: data, horário e, por tipo, cliente (Atendimento)
+ * ou observação (Serviço/Interno sem cliente). Não checa se a cliente existe.
+ */
+export function appointmentIssues(input: AppointmentInput): SourceIssue[] {
+  const out: SourceIssue[] = []
+  if (!isValidISODate(input.date)) out.push({ code: 'DATA_OBRIGATORIA', field: 'date' })
+  if (!isValidTime(input.time)) out.push({ code: 'HORARIO_OBRIGATORIO', field: 'time' })
+  const notes = input.notes?.trim()
+  if (input.kind === 'atendimento' && !input.customerId) out.push({ code: 'CLIENTE_OBRIGATORIA', field: 'customerId' })
+  else if (input.kind !== 'atendimento' && !input.customerId && !notes) out.push({ code: 'OBSERVACAO_OBRIGATORIA', field: 'notes' })
+  return out
+}
+
+/**
+ * Problemas de uma prova nova: cliente (existente ou nova), data, evento antes da prova e horário (vazio = 15:00).
+ * A cliente nova é validada à parte, com `customerIssues`.
+ */
+export function fittingIssues(input: FittingInput): SourceIssue[] {
+  const out: SourceIssue[] = []
+  if (!input.customerId && !input.newCustomer) out.push({ code: 'CLIENTE_OBRIGATORIA', field: 'customerId' })
+  if (!isValidISODate(input.date)) out.push({ code: 'DATA_OBRIGATORIA', field: 'date' })
+  else if (input.eventDate && input.eventDate < input.date) out.push({ code: 'DATAS_INCOERENTES', field: 'eventDate' })
+  const time = input.time?.trim()
+  if (time && !isValidTime(time)) out.push({ code: 'HORARIO_OBRIGATORIO', field: 'time' })
   return out
 }

@@ -3,9 +3,12 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AuthGate } from '@/auth/AuthGate'
 import { AcervoListPage } from '@/features/acervo/AcervoListPage'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
+import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { ConfigPage } from '@/features/config/ConfigPage'
+import { FittingPage } from '@/features/provas/FittingPage'
+import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { previewRoutes } from '@/preview/previewRoutes'
 import { AppShell } from '@/shell/AppShell'
 import { ComingSoon } from '@/shell/ComingSoon'
@@ -16,6 +19,8 @@ import { SupabaseDataLayout } from './SupabaseDataLayout'
 
 /** Telas do app real que já estão no banco; as demais seguem "Em breve". */
 const LIVE: Record<string, ReactNode> = {
+  '/agenda': <AgendaPage />,
+  '/provas': <ProvasListPage />,
   '/acervo': <AcervoListPage />,
   '/clientes': <ClientesListPage />,
   '/config': <ConfigPage />,
@@ -42,6 +47,14 @@ export const appRoutes: RouteObject[] = [
                 element: (
                   <RequirePerm perm="acervo.view">
                     <GarmentPage />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/provas/:id',
+                element: (
+                  <RequirePerm perm="prova.view">
+                    <FittingPage />
                   </RequirePerm>
                 ),
               },

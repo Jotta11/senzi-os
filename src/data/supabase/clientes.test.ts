@@ -107,11 +107,10 @@ describe('supabaseClientes', () => {
 })
 
 describe('createSupabaseSource — clientes', () => {
-  it('clientes no banco; reservas e provas da cliente vêm vazias', async () => {
+  it('clientes no banco; reservas da cliente vêm vazias', async () => {
     const f = fakeClient(() => ({ data: { items: [], total: 0 } }))
     const src = createSupabaseSource(f.client)
     await expect(src.searchCustomers('', 'nome', { limit: 10, offset: 0 })).resolves.toEqual({ items: [], total: 0 })
     await expect(src.reservationsOfCustomer(ID)).resolves.toEqual([])
-    await expect(src.fittingsOfCustomer(ID)).resolves.toEqual([])
   })
 })
