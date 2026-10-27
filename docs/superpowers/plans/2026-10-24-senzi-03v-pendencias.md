@@ -21,7 +21,7 @@ Plano: `2026-10-24-senzi-03v-visual-demais-telas.md` · branch `etapa-3` · 492 
 
 - PDFs: hoje são páginas de impressão ("Imprimir / salvar PDF"). Link assinado no Storage e PDF anexado ao WhatsApp ficam para quando houver banco.
 - Dados da empresa no contrato/OS (razão social, CNPJ, endereço) e template definitivo do contrato.
-- No banco, as RPCs de financeiro/dashboard precisam esconder campos consolidados sem `financeiro.consolidated` (na prévia só a tela esconde).
+- No banco, as RPCs de financeiro/dashboard precisam esconder campos consolidados sem `financeiro.consolidated` (na prévia só a tela esconde). **Financeiro feito no Plano 2B (área 4); falta o Dashboard (área 6).**
 - Telas usam o relógio do navegador para "hoje" em alguns pontos; no banco, devolver `today` junto com as leituras.
 - Peça que nunca saiu da loja e tem a reserva cancelada dentro da própria janela de higienização fica "Higienização" até ser liberada.
 - Menu "⋯" das contas: navegação por setas e devolução de foco ao fechar clicando fora.

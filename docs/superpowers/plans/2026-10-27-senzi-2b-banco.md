@@ -158,3 +158,37 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      RPC vai até 1000 (o da busca global).
   10. Rotas reais `/reservas`, `/reservas/:id`, `/reservas/:id/contrato`, `/reservas/:id/os` (RequirePerm `reserva.view`);
       "Gerar reserva" da prova (`/reservas?nova=1&prova=…`) agora funciona no app real.
+- Área 4 (Financeiro), migration `20261027000500_financeiro.sql`. Decisões que afetam as próximas áreas:
+  1. Tabela nova `payable` (contas a pagar; `source` manual | operacao | aquisicao; `recurrence_parent_id` = raiz da família,
+     **sem FK** de propósito — excluir a raiz manual não apaga nem desliga as ocorrências, como a fonte em memória).
+     `payable.maintenance_id` está **sem FK**: a área 5 cria a tabela de ordens e acrescenta a FK (`alter table ... add constraint`).
+     Recebíveis continuam como na área 3: parcelas de reserva derivadas (`fin_receivable_rows()`, id = id do pagamento) + avulsos.
+  2. **Para a área 5:** `public.payable_insert_auto(source, chave_categoria, descrição, fornecedor, valor, peça, ordem default null,
+     reserva default null, forma default null, pago_em default now())` lança a despesa automática já paga (somente leitura;
+     valor ≤ 0 não lança e devolve null; categoria pela `system_key`, só despesa). Fechar ordem com custo = chamar com
+     `'operacao'`, `'higienizacao' | 'ajuste' | 'manutencao'` (regra de `closeOrder` em `src/data/mock/operacao.ts`), fornecedor
+     `coalesce(provider, 'Sem fornecedor')`, descrição `coalesce(description, rótulo do tipo)`, forma `'pix'`. O "custo dos últimos
+     30 dias" da fila = Σ `coalesce(paid_amount, amount)` de `payable` `source = 'operacao'`, não cancelada, `due_date >= hoje − 30`.
+     Higienização/manutenção da economia da peça = Σ dessas contas por `garment_id` (categorias `higienizacao` / `ajuste`+`manutencao`).
+  3. Compra da peça: `create_garment` (create or replace) lança "Compra da peça — <nome>", fornecedor "Aquisição de acervo",
+     categoria `aquisicao`, paga agora, forma null (como a fonte em memória). Sem `acervo.cost` o custo é ignorado e nada é lançado.
+     Mudar o custo depois (`update_garment`) não mexe na conta (igual à prévia).
+  4. **Permissões:** `finance_overview` exige `financeiro.view`; sem `financeiro.consolidated` saem null `paid`, `operatingCost`,
+     `operatingMargin`, `acquisitionInvested`, `result`, `operatingResult` e `monthly[].paid` (pendência do 03v resolvida para o
+     Financeiro; o Painel da área 6 deve seguir a mesma regra). Contas a receber, categorias e todas as escritas: `financeiro.geral`.
+     `list_payables`: `financeiro.geral` **ou** `financeiro.consolidated` (a visão geral conta as contas pagas do período com o
+     consolidado). O atendimento recebe SEM_PERMISSAO em tudo isso e segue lançando pagamentos pela reserva (`financeiro.payment`).
+  5. Leituras para a área 6 reaproveitar (internas): `fin_receipts()` (entradas de receita por dia/forma, estornos negativos, caução
+     fora), `fin_open_receivables()` (em aberto sem caução, `falta` por linha; Σ das de reserva = Σ `reservation_open_due`),
+     `store_day(instante)`, `payment_method_label(forma)`.
+  6. Validações compartilhadas novas em `src/data/validation.ts`: `finEntryIssues` (com `categoryOk` — a fonte em memória confere
+     tipo/arquivada; o adaptador só a presença e o banco o resto), `settleDateIssue`, `settleAmountIssues`, `recurrenceEndIssues`.
+     Por isso o adaptador pode devolver "descrição + data" de uma vez, mas categoria do tipo errado/arquivada e VALOR_EXCEDE_SALDO só
+     vêm do banco (um problema por vez). Na edição de categoria o adaptador checa nome vazio antes de CATEGORIA_SISTEMA (a tela não
+     edita categoria de sistema).
+  7. Ordem de desempate (a fonte em memória usa a ordem do array): contas a receber → parcelas (reserva mais antiga, ordem do
+     lançamento) antes dos avulsos (criação); contas a pagar → criação. Formas de pagamento empatadas: ordem do enum. Categorias
+     novas vão para o fim (`sort_order` = máx + 1), cor padrão = paleta pela quantidade de categorias.
+  8. Rotas reais `/financeiro` (NAV, `financeiro.view`), `/financeiro/receber|pagar|categorias` (RequirePerm `financeiro.geral`).
+     As leituras recalculam tudo a cada chamada (sem cache/materialização): ok para o volume de uma loja; se crescer, materializar
+     `fin_receipts` por dia.

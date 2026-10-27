@@ -7,6 +7,10 @@ import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { ConfigPage } from '@/features/config/ConfigPage'
+import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
+import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
+import { PayablesPage } from '@/features/financeiro/PayablesPage'
+import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { ContractPrint } from '@/features/reservas/print/ContractPrint'
@@ -28,6 +32,7 @@ const LIVE: Record<string, ReactNode> = {
   '/reservas': <ReservasListPage />,
   '/acervo': <AcervoListPage />,
   '/clientes': <ClientesListPage />,
+  '/financeiro': <FinanceOverviewPage />,
   '/config': <ConfigPage />,
 }
 
@@ -84,6 +89,30 @@ export const appRoutes: RouteObject[] = [
                 element: (
                   <RequirePerm perm="reserva.view">
                     <OsPrint />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/financeiro/receber',
+                element: (
+                  <RequirePerm perm="financeiro.geral">
+                    <ReceivablesPage />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/financeiro/pagar',
+                element: (
+                  <RequirePerm perm="financeiro.geral">
+                    <PayablesPage />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/financeiro/categorias',
+                element: (
+                  <RequirePerm perm="financeiro.geral">
+                    <CategoriesPage />
                   </RequirePerm>
                 ),
               },

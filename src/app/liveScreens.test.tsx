@@ -9,6 +9,10 @@ import { createSupabaseSource } from '@/data/supabaseSource'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
+import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
+import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
+import { PayablesPage } from '@/features/financeiro/PayablesPage'
+import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { ContractPrint } from '@/features/reservas/print/ContractPrint'
@@ -19,7 +23,7 @@ import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
 import { ToastProvider } from '@/ui'
 
 /**
- * Telas ligadas no app real (Agenda, Provas e Reservas, e as abas de reservas das fichas): renderizadas sobre a fonte em memória, registram cada método da
+ * Telas ligadas no app real (Agenda, Provas, Reservas, Financeiro e as abas de reservas das fichas): renderizadas sobre a fonte em memória, registram cada método da
  * `DataSource` que chamam. Todos precisam existir na fonte do Supabase — senão a tela cairia em `NAO_DISPONIVEL`.
  */
 const TODAY = '2026-10-24'
@@ -48,6 +52,10 @@ function renderAt(path: string, element: ReactNode, source: DataSource) {
       { path: '/reservas/:id/os', element },
       { path: '/clientes/:id', element },
       { path: '/acervo/:id', element },
+      { path: '/financeiro', element },
+      { path: '/financeiro/receber', element },
+      { path: '/financeiro/pagar', element },
+      { path: '/financeiro/categorias', element },
     ],
     { initialEntries: [path] },
   )
@@ -129,6 +137,30 @@ describe('telas de Reservas no app real', () => {
       cleanup()
     }
     for (const m of ['listReservations', 'reservationSummary', 'getReservation', 'reservationsOfCustomer', 'reservationsOfGarment']) expect(called).toContain(m)
+    const missing = [...called].filter((k) => !(k in live))
+    expect(missing).toEqual([])
+  })
+})
+
+describe('telas do Financeiro no app real', () => {
+  it('visão geral, contas a receber, contas a pagar e categorias só chamam métodos que a fonte do Supabase tem', async () => {
+    const mock = createMockSource({ latencyMs: 0, today: TODAY })
+    const { proxy, called } = recording(mock)
+    const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
+
+    const screens: [string, ReactNode, RegExp][] = [
+      ['/financeiro', <FinanceOverviewPage key="o" />, /Faturamento recebido por mês/],
+      ['/financeiro?periodo=365', <FinanceOverviewPage key="o2" />, /Faturamento recebido por mês/],
+      ['/financeiro/receber', <ReceivablesPage key="r" />, /Contas a Receber/],
+      ['/financeiro/pagar', <PayablesPage key="p" />, /Contas a Pagar/],
+      ['/financeiro/categorias', <CategoriesPage key="c" />, /Categorias/],
+    ]
+    for (const [path, el, title] of screens) {
+      renderAt(path, el, proxy)
+      expect((await screen.findAllByText(title)).length).toBeGreaterThan(0)
+      cleanup()
+    }
+    for (const m of ['financeOverview', 'listReceivables', 'listPayables', 'listFinCategories']) expect(called).toContain(m)
     const missing = [...called].filter((k) => !(k in live))
     expect(missing).toEqual([])
   })

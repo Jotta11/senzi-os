@@ -212,3 +212,37 @@ export function contractSignIssues(input: ContractSignInput, today: string): Sou
   if (!input.signerName?.trim()) out.push({ code: 'NOME_CLIENTE_OBRIGATORIO', field: 'signerName' })
   return out
 }
+
+/** Campos comuns de um lançamento financeiro (conta a pagar ou a receber). */
+export type FinEntryFields = { description?: string; categoryId?: string | null; amount?: number; dueDate?: string }
+
+/**
+ * Problemas de um lançamento financeiro (spec `operacao-financeiro.md` §2.3), na ordem das RPCs: descrição,
+ * categoria, valor > 0 e vencimento. `categoryOk` diz se a categoria serve (do tipo certo e não arquivada — quem
+ * tem a lista decide); sem ela, basta estar preenchida (o banco confere o resto). Com `partial`, só os campos enviados.
+ */
+export function finEntryIssues(i: FinEntryFields, categoryOk: boolean = !!i.categoryId, partial = false): SourceIssue[] {
+  const out: SourceIssue[] = []
+  const has = (k: keyof FinEntryFields) => !partial || k in i
+  if (has('description') && !i.description?.trim()) out.push({ code: 'DESCRICAO_OBRIGATORIA', field: 'description' })
+  if (has('categoryId') && !categoryOk) out.push({ code: 'CATEGORIA_OBRIGATORIA', field: 'categoryId' })
+  if (has('amount') && (!Number.isFinite(i.amount) || (i.amount ?? 0) <= 0)) out.push({ code: 'VALOR_INVALIDO', field: 'amount' })
+  if (has('dueDate') && !i.dueDate) out.push({ code: 'VENCIMENTO_OBRIGATORIO', field: 'dueDate' })
+  return out
+}
+
+/** Data de baixa (recebimento/pagamento): obrigatória e não futura. */
+export function settleDateIssue(date: string | undefined, today: string, field: string): SourceIssue | null {
+  if (!date) return { code: 'DATA_OBRIGATORIA', field }
+  return date > today ? { code: 'DATA_FUTURA', field } : null
+}
+
+/** Recorrência com data final anterior ao vencimento. */
+export function recurrenceEndIssues(i: { recurrence?: string; recurrenceEnd?: string | null; dueDate?: string }): SourceIssue[] {
+  return i.recurrence && i.recurrence !== 'nenhuma' && i.recurrenceEnd && i.dueDate && i.recurrenceEnd < i.dueDate ? [{ code: 'RECORRENCIA_FIM_INVALIDO', field: 'recurrenceEnd' }] : []
+}
+
+/** Valor de baixa: > 0 (o banco confere o saldo). */
+export function settleAmountIssues(amount: number, field: string): SourceIssue[] {
+  return !Number.isFinite(amount) || amount <= 0 ? [{ code: 'VALOR_INVALIDO', field }] : []
+}
