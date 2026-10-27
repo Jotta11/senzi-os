@@ -18,7 +18,7 @@ export function MaintenancePane({ garment: g }: { garment: Garment }) {
     { key: 'open', header: 'Abertura', render: (m) => dateBR(m.openedAt.slice(0, 10)) },
     { key: 'end', header: 'Prazo / conclusão', render: (m) => (m.closedAt ? `concluída ${dateBR(m.closedAt.slice(0, 10))}` : m.dueAt ? `prazo ${dateBR(m.dueAt)}` : '—') },
     { key: 'prov', header: 'Fornecedor', render: (m) => m.provider ?? '—' },
-    ...(cost ? [{ key: 'cost', header: 'Custo', align: 'right' as const, className: 'op-num', render: (m: Maintenance) => (m.state === 'concluida' ? brl(m.cost) : '—') }] : []),
+    ...(cost ? [{ key: 'cost', header: 'Custo', align: 'right' as const, className: 'op-num', render: (m: Maintenance) => (m.state === 'concluida' && m.cost != null ? brl(m.cost) : '—') }] : []),
     { key: 'st', header: 'Estado', render: (m) => <Badge tone={MAINTENANCE_STATE[m.state].tone}>{MAINTENANCE_STATE[m.state].label}</Badge> },
   ]
 

@@ -78,7 +78,7 @@ export function operacao(ctx: MockCtx): OperacaoSource {
   }
 
   function release(g: Garment, note: string) {
-    for (const m of db.maintenances.filter((x) => x.garmentId === g.id && isOpen(x))) closeOrder(m, m.cost, null, null)
+    for (const m of db.maintenances.filter((x) => x.garmentId === g.id && isOpen(x))) closeOrder(m, m.cost ?? 0, null, null)
     const closed = new Set(db.reservations.filter((r) => CLOSED_RESERVATION_STATES.includes(r.state)).map((r) => r.id))
     g.blocks = g.blocks.filter((b: GarmentBlock) => {
       if (b.to < today) return true

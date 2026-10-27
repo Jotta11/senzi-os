@@ -11,6 +11,7 @@ import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
 import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
 import { PayablesPage } from '@/features/financeiro/PayablesPage'
 import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { OperacaoPage } from '@/features/operacao/OperacaoPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { ContractPrint } from '@/features/reservas/print/ContractPrint'
@@ -33,6 +34,7 @@ const LIVE: Record<string, ReactNode> = {
   '/acervo': <AcervoListPage />,
   '/clientes': <ClientesListPage />,
   '/financeiro': <FinanceOverviewPage />,
+  '/operacao': <OperacaoPage />,
   '/config': <ConfigPage />,
 }
 

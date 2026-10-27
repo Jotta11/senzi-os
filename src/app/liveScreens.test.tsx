@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { createMockSource } from '@/data/mockSource'
@@ -13,6 +13,7 @@ import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
 import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
 import { PayablesPage } from '@/features/financeiro/PayablesPage'
 import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { OperacaoPage } from '@/features/operacao/OperacaoPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
 import { ContractPrint } from '@/features/reservas/print/ContractPrint'
@@ -23,7 +24,7 @@ import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
 import { ToastProvider } from '@/ui'
 
 /**
- * Telas ligadas no app real (Agenda, Provas, Reservas, Financeiro e as abas de reservas das fichas): renderizadas sobre a fonte em memória, registram cada método da
+ * Telas ligadas no app real (Agenda, Provas, Reservas, Financeiro, Operação e as abas de reservas e manutenções das fichas): renderizadas sobre a fonte em memória, registram cada método da
  * `DataSource` que chamam. Todos precisam existir na fonte do Supabase — senão a tela cairia em `NAO_DISPONIVEL`.
  */
 const TODAY = '2026-10-24'
@@ -56,6 +57,7 @@ function renderAt(path: string, element: ReactNode, source: DataSource) {
       { path: '/financeiro/receber', element },
       { path: '/financeiro/pagar', element },
       { path: '/financeiro/categorias', element },
+      { path: '/operacao', element },
     ],
     { initialEntries: [path] },
   )
@@ -161,6 +163,41 @@ describe('telas do Financeiro no app real', () => {
       cleanup()
     }
     for (const m of ['financeOverview', 'listReceivables', 'listPayables', 'listFinCategories']) expect(called).toContain(m)
+    const missing = [...called].filter((k) => !(k in live))
+    expect(missing).toEqual([])
+  })
+})
+
+describe('telas da Operação no app real', () => {
+  it('fila, modais de inspeção, conclusão e liberação e a aba Manutenções da peça só chamam métodos que a fonte do Supabase tem', async () => {
+    const mock = createMockSource({ latencyMs: 0, today: TODAY })
+    const { proxy, called } = recording(mock)
+    const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
+    const q = await mock.operacaoQueue()
+
+    // Fila + modal de inspeção (checklist, reserva da devolução, fornecedores).
+    renderAt('/operacao', <OperacaoPage />, proxy)
+    fireEvent.click(within(await screen.findByRole('region', { name: 'Aguardando inspeção' })).getAllByRole('button', { name: 'Inspecionar' })[0]!)
+    expect(await screen.findByRole('dialog', { name: 'Inspeção de devolução' })).toBeInTheDocument()
+    expect(await screen.findByRole('checkbox', { name: 'Zíper e fechos' })).toBeInTheDocument()
+    cleanup()
+    // Conclusão de ordem.
+    renderAt('/operacao', <OperacaoPage />, proxy)
+    fireEvent.click(within(await screen.findByRole('region', { name: 'Em higienização' })).getAllByRole('button', { name: 'Concluir' })[0]!)
+    expect(await screen.findByRole('dialog', { name: 'Concluir higienização' })).toBeInTheDocument()
+    cleanup()
+    // Liberação de peça bloqueada.
+    renderAt('/operacao', <OperacaoPage />, proxy)
+    fireEvent.click(within(await screen.findByRole('region', { name: 'Bloqueadas' })).getAllByRole('button', { name: 'Devolver ao acervo' })[0]!)
+    expect(await screen.findByRole('dialog', { name: 'Liberar peça para o acervo' })).toBeInTheDocument()
+    cleanup()
+    // Aba Manutenções da ficha de uma peça em manutenção.
+    const g = q.manutencao[0]!.garment
+    renderAt(`/acervo/${g.id}?aba=manutencoes`, <GarmentPage key="m" />, proxy)
+    expect(await screen.findByRole('table', { name: 'Ordens de serviço' })).toBeInTheDocument()
+    cleanup()
+
+    for (const m of ['operacaoQueue', 'checklist', 'inspectionTarget', 'suppliers', 'maintenancesOf']) expect(called).toContain(m)
     const missing = [...called].filter((k) => !(k in live))
     expect(missing).toEqual([])
   })

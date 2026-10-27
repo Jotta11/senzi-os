@@ -78,10 +78,10 @@ describe('shell', () => {
   })
 
   it('item ativo tem aria-current=page e a rota mostra Em construção', () => {
-    setup('admin', '/operacao')
+    setup('admin', '/inteligencia')
     const ativos = navLinks().filter((l) => l.getAttribute('aria-current') === 'page')
     expect(ativos).toHaveLength(1)
-    expect(ativos[0]).toHaveAttribute('aria-label', 'Operação')
+    expect(ativos[0]).toHaveAttribute('aria-label', 'Inteligência')
     expect(screen.getByText('Em construção')).toBeInTheDocument()
   })
 

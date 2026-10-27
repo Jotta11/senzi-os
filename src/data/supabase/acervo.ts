@@ -23,29 +23,39 @@ const SIGNED_MARGIN_MS = 10 * 60 * 1000
 type RawPhoto = { id: string; kind: PhotoKind; path: string; isCover: boolean }
 export type RawGarment = Omit<Garment, 'photos'> & { photos: RawPhoto[] }
 
-/** Troca o `path` das fotos por URL assinada. Com `forget`, esquece a assinatura de um arquivo apagado. */
-export type PhotoSigner = ((raws: RawGarment[]) => Promise<Garment[]>) & { forget(path: string): void }
+/**
+ * Troca o `path` das fotos por URL assinada. Com `forget`, esquece a assinatura de um arquivo apagado;
+ * `urls` assina caminhos soltos do mesmo bucket (fotos da inspeção), com o mesmo cache.
+ */
+export type PhotoSigner = ((raws: RawGarment[]) => Promise<Garment[]>) & {
+  forget(path: string): void
+  urls(paths: string[]): Promise<Map<string, string>>
+}
 
 /**
  * Assinador de fotos do bucket `pecas-fotos`, com cache: reaproveita as URLs que ainda valem
- * (o navegador não baixa a foto de novo). Um por fonte, compartilhado por Acervo e Clientes (recomendações).
+ * (o navegador não baixa a foto de novo). Um por fonte, compartilhado por Acervo, Clientes (recomendações) e Operação.
  */
 export function photoSigner(client: SupabaseClient): PhotoSigner {
   const signed = new Map<string, { url: string; expires: number }>()
-  const sign = async (raws: RawGarment[]): Promise<Garment[]> => {
+  const urls = async (paths: string[]): Promise<Map<string, string>> => {
     const now = Date.now()
-    const missing = [...new Set(raws.flatMap((g) => g.photos.map((p) => p.path)))].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
+    const missing = [...new Set(paths)].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
     if (missing.length) {
       const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_SECONDS)
       if (error) throw error
       for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, { url: s.signedUrl, expires: now + SIGNED_SECONDS * 1000 })
     }
+    return new Map(paths.map((p) => [p, signed.get(p)?.url ?? '']))
+  }
+  const sign = async (raws: RawGarment[]): Promise<Garment[]> => {
+    const url = await urls(raws.flatMap((g) => g.photos.map((p) => p.path)))
     return raws.map(({ photos, ...g }) => ({
       ...g,
-      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: signed.get(p.path)?.url ?? '' })),
+      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: url.get(p.path) ?? '' })),
     }))
   }
-  return Object.assign(sign, { forget: (path: string) => void signed.delete(path) })
+  return Object.assign(sign, { forget: (path: string) => void signed.delete(path), urls })
 }
 
 export type AcervoSource = Pick<
@@ -68,12 +78,15 @@ export type AcervoSource = Pick<
   | 'releaseBlock'
 >
 
-type RawCosts = { garment_id: string; acquisition_cost: number | string | null; rentals: number; revenue: number | string; last_rental: string | null }
+type Num = number | string
+type RawCosts = { garment_id: string; acquisition_cost: Num | null; rentals: number; revenue: Num; last_rental: string | null; cleaning?: Num; maintenance?: Num }
 
-/** Economia da peça (`garmentEconomics` de `src/domain/economics.ts`) a partir de `garment_costs`, sem higienização/manutenção. */
+/** Economia da peça (`garmentEconomics` de `src/domain/economics.ts`) a partir de `garment_costs` (reservas + contas da Operação). */
 export function economicsOf(r: RawCosts, today: string): GarmentEconomics {
   const cost = r.acquisition_cost === null ? null : Number(r.acquisition_cost)
   const revenue = Number(r.revenue)
+  const cleaning = Number(r.cleaning ?? 0)
+  const maintenance = Number(r.maintenance ?? 0)
   return {
     garmentId: r.garment_id,
     rentals: r.rentals,
@@ -81,9 +94,9 @@ export function economicsOf(r: RawCosts, today: string): GarmentEconomics {
     acquisitionCost: cost,
     payback: cost ? revenue / cost : null,
     paidBack: !!cost && revenue >= cost,
-    cleaning: 0,
-    maintenance: 0,
-    result: round2(revenue - (cost ?? 0)),
+    cleaning,
+    maintenance,
+    result: round2(revenue - (cost ?? 0) - cleaning - maintenance),
     lastRental: r.last_rental,
     idleDays: r.last_rental ? diffDays(r.last_rental, today) : null,
   }
@@ -136,7 +149,7 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
 
     garmentCounts: (f) => rpc('garment_counts', { p_q: f.q ?? '', p_cat: f.cat ?? null, p_size: f.size ?? null }),
 
-    // Locações, receita e última locação vêm das reservas (garment_costs); higienização e manutenção entram com a Operação.
+    // Locações, receita e última locação vêm das reservas; higienização e manutenção, das contas da Operação (garment_costs).
     garmentEconomics: async (ids) => {
       if (!ids.length) return []
       const rows = await rpc<RawCosts[]>('garment_costs', { p_ids: ids })

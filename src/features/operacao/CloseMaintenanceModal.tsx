@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { usePermissions } from '@/auth/usePermissions'
 import { useCloseMaintenance, useReleaseGarment, useSuppliers } from '@/data/hooks-operacao'
 import { GARMENT_STATE } from '@/data/labels'
 import type { Garment } from '@/data/types'
@@ -39,10 +40,12 @@ function CloseForm({ order, onDone }: { order: OrderTarget; onDone(): void }) {
   const toast = useToast()
   const close = useCloseMaintenance()
   const suppliers = useSuppliers()
+  // Liberar junto exige `operacao.release` (o banco recusa sem ela).
+  const canRelease = usePermissions().can('operacao.release')
   const [cost, setCost] = useState(order.kind === 'higienizacao' ? '58' : '0')
   const [provider, setProvider] = useState(order.provider ?? '')
   const [note, setNote] = useState('')
-  const [release, setRelease] = useState(true)
+  const [release, setRelease] = useState(canRelease)
   const [error, setError] = useState<string | undefined>()
 
   function submit(e: FormEvent) {
@@ -78,10 +81,12 @@ function CloseForm({ order, onDone }: { order: OrderTarget; onDone(): void }) {
         </datalist>
         <Field id="op-note" full label="Observação" placeholder="O que foi feito" value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
-      <label className="op-opt">
-        <input type="checkbox" checked={release} onChange={(e) => setRelease(e.target.checked)} />
-        <span>Liberar a peça para o acervo ao concluir</span>
-      </label>
+      {canRelease && (
+        <label className="op-opt">
+          <input type="checkbox" checked={release} onChange={(e) => setRelease(e.target.checked)} />
+          <span>Liberar a peça para o acervo ao concluir</span>
+        </label>
+      )}
     </form>
   )
 }

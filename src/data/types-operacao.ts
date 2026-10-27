@@ -17,8 +17,8 @@ export type Maintenance = {
   closedAt: string | null
   description: string | null
   provider: string | null
-  /** 0 até concluir. */
-  cost: number
+  /** 0 até concluir. `null` sem `acervo.cost` (o banco não manda o custo; a prévia sempre manda). */
+  cost: number | null
   /** `true`: higienização e dano grave; `false`: reparo leve. */
   blocksGarment: boolean
   createdBy: string

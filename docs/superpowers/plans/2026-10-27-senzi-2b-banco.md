@@ -192,3 +192,30 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
   8. Rotas reais `/financeiro` (NAV, `financeiro.view`), `/financeiro/receber|pagar|categorias` (RequirePerm `financeiro.geral`).
      As leituras recalculam tudo a cada chamada (sem cache/materialização): ok para o volume de uma loja; se crescer, materializar
      `fin_receipts` por dia.
+- Área 5 (Operação), migration `20261027000600_operacao.sql`. Decisões que afetam as próximas áreas:
+  1. Tabelas `checklist_item` (seed = as 10 do fixture), `inspection` (achados em jsonb normalizados `{label, ok:false, severity, note}`),
+     `inspection_photo` (tipo + `storage_path` opcional no bucket `pecas-fotos`, prefixo `<garment_id>/`; a tela ainda só manda o tipo,
+     então o path fica nulo e a URL sai vazia) e `maintenance` (ordens). FKs `payable.maintenance_id` e
+     `garment_calendar_block.maintenance_id` → `maintenance` acrescentadas aqui.
+  2. RPCs: `operacao_queue`, `operacao_checklist`, `inspection_target`, `register_inspection`, `close_maintenance`, `release_garment`,
+     `maintenances_of`, `operacao_suppliers`; `garment_costs` recriada (drop + create) com `cleaning`/`maintenance` (Σ contas `operacao`
+     não canceladas da peça por `system_key`). Internas para a área 6: `maintenance_json`, `inspection_json`, `operacao_queue_row`,
+     `garment_free_state(peça)` (estado derivado a partir de `disponivel`, sem a trava dos operacionais), `operacao_release`,
+     `operacao_close_order`, `operacao_block`, `maintenance_kind_label`.
+  3. **Permissões:** fila e histórico da peça `operacao.view`; checklist, reserva da devolução e fornecedores qualquer `operacao.*`;
+     inspeção `operacao.inspect`; concluir ordem `operacao.maintenance` (+ `operacao.release` se `release: true` — o modal só mostra
+     a opção para quem a tem); liberar `operacao.release` (+ `acervo.block` se a peça está `bloqueado`, porque tira o bloqueio manual).
+     **Custos:** quem conclui lança o custo (vira conta paga via `payable_insert_auto`, forma pix), mas só quem tem `acervo.cost` lê:
+     `Maintenance.cost` passou a `number | null` (null sem a permissão) e `costLast30d` sai null. A área 6 (alertas de ordens
+     paradas, Inteligência) deve seguir a mesma regra.
+  4. **Agenda sem sobreposição:** o bloco da ordem começa hoje e termina no dia anterior ao próximo bloco ativo da peça; se hoje já está
+     ocupado, a ordem nasce sem bloco (o prazo `dueAt` fica cheio). A inspeção libera a higienização planejada da reserva e a locação
+     dela que ainda cobre hoje (devolução de hoje), que vira histórico como na finalização. Blocos da Operação ficam com
+     `reservation_id` nulo (como a fonte em memória), o que a liberação usa para tirá-los e manter os planejados de reservas vivas.
+  5. Finalização: o último item inspecionado chama `reservation_transition(id, 'finalizada', 'Todas as peças inspecionadas')` (itens
+     `cancelado`/`nao_entregue` não contam). `reservationId` inexistente → PARAMETRO_INVALIDO `reservationId` (a fonte em memória
+     ignoraria); entrada malformada → PARAMETRO_INVALIDO com o campo (`findings`, `photos`, `maintenanceKind`, `perda`, `openRepair`).
+  6. **Pendência mantida (03v):** peça que nunca saiu e teve a reserva cancelada dentro da própria janela de higienização fica
+     `higienizacao` (sem ordem) até ser liberada na Operação — coberto em `tests/db/operacao.test.ts`. Resolver na área 7 se for o caso.
+  7. Desempates: ordens por `opened_at` (clock_timestamp, então ordens da mesma inspeção ficam na ordem de criação), fornecedores
+     usados na ordem em que apareceram. Rota real `/operacao` (NAV, `operacao.view`); a aba Manutenções da ficha agora lê do banco.
