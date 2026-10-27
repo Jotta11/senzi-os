@@ -9,6 +9,10 @@ import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { ConfigPage } from '@/features/config/ConfigPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
+import { ContractPrint } from '@/features/reservas/print/ContractPrint'
+import { OsPrint } from '@/features/reservas/print/OsPrint'
+import { ReservasListPage } from '@/features/reservas/ReservasListPage'
+import { ReservationPage } from '@/features/reservas/ReservationPage'
 import { previewRoutes } from '@/preview/previewRoutes'
 import { AppShell } from '@/shell/AppShell'
 import { ComingSoon } from '@/shell/ComingSoon'
@@ -21,6 +25,7 @@ import { SupabaseDataLayout } from './SupabaseDataLayout'
 const LIVE: Record<string, ReactNode> = {
   '/agenda': <AgendaPage />,
   '/provas': <ProvasListPage />,
+  '/reservas': <ReservasListPage />,
   '/acervo': <AcervoListPage />,
   '/clientes': <ClientesListPage />,
   '/config': <ConfigPage />,
@@ -55,6 +60,30 @@ export const appRoutes: RouteObject[] = [
                 element: (
                   <RequirePerm perm="prova.view">
                     <FittingPage />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/reservas/:id',
+                element: (
+                  <RequirePerm perm="reserva.view">
+                    <ReservationPage />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/reservas/:id/contrato',
+                element: (
+                  <RequirePerm perm="reserva.view">
+                    <ContractPrint />
+                  </RequirePerm>
+                ),
+              },
+              {
+                path: '/reservas/:id/os',
+                element: (
+                  <RequirePerm perm="reserva.view">
+                    <OsPrint />
                   </RequirePerm>
                 ),
               },

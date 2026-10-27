@@ -4,9 +4,9 @@
  * peça nem cria bloco), contrato gerado/regerado enquanto não assinado e conversão da prova de origem.
  */
 import { discountNeedsException, round2 } from '@/domain/money'
-import { addDays, brl } from '@/lib/format'
 import type { ReservasSource } from '../source-reservas'
-import { SourceError, type ExceptionAuthorization, type Reservation, type ReservationInput, type SourceIssue } from '../types'
+import { SourceError, type ExceptionAuthorization, type Reservation, type ReservationInput } from '../types'
+import { contractSignIssues, reservationDiscountHint, reservationGross, reservationIssues } from '../validation'
 import type { MockCtx } from './context'
 import { consumeException, usableException } from './exceptions'
 import { priceItems, type PriceLine } from './pricing'
@@ -14,7 +14,6 @@ import type { ReservaKit } from './reservas-shared'
 
 type Draft = Pick<ReservasSource, 'createDraft' | 'updateDraft' | 'addDraftItem' | 'removeDraftItem' | 'markContractSigned'>
 
-const isDate = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
 const OPEN_FITTING = ['agendada', 'em_curso']
 
 export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
@@ -28,29 +27,10 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
 
   /** Problemas do formulário (ordem e campos da spec §3.1) e as linhas de preço. */
   function validate(input: ReservationInput): { lines: PriceLine[]; gross: number } {
-    const issues: SourceIssue[] = []
-    const items = input.items ?? []
-    if (!input.customerId) issues.push({ code: 'RESERVA_SEM_CLIENTE', field: 'customerId' })
-    if (!items.length) issues.push({ code: 'RESERVA_SEM_PECAS', field: 'items' })
-    else if (new Set(items.map((i) => i.garmentId)).size !== items.length || items.some((i) => !Number.isFinite(i.unitPrice) || i.unitPrice < 0 || (i.itemDiscount ?? 0) < 0))
-      issues.push({ code: 'PARAMETRO_INVALIDO', field: 'items' })
-    const { eventDate: ev, pickupDate: pk, returnDueDate: rt } = input
-    if (!isDate(ev)) issues.push({ code: 'DATA_EVENTO_OBRIGATORIA', field: 'eventDate' })
-    if (!isDate(pk)) issues.push({ code: 'DATA_OBRIGATORIA', field: 'pickupDate' })
-    if (!isDate(rt)) issues.push({ code: 'DATA_OBRIGATORIA', field: 'returnDueDate' })
-    if (isDate(pk) && isDate(rt) && rt < pk) issues.push({ code: 'DEVOLUCAO_ANTES_RETIRADA', field: 'returnDueDate' })
-    if (isDate(ev) && isDate(pk) && ev < pk) issues.push({ code: 'EVENTO_ANTES_RETIRADA', field: 'eventDate' })
-    if (isDate(ev) && isDate(rt) && ev > rt) issues.push({ code: 'EVENTO_DEPOIS_DEVOLUCAO', field: 'eventDate' })
-    if (isDate(pk) && pk < addDays(today, -1)) issues.push({ code: 'RETIRADA_NO_PASSADO', field: 'pickupDate' })
-    const gross = round2(items.reduce((s, i) => s + (Number.isFinite(i.unitPrice) ? i.unitPrice : 0), 0))
-    const itemDiscounts = items.reduce((s, i) => s + (i.itemDiscount ?? 0), 0)
-    const discount = input.discount
-    if (!Number.isFinite(discount) || discount < 0) issues.push({ code: 'DESCONTO_NEGATIVO', field: 'discount' })
-    else if (items.length && discount + itemDiscounts > gross + 0.001) issues.push({ code: 'DESCONTO_MAIOR_QUE_BRUTO', field: 'discount' })
-    if (issues.length) {
-      const big = issues.find((i) => i.code === 'DESCONTO_MAIOR_QUE_BRUTO')
-      fail(issues, big ? `O desconto (${brl(discount)}) é maior que o valor das peças (${brl(gross)}).` : undefined)
-    }
+    const issues = reservationIssues(input, today)
+    if (issues.length) fail(issues, issues.some((i) => i.code === 'DESCONTO_MAIOR_QUE_BRUTO') ? reservationDiscountHint(input) : undefined)
+    const items = input.items
+    const gross = reservationGross(input)
     ctx.customer(input.customerId)
     for (const i of items) ctx.garment(i.garmentId)
     return { lines: items.map((i) => ({ garmentId: i.garmentId, unitPrice: i.unitPrice, itemDiscount: i.itemDiscount ?? 0, alterationNotes: i.alterationNotes?.trim() || null })), gross }
@@ -206,10 +186,7 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
       run(() => {
         const r = ctx.reservation(id)
         if (r.state === 'cancelada' || r.state === 'no_show' || r.contract?.signedAt) throw new SourceError('ESTADO_INVALIDO')
-        const issues: SourceIssue[] = []
-        if (!isDate(input.signedAt)) issues.push({ code: 'DATA_OBRIGATORIA', field: 'signedAt' })
-        else if (input.signedAt > today) issues.push({ code: 'DATA_FUTURA', field: 'signedAt' })
-        if (!input.signerName?.trim()) issues.push({ code: 'NOME_CLIENTE_OBRIGATORIO', field: 'signerName' })
+        const issues = contractSignIssues(input, today)
         if (issues.length) fail(issues)
         if (!r.contract) kit.writeContract(r)
         Object.assign(r.contract!, {

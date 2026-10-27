@@ -117,3 +117,44 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
   8. Rotas reais `/agenda`, `/provas`, `/provas/:id` (RequirePerm prova.view). O botão "Gerar reserva" da prova leva a
      `/reservas?nova=1&prova=…`, que no app real segue "Em breve" até a área 3. `src/app/liveScreens.test.tsx` garante que
      as telas ligadas só chamam métodos que a fonte do Supabase tem — estender a lista de telas a cada área.
+- Área 3 (Reservas), migrations `20261027000400_reservas.sql` (tabelas, base do financeiro, funções internas) e
+  `20261027000450_reservas_rpcs.sql` (RPCs e pontos de extensão). Decisões que afetam as próximas áreas:
+  1. Tabelas: `reservation`, `reservation_item`, `reservation_payment` (ordem por `seq`), `reservation_contract` (todas as
+     versões; a vigente é a de maior `version`; versão assinada não muda — trigger `reservation_contract_frozen`),
+     `reservation_history`, `app_settings` (uma linha, seed = `DEFAULT_SETTINGS`). `exception_authorization` ganhou
+     `reservation_id`, `amount`, `consumed_at`. FKs `reservation_id` acrescentadas em `appointment`, `fitting_session` e
+     `garment_calendar_block` (os testes da agenda criam reservas mínimas por isso).
+  2. **Base do financeiro (área 4 acrescenta RPCs e telas):** `fin_category` (16 categorias do fixture; `system_key` único,
+     `is_system` gerado, `archived`, `sort_order`) e `receivable` = só recebíveis **avulsos** (as parcelas de reserva derivam de
+     `reservation_payment`, como `src/domain/finance.ts`; `isCustody` é sempre false no avulso). Já gravado aqui: retenção de
+     caução (`Retenção de caução · RS-…`, categoria `locacao`, pago). Falta na área 4: regra de nome duplicado
+     (`CATEGORIA_DUPLICADA`), contas a pagar (a compra da peça → `aquisicao` no `create_garment`), visão geral. "A receber" das
+     reservas = Σ parcelas `pendente` (≠ caução) de reservas fora de rascunho/cancelada/no-show (`reservation_summary`); por
+     construção = Σ `reservation_open_due(id)`.
+  3. **Finalização é da área 5:** `em_inspecao → finalizada` com `public.reservation_transition(id, 'finalizada', motivo)`
+     (itens inspecionados → `inspecionado`). O trigger `reservation_state_blocks` libera (released_at) a locação da reserva
+     finalizada, que vira histórico (a higienização fica). Helpers prontos: `garment_rederive(peça, motivo)` (estado derivado,
+     registra se muda), `garment_log_state` (sempre registra), `reservation_release_blocks`, `reservation_money(id)`
+     (saldo + parcelas-alvo), `reservation_sync_pending`. `maintenancesOf` segue stub vazio no `createSupabaseSource`.
+  4. **Economia da peça:** `garment_costs(ids)` foi recriada (drop + create) com `rentals`, `revenue`, `last_rental`; o adaptador
+     monta `GarmentEconomics` em `economicsOf` (`src/data/supabase/acervo.ts`) com higienização/manutenção = 0 — a área 5 soma
+     as contas `operacao` da peça (mesma técnica: drop + create, ou colunas novas). `customer_stats` agora é real (`search_customers`
+     já ordena por gasto/locações através dela).
+  5. **Exceções:** valem uma vez, do tipo pedido, **só para quem as pediu** (`requested_by` = usuário da sessão — regra a mais que a
+     fonte em memória), para a reserva (`ref_type 'reserva'`, `ref_id`) ou para rascunho (`reserva_rascunho`; o id provisório
+     `tmp-…` da tela vai como `ref_id` null). O autorizador real é `sourceAuthorizer(fonte do Supabase)` montado em `SupabaseDataLayout`.
+  6. **Agenda da peça no banco:** blocos ativos não se sobrepõem, então (a) devolução atrasada estica a locação só até o dia
+     anterior ao próximo bloco de outra reserva (a fonte em memória deixaria sobrepor) e a higienização só entra se couber;
+     (b) retirada antecipada libera a preparação (`inspecao`, se `default_prep_days > 0`) da própria reserva.
+  7. **Permissões:** leituras `reserva.view` (inclusive `get_settings` — o Painel da área 6 pode precisar de leitura própria para
+     `idleAlertDays`); rascunho `reserva.create` (+ `reserva.discount` para desconto novo > 0); contrato e confirmação
+     `reserva.confirm`; pronta/retirada `reserva.pickup`; devolução `reserva.return`; cancelamento/no-show `reserva.cancel`;
+     pagamentos e caução `financeiro.payment`. Os valores da reserva saem para quem tem `reserva.view` (a tela esconde sem
+     `financeiro.view`; os tipos são `number`). CPF do contrato sai `***.XXX.XXX-**` sem `cliente.edit` (a OS usa a cliente já oculta).
+  8. Validações compartilhadas novas em `src/data/validation.ts`: `reservationIssues` (datas de calendário real, como a RPC),
+     `reservationDiscountHint`, `contractSignIssues` — usadas pela fonte em memória e pelo adaptador. O adaptador valida a
+     assinatura antes da RPC, então problemas de formulário aparecem antes de `ESTADO_INVALIDO` (ordem não visível na tela).
+  9. `ReservationFilter` não tem texto: a busca ⌘K continua filtrando no cliente sobre `listReservations('todas')`; o limite da
+     RPC vai até 1000 (o da busca global).
+  10. Rotas reais `/reservas`, `/reservas/:id`, `/reservas/:id/contrato`, `/reservas/:id/os` (RequirePerm `reserva.view`);
+      "Gerar reserva" da prova (`/reservas?nova=1&prova=…`) agora funciona no app real.

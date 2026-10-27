@@ -84,10 +84,10 @@ describe('supabaseAcervo', () => {
 })
 
 describe('createSupabaseSource', () => {
-  it('reservas e manutenções da peça vêm vazias; o resto ainda não está no banco', async () => {
+  it('manutenções da peça vêm vazias (área 5); o resto que não está no banco falha com NAO_DISPONIVEL', async () => {
     const src = createSupabaseSource(fakeClient(() => ({})).client)
     await expect(src.reservationsOfGarment('g1')).resolves.toEqual([])
     await expect(src.maintenancesOf('g1')).resolves.toEqual({ maintenances: [], inspections: [] })
-    await expect(src.getSettings()).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
+    await expect(src.financeOverview('30')).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
   })
 })

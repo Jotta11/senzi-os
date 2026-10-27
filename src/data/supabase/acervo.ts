@@ -5,10 +5,11 @@
  * As validações de formulário rodam antes (mesmas regras da prévia) para devolver todos os problemas de uma vez.
  */
 import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
-import { garmentEconomics } from '@/domain/economics'
+import { diffDays } from '@/domain/dates'
+import { round2 } from '@/domain/money'
 import { todayISO } from '@/lib/format'
 import type { AcervoClientesSource } from '../source'
-import { SourceError, type Category, type Garment, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
+import { SourceError, type Category, type Garment, type GarmentEconomics, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
 import { fitIssues, garmentIssues, measurementIssues } from '../validation'
 
 export const PHOTO_BUCKET = 'pecas-fotos'
@@ -67,6 +68,27 @@ export type AcervoSource = Pick<
   | 'releaseBlock'
 >
 
+type RawCosts = { garment_id: string; acquisition_cost: number | string | null; rentals: number; revenue: number | string; last_rental: string | null }
+
+/** Economia da peça (`garmentEconomics` de `src/domain/economics.ts`) a partir de `garment_costs`, sem higienização/manutenção. */
+export function economicsOf(r: RawCosts, today: string): GarmentEconomics {
+  const cost = r.acquisition_cost === null ? null : Number(r.acquisition_cost)
+  const revenue = Number(r.revenue)
+  return {
+    garmentId: r.garment_id,
+    rentals: r.rentals,
+    revenue,
+    acquisitionCost: cost,
+    payback: cost ? revenue / cost : null,
+    paidBack: !!cost && revenue >= cost,
+    cleaning: 0,
+    maintenance: 0,
+    result: round2(revenue - (cost ?? 0)),
+    lastRental: r.last_rental,
+    idleDays: r.last_rental ? diffDays(r.last_rental, today) : null,
+  }
+}
+
 /** Falha com todos os problemas de uma validação (o primeiro vira `code`/`field`). */
 export function fail(issues: SourceIssue[]): never {
   const [first] = issues
@@ -114,12 +136,11 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
 
     garmentCounts: (f) => rpc('garment_counts', { p_q: f.q ?? '', p_cat: f.cat ?? null, p_size: f.size ?? null }),
 
-    // Locações, receita, higienização e manutenção entram quando Reservas e Operação forem para o banco.
+    // Locações, receita e última locação vêm das reservas (garment_costs); higienização e manutenção entram com a Operação.
     garmentEconomics: async (ids) => {
       if (!ids.length) return []
-      const rows = await rpc<{ garment_id: string; acquisition_cost: number | null }[]>('garment_costs', { p_ids: ids })
-      const empty = { reservations: [], payables: [], finCategories: [] }
-      return rows.map((r) => garmentEconomics({ id: r.garment_id, acquisitionCost: r.acquisition_cost }, empty, todayISO()))
+      const rows = await rpc<RawCosts[]>('garment_costs', { p_ids: ids })
+      return rows.map((r) => economicsOf(r, todayISO()))
     },
 
     acervoInvestment: async () => Number(await rpc<number | string>('acervo_investment')),

@@ -100,6 +100,14 @@ describe('agenda e provas', () => {
   const close = (id: string, state: string, notes: string | null) => as<Detail>(atend, 'public.close_fitting($1, $2, $3)', [id, state, notes])
   const list = (filter: string, limit = 50, offset = 0) => as<{ items: Row[]; total: number }>(atend, 'public.list_fittings($1, $2, $3)', [filter, limit, offset])
   const errOf = (p: Promise<unknown>) => p.then(() => null, (e: { message: string; detail?: string }) => e)
+  // Reserva mínima (tabela da área 3) para as FKs de appointment/fitting_session.reservation_id.
+  const reservation = async (code: string) =>
+    (
+      await db.query<{ id: string }>(
+        `insert into public.reservation (code, customer_id, pickup_date, return_due_date) values ($1, $2, public.store_today(), public.store_today()) returning id`,
+        [code, cust.id],
+      )
+    ).rows[0].id
 
   beforeEach(async () => {
     db = await createTestDb()
@@ -191,13 +199,20 @@ describe('agenda e provas', () => {
     })
 
     it('appointment_insert (para a área 3): compromisso automático com reserva fica fora das edições manuais', async () => {
-      const res = '11111111-1111-1111-1111-111111111111'
+      const res = await reservation('RS-TESTE-0001')
       const { rows } = await db.query<{ id: string }>(
         `select public.appointment_insert('retirada', public.store_at(public.store_today(), '10:00'), 'Retirada', null, $1, $2, null, null, null) as id`,
         [cust.id, res],
       )
       const [day] = await range(atend, today, today)
-      expect(day.items.find((i) => i.id === rows[0].id)).toMatchObject({ kind: 'retirada', title: 'Retirada', time: '10:00', reservation: null })
+      expect(day.items.find((i) => i.id === rows[0].id)).toMatchObject({
+        kind: 'retirada',
+        title: 'Retirada',
+        time: '10:00',
+        reservation: { id: res, code: 'RS-TESTE-0001' },
+        garments: [],
+        pendingPickupItems: 0,
+      })
       await expect(as(atend, 'public.cancel_appointment($1)', [rows[0].id])).rejects.toThrow('ESTADO_INVALIDO')
     })
 
@@ -341,7 +356,7 @@ describe('agenda e provas', () => {
       await close(ids[3], 'concluida', null)
 
       // a área 3 converte a prova quando o rascunho da reserva nasce dela
-      const res = '22222222-2222-2222-2222-222222222222'
+      const res = await reservation('RS-TESTE-0002')
       const other = await as<{ id: string }>(admin, 'public.create_customer($1)', [
         JSON.stringify({ fullName: 'Outra Cliente', phone: '63996124400', birthDate: '1990-01-01', cpf: '12345678909' }),
       ])

@@ -122,6 +122,6 @@ describe('createSupabaseSource — agenda', () => {
     await expect(src.fittingsOfCustomer(CID)).resolves.toEqual([])
     expect(f.rpc).toHaveBeenCalledWith('fittings_of_customer', { p_customer: CID })
     await expect(src.reservationsOfCustomer(CID)).resolves.toEqual([])
-    await expect(src.listReservations('todas', { limit: 10, offset: 0 })).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
+    await expect(src.operacaoQueue()).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
   })
 })

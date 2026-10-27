@@ -4,8 +4,19 @@
  */
 import { isValidCPF } from '@/lib/cpf'
 import { errorMessage } from '@/lib/errorMessages'
-import { onlyDigits } from '@/lib/format'
-import type { AppointmentInput, CustomerInput, CustomerMeasurementInput, FitInput, FittingInput, GarmentInput, GarmentMeasurement, SourceIssue } from './types'
+import { addDays, brl, onlyDigits } from '@/lib/format'
+import type {
+  AppointmentInput,
+  ContractSignInput,
+  CustomerInput,
+  CustomerMeasurementInput,
+  FitInput,
+  FittingInput,
+  GarmentInput,
+  GarmentMeasurement,
+  ReservationInput,
+  SourceIssue,
+} from './types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -148,5 +159,56 @@ export function fittingIssues(input: FittingInput): SourceIssue[] {
   else if (input.eventDate && input.eventDate < input.date) out.push({ code: 'DATAS_INCOERENTES', field: 'eventDate' })
   const time = input.time?.trim()
   if (time && !isValidTime(time)) out.push({ code: 'HORARIO_OBRIGATORIO', field: 'time' })
+  return out
+}
+
+const cents2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100
+
+/** Σ preços das peças do rascunho (só os números válidos), em centavos. */
+export function reservationGross(input: Pick<ReservationInput, 'items'>): number {
+  return cents2((input.items ?? []).reduce((s, i) => s + (Number.isFinite(i.unitPrice) ? i.unitPrice : 0), 0))
+}
+
+/**
+ * Problemas do rascunho de reserva (spec reservas §3.1), na ordem e com os campos da fonte em memória e da RPC
+ * `create_reservation_draft`: cliente, peças, datas (evento, retirada, devolução e a ordem entre elas, retirada até
+ * ontem) e desconto. `today` em `aaaa-mm-dd`. Não checa se cliente e peças existem.
+ */
+export function reservationIssues(input: ReservationInput, today: string): SourceIssue[] {
+  const out: SourceIssue[] = []
+  const items = input.items ?? []
+  if (!input.customerId) out.push({ code: 'RESERVA_SEM_CLIENTE', field: 'customerId' })
+  if (!items.length) out.push({ code: 'RESERVA_SEM_PECAS', field: 'items' })
+  else if (new Set(items.map((i) => i.garmentId)).size !== items.length || items.some((i) => !Number.isFinite(i.unitPrice) || i.unitPrice < 0 || (i.itemDiscount ?? 0) < 0))
+    out.push({ code: 'PARAMETRO_INVALIDO', field: 'items' })
+  const { eventDate: ev, pickupDate: pk, returnDueDate: rt } = input
+  const okEv = isValidISODate(ev)
+  const okPk = isValidISODate(pk)
+  const okRt = isValidISODate(rt)
+  if (!okEv) out.push({ code: 'DATA_EVENTO_OBRIGATORIA', field: 'eventDate' })
+  if (!okPk) out.push({ code: 'DATA_OBRIGATORIA', field: 'pickupDate' })
+  if (!okRt) out.push({ code: 'DATA_OBRIGATORIA', field: 'returnDueDate' })
+  if (okPk && okRt && rt < pk) out.push({ code: 'DEVOLUCAO_ANTES_RETIRADA', field: 'returnDueDate' })
+  if (okEv && okPk && ev < pk) out.push({ code: 'EVENTO_ANTES_RETIRADA', field: 'eventDate' })
+  if (okEv && okRt && ev > rt) out.push({ code: 'EVENTO_DEPOIS_DEVOLUCAO', field: 'eventDate' })
+  if (okPk && pk < addDays(today, -1)) out.push({ code: 'RETIRADA_NO_PASSADO', field: 'pickupDate' })
+  const discount = input.discount
+  const itemDiscounts = items.reduce((s, i) => s + (i.itemDiscount ?? 0), 0)
+  if (!Number.isFinite(discount) || discount < 0) out.push({ code: 'DESCONTO_NEGATIVO', field: 'discount' })
+  else if (items.length && discount + itemDiscounts > reservationGross(input) + 0.001) out.push({ code: 'DESCONTO_MAIOR_QUE_BRUTO', field: 'discount' })
+  return out
+}
+
+/** Detalhe de `DESCONTO_MAIOR_QUE_BRUTO` (o mesmo `hint` da RPC). */
+export function reservationDiscountHint(input: ReservationInput): string {
+  return `O desconto (${brl(input.discount)}) é maior que o valor das peças (${brl(reservationGross(input))}).`
+}
+
+/** Problemas de "marcar contrato como assinado": data (não futura) e nome de quem assinou. */
+export function contractSignIssues(input: ContractSignInput, today: string): SourceIssue[] {
+  const out: SourceIssue[] = []
+  if (!isValidISODate(input.signedAt)) out.push({ code: 'DATA_OBRIGATORIA', field: 'signedAt' })
+  else if (input.signedAt > today) out.push({ code: 'DATA_FUTURA', field: 'signedAt' })
+  if (!input.signerName?.trim()) out.push({ code: 'NOME_CLIENTE_OBRIGATORIO', field: 'signerName' })
   return out
 }
