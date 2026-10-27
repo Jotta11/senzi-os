@@ -34,8 +34,10 @@ Registro do ledger (2026-10-24). Leitura obrigatória ao escrever o Plano 2B (ba
 - Task 5: minor (deferred→T6): age test time-dependent (fails from 2027-03-21) — inject today / setSystemTime
 - Task 5: minor (deferred→T6): Recommendations skeleton forever on error
 - Task 5: minor (deferred): TabLabel aria-label on span; not-found on query error; Orçamento derived from ticket
-- Task 6: minor (deferred): retry button no pending state; role=alert wraps button; prod QueryClient retry setting may delay error; 0.5px inset dividers; medidas fix not recaptured at 820/admin
+- Task 6: minor (deferred): retry button no pending state; role=alert wraps button; ~~prod QueryClient retry setting may delay error~~ (feito no 2B, área 7: `shouldRetryQuery` só repete falha de rede); 0.5px inset dividers; medidas fix not recaptured at 820/admin
 
 ## Primeira tarefa obrigatória do Plano 2B
 - Tipos GarmentSummary/CustomerSummary para busca e recomendação; campos ocultáveis como null (retailReference, stats.spent, ticket); SEM_PERMISSAO em SourceErrorCode; distinguir erro de 'não encontrado' + predicado de retry que não repete SourceError; getGarments(ids) em lote.
+  **Plano 2B:** campos ocultáveis como null feitos nas áreas 1–6 (custos, `retailReference`, `stats.spent`, consolidados); área 7: `SEM_PERMISSAO` entrou em `SourceErrorCode` e o `QueryClient` real não repete `SourceError` nem erro com código do servidor (`src/lib/queryClient.ts`, `shouldRetryQuery`). Tipos `*Summary` e `getGarments(ids)` em lote não foram feitos: os tipos atuais já saem com os campos ocultos null e os favoritos são poucos por cliente — refatoração sem ganho visível agora.
 - Montar telas no app real: DataSourceProvider no AppShell, RequirePerm por rota, janela de carregamento de permissões; rotas lazy e prévia fora do bundle de produção.
+  **Plano 2B: feito.** `SupabaseDataLayout` + `RequirePerm` (com "Carregando…" enquanto as permissões chegam) nas áreas 1–6; área 7: telas sob demanda (`src/app/screens.ts`) e a prévia inteira (fonte em memória + fixture) num pedaço próprio (`/preview/*` → `src/preview/PreviewApp.tsx`).

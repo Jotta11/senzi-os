@@ -88,6 +88,8 @@ export type ExceptionAuthorization = {
   reservationId: string
   kind: ExceptionKind
   amount: number
+  /** Valor máximo autorizado no PIN (obrigatório no desconto acima do limite; opcional nos outros tipos). */
+  maxAmount?: number | null
   reason: string
   authorizedBy: string
   authorizedByName: string

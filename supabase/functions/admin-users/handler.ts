@@ -31,10 +31,17 @@ export type AdminUsersDeps = {
   logError?(event: string, detail: Record<string, unknown>): void
 }
 
-export const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+/** Origens do app que podem chamar a função pelo navegador: produção e os servidores locais (dev e preview). */
+export const ALLOWED_ORIGINS = ['https://admin.senziclub.com', 'http://localhost:5173', 'http://localhost:4173']
+
+/** Cabeçalhos CORS: ecoa a origem se for do app; senão responde com a de produção (o navegador barra). */
+export function corsFor(origin: string | null): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]!,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  }
 }
 
 const MSG = {
@@ -58,7 +65,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
   })
 }
 
@@ -77,8 +84,14 @@ function errInfo(err: unknown): Record<string, unknown> {
 const PASSWORD_MAX = 72
 
 export async function handleAdminUsers(req: Request, deps: AdminUsersDeps): Promise<Response> {
+  const res = await handle(req, deps)
+  for (const [k, v] of Object.entries(corsFor(req.headers.get('origin')))) res.headers.set(k, v)
+  return res
+}
+
+async function handle(req: Request, deps: AdminUsersDeps): Promise<Response> {
   const logError = deps.logError ?? ((event: string, detail: Record<string, unknown>) => console.error(event, detail))
-  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200 })
   if (req.method !== 'POST') return fail(405, MSG.method)
 
   const auth = req.headers.get('authorization') ?? ''

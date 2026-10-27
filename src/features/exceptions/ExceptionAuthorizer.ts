@@ -32,6 +32,7 @@ export const supabaseAuthorizer: ExceptionAuthorizer = {
       p_reason: args.reason,
       p_ref_type: args.refType,
       p_ref_id: args.refId,
+      p_max_amount: args.maxAmount ?? null,
     })
     if (error) return { ok: false, error: error.message }
     const result = data as { ok: boolean; id?: string; error?: string } | null

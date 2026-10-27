@@ -15,6 +15,8 @@ describe('format', () => {
     expect(maskPhone('6332154478')).toBe('(63) 3215-4478')
     expect(maskPhone('639')).toBe('(63) 9')
     expect(hideCPF('52998224725')).toBe('***.982.247-**')
+    expect(hideCPF('***982247**')).toBe('***.982.247-**')
+    expect(hideCPF('')).toBe('***.***.***-**')
   })
 
   it('onlyDigits e normalize', () => {

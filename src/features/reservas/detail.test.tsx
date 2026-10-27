@@ -127,6 +127,10 @@ describe('Reservas — ficha', () => {
     await user.click(within(pin).getByRole('button', { name: 'Autorizar' }))
     expect(await screen.findByText('Retirada autorizada')).toBeInTheDocument()
     await waitFor(async () => expect((await source.getReservation(row.id))!.state).toBe('em_uso'))
+    // O diálogo autoriza exatamente o saldo em aberto (maxAmount) e a retirada usa esse valor.
+    const auth = (await source.getReservation(row.id))!.authorizations.find((a) => a.kind === 'retirada_com_saldo')!
+    expect(auth.maxAmount).toBeGreaterThan(0)
+    expect(auth.amount).toBe(auth.maxAmount)
   })
 
   it('reserva atrasada mostra a faixa vermelha com a multa calculada e não oferece Cancelar', async () => {

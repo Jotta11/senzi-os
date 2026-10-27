@@ -14,8 +14,9 @@ function deps(over: Partial<AdminUsersDeps> = {}): AdminUsersDeps {
 
 const valid = { action: 'create', email: 'bia@senzi.com.br', full_name: 'Bia Lima', role: 'atendimento', password: 'segredo123' }
 
-function req(body: unknown, token: string | null = 'tok', method = 'POST') {
+function req(body: unknown, token: string | null = 'tok', method = 'POST', origin: string | null = 'https://admin.senziclub.com') {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (origin) headers.origin = origin
   if (token) headers.authorization = `Bearer ${token}`
   return new Request('http://localhost/admin-users', {
     method,
@@ -28,15 +29,23 @@ describe('handleAdminUsers', () => {
   it('OPTIONS responde ao preflight com cabeçalhos CORS', async () => {
     const res = await handleAdminUsers(req(null, null, 'OPTIONS'), deps())
     expect(res.status).toBe(200)
-    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://admin.senziclub.com')
     expect(res.headers.get('access-control-allow-headers')).toMatch(/authorization/)
+  })
+
+  it('CORS: ecoa localhost do dev; origem estranha recebe a de produção', async () => {
+    const dev = await handleAdminUsers(req(null, null, 'OPTIONS', 'http://localhost:5173'), deps())
+    expect(dev.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+    const evil = await handleAdminUsers(req(null, null, 'OPTIONS', 'https://evil.example'), deps())
+    expect(evil.headers.get('access-control-allow-origin')).toBe('https://admin.senziclub.com')
+    expect(evil.headers.get('vary')).toBe('Origin')
   })
 
   it('sem token → 401 e não consulta o chamador', async () => {
     const d = deps()
     const res = await handleAdminUsers(req(valid, null), d)
     expect(res.status).toBe(401)
-    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://admin.senziclub.com')
     expect(d.getCaller).not.toHaveBeenCalled()
   })
 

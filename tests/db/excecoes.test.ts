@@ -7,10 +7,10 @@ async function authorize(
   tx: Transaction,
   email: string,
   pin: string,
-  opts: { kind?: string; reason?: string; refType?: string | null; refId?: string | null } = {},
+  opts: { kind?: string; reason?: string; refType?: string | null; refId?: string | null; maxAmount?: number | null } = {},
 ): Promise<AuthResult> {
   const { rows } = await tx.query<{ r: AuthResult }>(
-    'select public.authorize_exception($1, $2, $3, $4, $5, $6) as r',
+    'select public.authorize_exception($1, $2, $3, $4, $5, $6, $7) as r',
     [
       email,
       pin,
@@ -18,6 +18,7 @@ async function authorize(
       opts.reason ?? 'Cliente pagará o saldo na devolução',
       opts.refType ?? 'reserva',
       opts.refId ?? null,
+      opts.maxAmount ?? null,
     ],
   )
   return rows[0].r
@@ -88,7 +89,7 @@ describe('exceções: PIN e autorização', () => {
     it('PIN correto → ok com id; linha com authorized_by = admin e requested_by = atendimento', async () => {
       const refId = '6b1f8c34-6f0a-4c0e-9a51-0d3d6c1f0a11'
       const res = await asUser(db, atend, (tx) =>
-        authorize(tx, ADMIN_EMAIL, '1234', { kind: 'desconto_acima_limite', refId }),
+        authorize(tx, ADMIN_EMAIL, '1234', { kind: 'desconto_acima_limite', refId, maxAmount: 144 }),
       )
       expect(res.ok).toBe(true)
       if (!res.ok) return
@@ -105,6 +106,7 @@ describe('exceções: PIN e autorização', () => {
         ref_id: refId,
         requested_by: atend,
         authorized_by: admin,
+        max_amount: '144.00',
       })
     })
 
@@ -190,12 +192,12 @@ describe('exceções: PIN e autorização', () => {
       expect(await asUser(db, atend, (tx) => authorize(tx, ADMIN_EMAIL, '1234'))).toMatchObject({ ok: true })
     })
 
-    it('tentativa bem-sucedida também é registrada', async () => {
+    it('tentativa bem-sucedida também é registrada (a troca do PIN no beforeEach conta como acerto)', async () => {
       await asUser(db, atend, (tx) => authorize(tx, ADMIN_EMAIL, '1234'))
-      const { rows } = await db.query<{ ok: boolean }>('select ok from public.pin_attempt where admin_id = $1', [
+      const { rows } = await db.query<{ ok: boolean }>('select ok from public.pin_attempt where admin_id = $1 order by id', [
         admin,
       ])
-      expect(rows.map((r) => r.ok)).toEqual([true])
+      expect(rows.map((r) => r.ok)).toEqual([true, true])
     })
 
     it('motivo vazio ou só espaços → MOTIVO_OBRIGATORIO', async () => {

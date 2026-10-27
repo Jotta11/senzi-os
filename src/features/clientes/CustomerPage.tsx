@@ -138,7 +138,8 @@ function Ficha({ customer: c }: { customer: Customer }) {
   }
 
   const pinned = c.interactions.filter((i) => i.pinned)
-  const ticket = c.stats.rentals ? c.stats.spent / c.stats.rentals : null
+  const spent = c.stats.spent ?? 0
+  const ticket = c.stats.rentals ? spent / c.stats.rentals : null
   const last = c.interactions[0]
 
   return (
@@ -200,7 +201,7 @@ function Ficha({ customer: c }: { customer: Customer }) {
           <div className="gp-main cp-main">
             <dl className="cp-tiles" aria-label="Números da cliente">
               <Tile label="Locações" value={String(c.stats.rentals)} sub={c.stats.rentals ? (c.stats.rentals === 1 ? 'locação realizada' : 'locações realizadas') : 'ainda sem locação'} />
-              {canMoney && <Tile label="Total gasto" value={money(c.stats.spent)} sub="em locações realizadas" />}
+              {canMoney && <Tile label="Total gasto" value={money(spent)} sub="em locações realizadas" />}
               {canMoney && <Tile label="Ticket médio" value={ticket == null ? '—' : money(ticket)} sub={ticket == null ? 'ainda sem locação' : 'por locação'} />}
               <Tile
                 label="Último contato"
@@ -356,7 +357,7 @@ function ProfileCard({ customer: c, canMoney, ticket }: { customer: Customer; ca
       ...(canMoney
         ? ([
             ['Ticket médio', ticket == null ? '—' : money(ticket)],
-            ['Total gasto', money(c.stats.spent)],
+            ['Total gasto', money(c.stats.spent ?? 0)],
             ['Orçamento', ticket == null ? '—' : `até ${money(ticket)}`],
           ] as [string, ReactNode][])
         : []),

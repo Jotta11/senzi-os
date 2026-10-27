@@ -21,8 +21,8 @@ import {
   type FittingItem,
   type FittingListRow,
   type FittingSession,
-  type SourceIssue,
 } from '../types'
+import { appointmentIssues, fittingIssues } from '../validation'
 import { fail, projectCustomer, projectGarment, type MockCtx } from './context'
 
 const BLOCK_KINDS: AgendaGarmentBlock['kind'][] = ['higienizacao', 'manutencao', 'ajuste', 'bloqueio_manual', 'editorial']
@@ -37,8 +37,6 @@ const FILTER_STATES: Record<FittingFilter, string[] | null> = {
 }
 const MANUAL_KINDS: Appointment['kind'][] = ['atendimento', 'servico', 'interno']
 
-const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
-const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}$/.test(s)
 
 /** `createCustomer` da fonte de Acervo/Clientes: a prova nova usa a mesma validação e o mesmo cadastro. */
 type CreateCustomer = (input: NonNullable<FittingInput['newCustomer']>) => Promise<{ id: string }>
@@ -68,12 +66,7 @@ export function agenda(ctx: MockCtx, createCustomer: CreateCustomer): AgendaSour
   }
 
   function checkAppointment(input: AppointmentInput) {
-    const issues: SourceIssue[] = []
-    if (!isDate(input.date)) issues.push({ code: 'DATA_OBRIGATORIA', field: 'date' })
-    if (!isTime(input.time)) issues.push({ code: 'HORARIO_OBRIGATORIO', field: 'time' })
-    const notes = input.notes?.trim()
-    if (input.kind === 'atendimento' && !input.customerId) issues.push({ code: 'CLIENTE_OBRIGATORIA', field: 'customerId' })
-    else if (input.kind !== 'atendimento' && !input.customerId && !notes) issues.push({ code: 'OBSERVACAO_OBRIGATORIA', field: 'notes' })
+    const issues = appointmentIssues(input)
     if (issues.length) fail(issues)
     if (input.customerId) customer(input.customerId)
   }
@@ -162,10 +155,7 @@ export function agenda(ctx: MockCtx, createCustomer: CreateCustomer): AgendaSour
   }
 
   function checkFitting(input: FittingInput) {
-    const issues: SourceIssue[] = []
-    if (!input.customerId && !input.newCustomer) issues.push({ code: 'CLIENTE_OBRIGATORIA', field: 'customerId' })
-    if (!isDate(input.date)) issues.push({ code: 'DATA_OBRIGATORIA', field: 'date' })
-    else if (input.eventDate && input.eventDate < input.date) issues.push({ code: 'DATAS_INCOERENTES', field: 'eventDate' })
+    const issues = fittingIssues(input)
     if (issues.length) fail(issues)
     if (input.customerId) customer(input.customerId)
   }

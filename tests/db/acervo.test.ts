@@ -266,17 +266,19 @@ describe('acervo', () => {
       asUser(db, user, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ('pecas-fotos', $1)`, [name]))
     const list = (user: string) => asUser(db, user, (tx) => tx.query(`select name from storage.objects where bucket_id = 'pecas-fotos'`))
 
-    it('quem edita o acervo envia, vê e apaga', async () => {
-      await put(atend, 'x/a.jpg')
-      expect((await list(atend)).rows).toEqual([{ name: 'x/a.jpg' }])
-      const del = await asUser(db, atend, (tx) => tx.query(`delete from storage.objects where bucket_id = 'pecas-fotos' and name = 'x/a.jpg'`))
+    it('quem edita o acervo envia (na pasta de uma peça), vê e apaga', async () => {
+      const g = await asUser(db, admin, (tx) => create(tx))
+      await put(atend, `${g.id}/a.jpg`)
+      expect((await list(atend)).rows).toEqual([{ name: `${g.id}/a.jpg` }])
+      const del = await asUser(db, atend, (tx) => tx.query(`delete from storage.objects where bucket_id = 'pecas-fotos' and name = $1`, [`${g.id}/a.jpg`]))
       expect(del.affectedRows).toBe(1)
     })
 
     it('sem acervo.edit não envia nem apaga; sem acervo.view não vê; anônimo não vê', async () => {
-      await put(admin, 'x/a.jpg')
+      const g = await asUser(db, admin, (tx) => create(tx))
+      await put(admin, `${g.id}/a.jpg`)
       await db.query(`insert into public.user_permission_override (user_id, permission_key, granted) values ($1, 'acervo.edit', false)`, [atend])
-      await expect(put(atend, 'x/b.jpg')).rejects.toThrow(/row-level security/)
+      await expect(put(atend, `${g.id}/b.jpg`)).rejects.toThrow(/row-level security/)
       const del = await asUser(db, atend, (tx) => tx.query(`delete from storage.objects where bucket_id = 'pecas-fotos'`))
       expect(del.affectedRows).toBe(0)
       await db.query(`insert into public.user_permission_override (user_id, permission_key, granted) values ($1, 'acervo.view', false)`, [atend])

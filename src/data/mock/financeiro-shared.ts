@@ -2,27 +2,22 @@
 import { rangeBounds } from '@/domain/finance'
 import { addDays, normalize } from '@/lib/format'
 import type { FinCategoryType, FinanceRange, SourceIssue } from '../types'
+import { finEntryIssues, settleDateIssue as settleDate, type FinEntryFields } from '../validation'
 import { fail, type MockCtx } from './context'
 
 const day = (iso: string): string => iso.slice(0, 10)
 
-export type Common = { description?: string; categoryId?: string; amount?: number; dueDate?: string }
+export type Common = FinEntryFields
 
 /** Descrição, categoria (do tipo certo e não arquivada), valor > 0 e vencimento; devolve todos os problemas de uma vez. */
 export function commonIssues(ctx: MockCtx, i: Common, type: FinCategoryType): SourceIssue[] {
-  const issues: SourceIssue[] = []
-  if (!i.description?.trim()) issues.push({ code: 'DESCRICAO_OBRIGATORIA', field: 'description' })
   const cat = ctx.db.finCategories.find((c) => c.id === i.categoryId)
-  if (!cat || cat.type !== type || cat.archived) issues.push({ code: 'CATEGORIA_OBRIGATORIA', field: 'categoryId' })
-  if (!Number.isFinite(i.amount) || (i.amount ?? 0) <= 0) issues.push({ code: 'VALOR_INVALIDO', field: 'amount' })
-  if (!i.dueDate) issues.push({ code: 'VENCIMENTO_OBRIGATORIO', field: 'dueDate' })
-  return issues
+  return finEntryIssues(i, !!cat && cat.type === type && !cat.archived)
 }
 
 /** Data de baixa: obrigatória e não futura. */
 export function settleDateIssue(ctx: MockCtx, date: string | undefined, field: string): SourceIssue | null {
-  if (!date) return { code: 'DATA_OBRIGATORIA', field }
-  return date > ctx.today ? { code: 'DATA_FUTURA', field } : null
+  return settleDate(date, ctx.today, field)
 }
 
 export function failWith(issues: SourceIssue[]): void {

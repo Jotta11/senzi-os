@@ -209,7 +209,8 @@ export type CustomerNote = { id: string; content: string; channel: ContactChanne
 
 export type CustomerFavorite = { garmentId: string; source: FavoriteSource; note: string | null; at: string }
 
-export type CustomerStats = { rentals: number; spent: number; nextEvent: string | null }
+/** `spent` (Σ líquido das locações realizadas): `null` quando a fonte não o entrega (no banco, sem `financeiro.view`). */
+export type CustomerStats = { rentals: number; spent: number | null; nextEvent: string | null }
 
 export type Customer = {
   id: string
@@ -276,6 +277,7 @@ export type Recommendation = { garment: Garment; score: number; reasons: string[
 
 /** Códigos de erro — os mesmos das RPCs do Plano 2B (mensagens pt-BR em `src/lib/errorMessages.ts`). */
 export type SourceErrorCode =
+  | 'SEM_PERMISSAO'
   | 'NOME_OBRIGATORIO'
   | 'VALOR_LOCACAO_OBRIGATORIO'
   | 'PERIODO_INVALIDO'
@@ -289,7 +291,6 @@ export type SourceErrorCode =
   | 'OBSERVACAO_OBRIGATORIA'
   | 'PARAMETRO_INVALIDO'
   | 'NAO_ENCONTRADO'
-  | 'NAO_DISPONIVEL'
   | 'MOTIVO_OBRIGATORIO'
   | 'DATA_OBRIGATORIA'
   | 'HORARIO_OBRIGATORIO'

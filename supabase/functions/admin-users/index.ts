@@ -1,6 +1,6 @@
 // Entrada Deno da Edge Function `admin-users`. Fora do tsc/eslint do app web
 // (runtime Deno); a lógica testável fica em handler.ts.
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.118.0'
 import { EmailTakenError, handleAdminUsers } from './handler.ts'
 
 declare const Deno: {

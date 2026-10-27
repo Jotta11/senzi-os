@@ -309,7 +309,7 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
           })
           .map(pc)
           .sort((a, b) => {
-            if (sort === 'gasto') return b.stats.spent - a.stats.spent || a.fullName.localeCompare(b.fullName, 'pt-BR')
+            if (sort === 'gasto') return (b.stats.spent ?? 0) - (a.stats.spent ?? 0) || a.fullName.localeCompare(b.fullName, 'pt-BR')
             if (sort === 'locacoes') return b.stats.rentals - a.stats.rentals || a.fullName.localeCompare(b.fullName, 'pt-BR')
             if (sort === 'recentes') return b.createdAt.localeCompare(a.createdAt)
             return a.fullName.localeCompare(b.fullName, 'pt-BR')

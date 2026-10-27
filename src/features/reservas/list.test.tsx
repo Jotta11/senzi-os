@@ -154,6 +154,9 @@ describe('Reservas — nova reserva', () => {
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/preview\/reservas\/res-/))
     const list = await source.listReservations('rascunhos', { limit: 10, offset: 0 })
     expect(list.items).toHaveLength(3)
+    // O PIN autoriza o desconto pedido (maxAmount), não um cheque em branco.
+    const created = await source.getReservation(router.state.location.pathname.split('/').pop()!)
+    expect(created!.authorizations).toEqual([expect.objectContaining({ kind: 'desconto_acima_limite', amount: 200, maxAmount: 200 })])
   })
 
   it('vindo de prova, preenche a cliente e as peças aprovadas e deixa a prova "Convertida"', async () => {

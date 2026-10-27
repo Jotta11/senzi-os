@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useBlockGarment } from '@/data/hooks'
 import { SourceError, type Garment } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { addDays, todayISO } from '@/lib/format'
+import { addDays } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { Button, Field, Icon, Modal } from '@/ui'
 
 const FORM_ID = 'bk-form'
@@ -35,7 +36,7 @@ export function BlockModal({ garment: g, open, onClose }: BlockModalProps) {
 type Errors = { from?: string; to?: string; conflict?: { message: string; hint?: string }; top?: string }
 
 function BlockForm({ garment: g, onDone }: { garment: Garment; onDone(): void }) {
-  const today = todayISO()
+  const today = useToday()
   const block = useBlockGarment(g.id)
   const [from, setFrom] = useState(today)
   const [to, setTo] = useState(addDays(today, 3))
