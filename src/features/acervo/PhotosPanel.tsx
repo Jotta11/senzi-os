@@ -2,8 +2,8 @@ import { useId, useState, type ChangeEvent } from 'react'
 import { usePermissions } from '@/auth/usePermissions'
 import { useAddPhoto, useRemovePhoto, useSetCover } from '@/data/hooks'
 import { PHOTO_KIND_LABEL } from '@/data/labels'
-import type { Garment, PhotoKind } from '@/data/types'
-import { MAX_PHOTOS } from '@/data/validation'
+import { SourceError, type Garment, type PhotoKind } from '@/data/types'
+import { issueMessage, MAX_PHOTOS } from '@/data/validation'
 import { errorMessage } from '@/lib/errorMessages'
 import { Badge, Button, EmptyState, Icon, Silhouette } from '@/ui'
 
@@ -41,7 +41,7 @@ export function PhotosPanel({ garment: g }: { garment: Garment }) {
     try {
       for (const file of images.slice(0, Math.max(0, room))) await add.mutateAsync({ file, kind })
     } catch (err) {
-      problems.push(errorMessage(err))
+      problems.push(err instanceof SourceError ? issueMessage({ code: err.code, field: err.field }) : errorMessage(err))
     } finally {
       setUploading(false)
     }

@@ -78,6 +78,8 @@ export function issueMessage(issue: SourceIssue): string {
     if (r) return `Informe um valor entre ${r[0]} e ${r[1]} cm.`
     if (issue.field === 'acquisitionCost' || issue.field === 'retailReference') return 'Informe um valor igual ou maior que zero.'
     if (issue.field === 'cleaningDays') return `Informe de 0 a ${CLEANING_MAX} dias (ou deixe em branco para herdar da categoria).`
+    if (issue.field === 'file') return 'Envie fotos JPG, PNG, WEBP ou HEIC de até 10 MB.'
+    if (issue.field === 'photos') return `Limite de ${MAX_PHOTOS} fotos por peça.`
   }
   return errorMessage(issue.code)
 }

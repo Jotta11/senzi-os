@@ -7,13 +7,13 @@ import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
-const shimPath = join(root, 'supabase/tests/shims/auth.sql')
+const shimPaths = ['auth.sql', 'storage.sql'].map((f) => join(root, 'supabase/tests/shims', f))
 const migrationsDir = join(root, 'supabase/migrations')
 
-/** Banco em memória com o shim de `auth` e todas as migrations aplicadas em ordem. */
+/** Banco em memória com os shims de `auth` e `storage` e todas as migrations aplicadas em ordem. */
 export async function createTestDb(): Promise<PGlite> {
   const db = await PGlite.create({ extensions: { btree_gist, pg_trgm, pgcrypto } })
-  await db.exec(readFileSync(shimPath, 'utf8'))
+  for (const shim of shimPaths) await db.exec(readFileSync(shim, 'utf8'))
   const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith('.sql'))
     .sort()

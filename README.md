@@ -38,7 +38,8 @@ Requer Node ≥ 22.18 (o script `bootstrap:admin` roda TypeScript com o type str
 
 1. `supabase login`
 2. `supabase link --project-ref <ref>`
-3. `supabase db push` (aplica as migrations de `supabase/migrations`).
+3. `supabase db push` (aplica as migrations de `supabase/migrations`). Isso também cria o bucket privado
+   **`pecas-fotos`** (fotos das peças: só imagens, até 10 MB) e as regras de acesso dele — não crie à mão.
 4. **Desligue o cadastro público** — usuários são criados só pelo administrador: no painel do
    Supabase, em *Authentication → Sign In / Providers* (ou *Settings*), desmarque
    **Allow new users to sign up**. (O `supabase/config.toml` já vem com `enable_signup = false`
@@ -56,3 +57,6 @@ Requer Node ≥ 22.18 (o script `bootstrap:admin` roda TypeScript com o type str
 
    A chave `service_role` fica só no terminal — nunca em `.env.local` nem no front.
 8. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+
+No app real, por enquanto só **Acervo** e **Configurações** usam o banco; as demais telas aparecem como
+"Em breve" (o visual completo continua em `/preview`).

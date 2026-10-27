@@ -107,13 +107,29 @@ describe('revisão da fundação', () => {
          where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
          order by 1`)
       expect(rows.map((r) => r.proname)).toEqual([
+        'acervo_investment',
+        'add_garment_photo',
         'admin_update_user',
         'authorize_exception',
+        'block_garment',
+        'create_garment',
         'current_app_user_id',
+        'garment_costs',
+        'garment_counts',
+        'get_garment',
         'has_perm',
         'list_active_admins',
+        'list_brands',
+        'list_garment_categories',
         'my_permissions',
+        'release_block',
+        'remove_garment_photo',
+        'search_garments',
+        'set_cover_photo',
         'set_my_pin',
+        'update_garment',
+        'update_garment_fit',
+        'update_garment_measurement',
       ])
     })
   })
