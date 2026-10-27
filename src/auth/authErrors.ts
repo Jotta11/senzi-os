@@ -1,5 +1,6 @@
 export const MSG_DEACTIVATED = 'Seu acesso foi desativado. Fale com um administrador.'
 export const MSG_PROFILE = 'Não foi possível carregar seu perfil. Tente novamente.'
+export const MSG_OFFLINE = 'Sem internet para confirmar seu acesso. Você continua conectado — tentamos de novo assim que a conexão voltar.'
 
 export class SignInError extends Error {
   constructor(
