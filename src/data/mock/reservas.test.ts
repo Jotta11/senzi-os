@@ -55,8 +55,8 @@ async function signed(src: ReturnType<typeof reservas>, ctx: MockCtx, id: string
   return ctx.reservation(id)
 }
 
-async function authorize(auth: ReturnType<typeof exceptionsMock>, kind: Parameters<typeof auth.authorize>[0]['kind'], refType: string, refId: string) {
-  const r = await auth.authorize({ email: 'julia@senzi.com.br', pin: '1234', kind, reason: 'Cliente antiga', refType, refId })
+async function authorize(auth: ReturnType<typeof exceptionsMock>, kind: Parameters<typeof auth.authorize>[0]['kind'], refType: string, refId: string, maxAmount?: number) {
+  const r = await auth.authorize({ email: 'julia@senzi.com.br', pin: '1234', kind, reason: 'Cliente antiga', refType, refId, maxAmount })
   if (!r.ok) throw new Error(r.error)
   return r.id
 }
@@ -101,7 +101,7 @@ describe('reservas — rascunho', () => {
     expect(err.field).toBe('discount')
     expect(ctx.db.reservations.some((r) => r.items.some((i) => i.garmentId === byName(ctx, 'Turim').id))).toBe(false)
 
-    const exId = await authorize(auth, 'desconto_acima_limite', 'reserva_rascunho', 'tmp-1')
+    const exId = await authorize(auth, 'desconto_acima_limite', 'reserva_rascunho', 'tmp-1', discount)
     const r = await src.createDraft({ ...base, discount }, exId)
     expect(r.totalNet).toBe(880 - discount)
     expect(r.items.reduce((s, i) => s + i.netRevenue, 0)).toBeCloseTo(r.totalNet, 2)
@@ -279,6 +279,64 @@ describe('reservas — retirada, devolução e cancelamento', () => {
     const capri = resOf(ctx, 'Capri', 'rascunho')
     expect((await errorOf(src.markReady(capri.id))).code).toBe('ESTADO_INVALIDO')
     expect((await errorOf(src.markNoShow(capri.id))).code).toBe('ESTADO_INVALIDO')
+  })
+})
+
+describe('reservas — segurança (auditoria)', () => {
+  it('preço da peça vem da loja: unitPrice da entrada é ignorado (novo = preço de locação; existente = congelado)', async () => {
+    const { ctx, src } = setup()
+    const turim = byName(ctx, 'Turim')
+    const r = await src.createDraft({ ...input(ctx, ['Turim'], [5, 6, 8]), items: [{ garmentId: turim.id, unitPrice: 1 }] })
+    expect(r.items[0]!.unitPrice).toBe(turim.rentalPrice)
+    expect(r.totalNet).toBe(turim.rentalPrice)
+    // O preço de locação muda depois: a peça que já estava mantém o preço congelado, a nova entra pelo preço atual.
+    const frozen = turim.rentalPrice
+    turim.rentalPrice = frozen + 100
+    const napoles = byName(ctx, 'Nápoles')
+    const u = await src.updateDraft(r.id, { ...input(ctx, ['Turim', 'Nápoles'], [5, 6, 8]), items: [{ garmentId: turim.id, unitPrice: 1 }, { garmentId: napoles.id, unitPrice: 1 }] })
+    expect(u.items.map((i) => i.unitPrice)).toEqual([frozen, napoles.rentalPrice])
+  })
+
+  it('preço baixo na entrada não escapa do limite de desconto', async () => {
+    const { ctx, src } = setup()
+    const turim = byName(ctx, 'Turim')
+    // 16% do preço real: com unitPrice inflado o desconto pareceria pequeno; com o real, passa do limite.
+    const discount = Math.round(turim.rentalPrice * 0.16 * 100) / 100
+    const err = await errorOf(src.createDraft({ ...input(ctx, ['Turim'], [5, 6, 8]), discount, items: [{ garmentId: turim.id, unitPrice: 100000 }] }))
+    expect(err.code).toBe('DESCONTO_ACIMA_LIMITE')
+  })
+
+  it('exceção de desconto vale até o valor autorizado (maxAmount); sem valor não é concedida', async () => {
+    const { ctx, src, auth } = setup()
+    const base = input(ctx, ['Turim', 'Nápoles'], [5, 6, 8])
+    expect(await auth.authorize({ email: 'julia@senzi.com.br', pin: '1234', kind: 'desconto_acima_limite', reason: 'x', refType: 'reserva_rascunho', refId: 'tmp-1' })).toEqual({ ok: false, error: 'PARAMETRO_INVALIDO' })
+    const exId = await authorize(auth, 'desconto_acima_limite', 'reserva_rascunho', 'tmp-1', 150)
+    const err = await errorOf(src.createDraft({ ...base, discount: 400 }, exId))
+    expect([err.code, err.field]).toEqual(['DESCONTO_ACIMA_LIMITE', 'discount'])
+    const r = await src.createDraft({ ...base, discount: 150 }, exId)
+    expect(r.authorizations).toEqual([expect.objectContaining({ id: exId, amount: 150, maxAmount: 150 })])
+  })
+
+  it('dispensa de sinal vale até o valor autorizado', async () => {
+    const { ctx, src, auth } = setup()
+    const draft = await src.createDraft(input(ctx, ['Turim'], [5, 6, 8]))
+    await signed(src, ctx, draft.id)
+    const pay = { amount: 100, method: 'pix' as const, reference: null, notes: null }
+    const exId = await authorize(auth, 'dispensa_sinal_minimo', 'reserva', draft.id, 50)
+    expect((await errorOf(src.confirmReservation(draft.id, pay, exId))).code).toBe('SINAL_INSUFICIENTE')
+    expect((await src.confirmReservation(draft.id, { ...pay, amount: 250 }, exId)).ok).toBe(true)
+  })
+
+  it('PIN: 10 erros em 24 h (fora da janela de 15 min) bloqueiam mesmo depois de 24 h; 9 não', async () => {
+    const args = { email: 'julia@senzi.com.br', kind: 'retirada_com_saldo' as const, reason: 'teste', refType: 'reserva', refId: 'r-1' }
+    const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString()
+    const nine = setup()
+    for (let i = 0; i < 9; i++) nine.ctx.db.pinAttempts.push({ email: args.email, at: ago(10 - i), ok: false })
+    expect((await nine.auth.authorize({ ...args, pin: '1234' })).ok).toBe(true)
+    const ten = setup()
+    // 10 erros entre 40 h e 31 h atrás: dentro de 24 h entre si, já fora da janela de 24 h de agora.
+    for (let i = 0; i < 10; i++) ten.ctx.db.pinAttempts.push({ email: args.email, at: ago(40 - i), ok: false })
+    expect(await ten.auth.authorize({ ...args, pin: '1234' })).toEqual({ ok: false, error: 'PIN_BLOQUEADO' })
   })
 })
 

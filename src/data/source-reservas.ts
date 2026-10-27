@@ -77,12 +77,13 @@ export interface ReservasSource {
 }
 
 export type ActiveAdmin = { id: string; full_name: string; email: string }
-export type AuthorizeArgs = { email: string; pin: string; kind: ExceptionKind; reason: string; refType: string; refId: string }
+/** `maxAmount`: valor que a exceção cobre (desconto pedido, sinal dispensado, saldo em aberto) — obrigatório no desconto. */
+export type AuthorizeArgs = { email: string; pin: string; kind: ExceptionKind; reason: string; refType: string; refId: string; maxAmount?: number | null }
 export type AuthorizeResult = { ok: true; id: string } | { ok: false; error: string }
 
 /**
  * Autorização de exceção por PIN de administrador (mesmo contrato da RPC `authorize_exception`):
- * `AUTORIZACAO_INVALIDA`, `PIN_BLOQUEADO` (5 erros em 15 min), `MOTIVO_OBRIGATORIO` vêm no retorno.
+ * `AUTORIZACAO_INVALIDA`, `PIN_BLOQUEADO` (5 erros em 15 min ou 10 em 24 h), `MOTIVO_OBRIGATORIO`, `PARAMETRO_INVALIDO` vêm no retorno.
  */
 export interface ExceptionsSource {
   listActiveAdmins(): Promise<ActiveAdmin[]>

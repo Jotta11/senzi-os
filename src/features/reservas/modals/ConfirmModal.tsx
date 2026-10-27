@@ -130,6 +130,7 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
           kind="dispensa_sinal_minimo"
           refType="reserva"
           refId={r.id}
+          maxAmount={Math.round((min - value) * 100) / 100}
           detail={`${r.customer.fullName} vai confirmar ${r.code} com sinal de ${brl(value)}, abaixo do mínimo de ${brl(min)} (${pct}%).`}
           onAuthorized={(id) => {
             setAuthOpen(false)

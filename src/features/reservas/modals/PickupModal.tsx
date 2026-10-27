@@ -150,6 +150,7 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
           kind="retirada_com_saldo"
           refType="reserva"
           refId={r.id}
+          maxAmount={due}
           detail={
             <>
               {r.customer.fullName} está levando a(s) peça(s) com <b>{brl(due)}</b> em aberto na reserva {r.code}.

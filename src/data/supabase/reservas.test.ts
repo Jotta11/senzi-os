@@ -134,7 +134,7 @@ describe('supabaseReservas', () => {
     let reply: { data?: unknown; error?: unknown } = { data: { ok: true, id: EXC } }
     const f = fakeClient(() => reply)
     const src = supabaseReservas(f.client)
-    const args = { email: 'ana@senzi.test', pin: '1234', kind: 'desconto_acima_limite' as const, reason: 'Cliente antiga', refType: 'reserva_rascunho', refId: 'tmp-:r1:' }
+    const args = { email: 'ana@senzi.test', pin: '1234', kind: 'desconto_acima_limite' as const, reason: 'Cliente antiga', refType: 'reserva_rascunho', refId: 'tmp-:r1:', maxAmount: 144 }
     await expect(src.authorizeException(args)).resolves.toEqual({ ok: true, id: EXC })
     expect(f.rpc).toHaveBeenCalledWith('authorize_exception', {
       p_admin_email: 'ana@senzi.test',
@@ -143,10 +143,13 @@ describe('supabaseReservas', () => {
       p_reason: 'Cliente antiga',
       p_ref_type: 'reserva_rascunho',
       p_ref_id: null,
+      p_max_amount: 144,
     })
     reply = { data: { ok: false, error: 'PIN_BLOQUEADO' } }
     await expect(src.authorizeException({ ...args, refType: 'reserva', refId: ID })).resolves.toEqual({ ok: false, error: 'PIN_BLOQUEADO' })
     expect(f.rpc).toHaveBeenLastCalledWith('authorize_exception', expect.objectContaining({ p_ref_id: ID }))
+    await src.authorizeException({ ...args, kind: 'retirada_com_saldo', maxAmount: undefined })
+    expect(f.rpc).toHaveBeenLastCalledWith('authorize_exception', expect.objectContaining({ p_max_amount: null }))
     reply = { error: { message: 'MOTIVO_OBRIGATORIO' } }
     await expect(src.authorizeException(args)).resolves.toEqual({ ok: false, error: 'MOTIVO_OBRIGATORIO' })
   })

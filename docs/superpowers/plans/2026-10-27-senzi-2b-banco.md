@@ -274,13 +274,46 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      configurações gerais, checklist). Dados de verdade (acervo, clientes) entram pelas telas; se a loja tiver planilhas, o certo é um
      importador dedicado (CSV → RPCs `create_garment`/`create_customer`, que já validam e auditam), não um seed. Dados de exemplo ficam só na prévia.
 
+- Auditoria de segurança, migration `20261027000900_seguranca.sql` (testes em `tests/db/seguranca.test.ts`, um por achado). Decisões:
+  1. **Preço da peça (alto):** a tela nunca deixou editar o preço unitário (`ReservationForm` manda o preço congelado do item ou o
+     `rentalPrice`), então o banco **ignora** `unitPrice`: `reservation_input_priced(p, reserva)` troca cada preço pelo congelado do item
+     que a peça já tem no rascunho ou por `garment.rental_price` (item novo) antes de validar, e `create_reservation_draft` /
+     `update_reservation_draft` foram recriadas (mesma assinatura) chamando-a. Item malformado (preço negativo/ausente) ou peça inexistente
+     fica como veio e continua recusado com os mesmos erros. A fonte em memória faz igual (`priced()` em `reservas-draft.ts`), então a prévia
+     e o banco se comportam igual. `unitPrice` segue no `ReservationInput` (contrato da interface; o valor só não manda mais).
+  2. **Exceção com valor (médio):** `exception_authorization.max_amount`; `authorize_exception` ganhou `p_max_amount numeric default null`
+     (drop + create; chamadas antigas com 6 argumentos seguem valendo). Obrigatório e > 0 no `desconto_acima_limite`
+     (senão PARAMETRO_INVALIDO `maxAmount`), opcional nos outros tipos; negativo → PARAMETRO_INVALIDO. As telas mandam o valor que pedem:
+     desconto do formulário, sinal dispensado (`mínimo − sinal`) e saldo em aberto da retirada (`AuthorizeExceptionDialog` prop `maxAmount`
+     → `AuthorizeArgs.maxAmount` → `p_max_amount`). No banco, `reservation_exception_consume` recusa valor acima do autorizado com o mesmo
+     erro de quando não há exceção (DESCONTO_ACIMA_LIMITE `discount`; SINAL_INSUFICIENTE `amount` com o mínimo; SALDO_EM_ABERTO com o
+     saldo) e desfaz tudo; `reservation_exception_usable` não aceita desconto sem valor (exceções antigas). Na fonte em memória a checagem
+     fica em `usableException(…, { amount })`. `ExceptionAuthorization.maxAmount` (opcional) só existe na fonte em memória; o JSON da
+     reserva do banco não o devolve (nenhuma tela mostra).
+  3. **PIN (médio):** além de 5 erros/15 min, **10 erros dentro de 24 h desde o último acerto bloqueiam sem prazo** (PIN_BLOQUEADO até a
+     admin trocar o PIN). `set_my_pin` registra um acerto em `pin_attempt` ao gravar o PIN novo — é isso que zera as duas contagens
+     (por isso `pin_attempt` passa a ter uma linha `ok` por troca de PIN). Mantidos 4–6 dígitos. Mensagem: "PIN bloqueado por muitas
+     tentativas. Tente de novo em 15 minutos; se continuar bloqueado, a administradora precisa redefinir o PIN." Fonte em memória igual
+     (sem troca de PIN na prévia).
+  4. **Storage (baixo):** policies `pecas_fotos_insert` (só `<id de peça existente>/<arquivo>`, um nível) e `pecas_fotos_delete` (só arquivo
+     que não está em `garment_photo` nem `inspection_photo`) recriadas com helpers `security definer` `pecas_fotos_folder_ok(pasta)` e
+     `pecas_fotos_unregistered(nome)`. **Precisam ser executáveis por `authenticated`** (as policies rodam com o papel de quem chama), por
+     isso entraram na lista do `revisao.test.ts`; ambas exigem `acervo.edit`, então não servem para sondar ids. A ordem do adaptador já era a
+     certa: `remove_garment_photo` apaga o registro e devolve o caminho, depois o arquivo é removido; no envio recusado, o arquivo ainda não
+     está registrado e pode ser apagado. `add_garment_photo` não aceita nome que comece com `.`. Shim do PGlite ganhou `storage.foldername`.
+  5. **Clientes (baixo):** `customer_validate` checa CPF repetido por último (depois de modelo ideal, origem, VIP e preferências): só uma
+     entrada inteiramente válida descobre que o CPF existe — e, no `create_customer`, se não existir a cliente é criada (fica rastro).
+     `audit_trigger` grava o CPF mascarado (`***XXXXXX**`, helper `audit_mask_cpf`); as linhas de `customer` já gravadas foram mascaradas
+     na própria migration.
+
 ## Para o João decidir
 
 1. **Contrato e OS:** dados da empresa (razão social, CNPJ, endereço) e template definitivo do contrato. Depois disso: gerar o PDF,
    guardar no Storage com link assinado e anexar ao WhatsApp.
 2. **Peça cancelada na janela de higienização:** peça que nunca saiu da loja e teve a reserva cancelada dentro da própria higienização fica
    "Higienização" até alguém liberar na Operação (igual na prévia e no banco). Manter, ou liberar sozinha no cancelamento?
-3. **PIN de exceção:** passar para 6 dígitos e registrar na auditoria quando um PIN for bloqueado por tentativas? (hoje 4–6 dígitos, bloqueio de 15 min.)
+3. **PIN de exceção:** passar para 6 dígitos e registrar na auditoria quando um PIN for bloqueado por tentativas? (hoje 4–6 dígitos, bloqueio
+   de 15 min após 5 erros e bloqueio até trocar o PIN após 10 erros em 24 h.)
 4. **Exceções por PIN** valem só para quem as pediu (regra do banco a mais que a prévia). Confirmar.
 5. **"Orçamento" na ficha da cliente** é estimado pelo ticket das locações. Manter a heurística ou virar campo preenchido pela loja?
 6. **Antes de publicar:** domínio de produção (para `ALLOWED_ORIGIN` no CORS da Edge Function `admin-users`, Site URL e Redirect URLs),
@@ -289,3 +322,12 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
    componentes compartilhados (CustomerPicker, GarmentThumb, gráficos) para `src/ui`, `rgba()` → tokens, tipos `*Summary` e
    `getGarments(ids)` em lote.
 8. **Configurações na prévia:** hoje não entra (depende do banco). Vale uma versão de demonstração?
+9. **Achados da auditoria de segurança que dependem de decisão (registrados, não alterados):**
+   - O **valor de referência da peça** (`retail_reference`, protegido por `acervo.cost` na ficha) aparece no texto do contrato ("Valor de
+     referência do acervo cedido") e em `depositSuggested` para quem tem `reserva.view`. Está no contrato que a cliente assina: é segredo
+     da equipe ou não? Se for, tirar do contrato e calcular a caução sugerida só para quem tem `acervo.cost`.
+   - O **gasto da cliente** (null sem `financeiro.view`) pode ser recomposto somando os totais das reservas dela, que saem com `reserva.view`
+     (decisão já registrada na área 3, item 7). Manter?
+   - `get_fitting` / `get_reservation` devolvem a cliente completa sem exigir `cliente.view`, e `reservation_alternatives` devolve peças sem
+     `acervo.view`. Os perfis padrão (admin e atendimento) têm essas permissões, então só um override que tire `cliente.view`/`acervo.view`
+     de quem vê provas/reservas expõe algo. Exigir também essas permissões (e esconder os blocos) ou deixar como está?

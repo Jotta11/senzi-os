@@ -117,6 +117,7 @@ export function supabaseReservas(client: SupabaseClient, withUrls: PhotoSigner =
         p_reason: args.reason,
         p_ref_type: args.refType,
         p_ref_id: UUID.test(args.refId) ? args.refId : null,
+        p_max_amount: args.maxAmount ?? null,
       })
       if (error) return { ok: false, error: error.message }
       const result = data as { ok: boolean; id?: string; error?: string } | null

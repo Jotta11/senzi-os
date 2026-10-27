@@ -171,6 +171,8 @@ describe('revisão da fundação', () => {
         'operacao_queue',
         'operacao_suppliers',
         'pay_payable',
+        'pecas_fotos_folder_ok',
+        'pecas_fotos_unregistered',
         'pickup_reservation_items',
         'receive_receivable',
         'recommend_garments',

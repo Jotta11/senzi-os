@@ -10,7 +10,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   USUARIO_NAO_ENCONTRADO: 'Usuário não encontrado.',
   PIN_INVALIDO: 'O PIN deve ter de 4 a 6 dígitos.',
   AUTORIZACAO_INVALIDA: 'Administrador ou PIN inválido',
-  PIN_BLOQUEADO: 'Muitas tentativas. Tente de novo em 15 minutos.',
+  PIN_BLOQUEADO: 'PIN bloqueado por muitas tentativas. Tente de novo em 15 minutos; se continuar bloqueado, a administradora precisa redefinir o PIN.',
   MOTIVO_OBRIGATORIO: 'Informe o motivo',
   // Acervo e Clientes (Plano 2B; a prévia em memória usa os mesmos códigos)
   NOME_OBRIGATORIO: 'Informe o nome ou modelo da peça.',

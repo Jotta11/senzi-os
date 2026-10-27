@@ -113,8 +113,8 @@ describe('reservas', () => {
   const cancel = (id: string, reason: string) => as<Res>(atend, 'public.cancel_reservation($1, $2)', [id, reason])
   const deposit = (id: string, method: string, retain: unknown = null) =>
     as<Res>(atend, 'public.return_reservation_deposit($1, $2, $3)', [id, method, retain === null ? null : JSON.stringify(retain)])
-  const authorize = async (kind: string, refType: string, refId: string | null, user = atend) => {
-    const r = await as<{ ok: boolean; id?: string; error?: string }>(user, `public.authorize_exception('ana@senzi.test', '1234', $1, 'Cliente antiga', $2, $3)`, [kind, refType, refId])
+  const authorize = async (kind: string, refType: string, refId: string | null, user = atend, maxAmount: number | null = null) => {
+    const r = await as<{ ok: boolean; id?: string; error?: string }>(user, `public.authorize_exception('ana@senzi.test', '1234', $1, 'Cliente antiga', $2, $3, $4)`, [kind, refType, refId, maxAmount])
     if (!r.ok) throw new Error(r.error)
     return r.id!
   }
@@ -222,10 +222,10 @@ describe('reservas', () => {
       expect(await errOf(draft(base))).toMatchObject({ message: 'DESCONTO_ACIMA_LIMITE', detail: 'discount' })
       const wrongKind = await authorize('dispensa_sinal_minimo', 'reserva_rascunho', null)
       expect((await errOf(draft(base, wrongKind)))?.message).toBe('DESCONTO_ACIMA_LIMITE')
-      const byAdmin = await authorize('desconto_acima_limite', 'reserva_rascunho', null, admin)
+      const byAdmin = await authorize('desconto_acima_limite', 'reserva_rascunho', null, admin, 144)
       expect((await errOf(draft(base, byAdmin)))?.message).toBe('DESCONTO_ACIMA_LIMITE')
 
-      const exc = await authorize('desconto_acima_limite', 'reserva_rascunho', null)
+      const exc = await authorize('desconto_acima_limite', 'reserva_rascunho', null, atend, 144)
       const r = await draft(base, exc)
       expect(r.totalNet).toBe(900 - 144)
       expect(r.items.map((i) => [i.allocatedOrderDiscount, i.netRevenue])).toEqual([
@@ -238,9 +238,9 @@ describe('reservas', () => {
       // Editar mantendo o mesmo desconto: a autorização gravada cobre.
       const again = await as<Res>(atend, 'public.update_reservation_draft($1, $2, $3)', [r.id, JSON.stringify({ ...base, notes: 'x' }), null])
       expect(again.contract!.version).toBe(2)
-      // Rateio em centavos: o resto vai para a peça de maior base.
+      // O preço vem da peça (450), não da entrada (tests/db/seguranca.test.ts cobre o ataque).
       const odd = await draft(input([siena], [5, 6, 8], { items: [{ garmentId: siena.id, unitPrice: 100 }], discount: 0 }))
-      expect(odd.totalNet).toBe(100)
+      expect(odd.totalNet).toBe(450)
     })
 
     it('sem reserva.discount não concede desconto novo', async () => {

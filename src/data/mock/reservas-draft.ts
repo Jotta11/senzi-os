@@ -25,6 +25,24 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
     return r
   }
 
+  /**
+   * Preço de cada peça vem da loja, nunca da entrada (como `reservation_input_priced` no banco): o congelado no item
+   * que a peça já tem no rascunho `current`, ou o preço de locação. Item malformado ou peça inexistente fica como veio
+   * (a validação recusa depois).
+   */
+  function priced(input: ReservationInput, current: Reservation | null): ReservationInput {
+    if (!Array.isArray(input.items)) return input
+    return {
+      ...input,
+      items: input.items.map((i) => {
+        if (!i || typeof i !== 'object' || !Number.isFinite(i.unitPrice) || i.unitPrice < 0) return i
+        const g = db.garments.find((x) => x.id === i.garmentId)
+        if (!g) return i
+        return { ...i, unitPrice: current?.items.find((x) => x.garmentId === i.garmentId)?.unitPrice ?? g.rentalPrice }
+      }),
+    }
+  }
+
   /** Problemas do formulário (ordem e campos da spec §3.1) e as linhas de preço. */
   function validate(input: ReservationInput): { lines: PriceLine[]; gross: number } {
     const issues = reservationIssues(input, today)
@@ -51,7 +69,7 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
     if (!discountNeedsException(gross, discount, db.settings.discountLimitPercent)) return null
     const covered = r?.authorizations.some((a) => a.kind === 'desconto_acima_limite' && a.amount >= discount - 0.005)
     if (covered) return null
-    const exc = usableException(ctx, exceptionId, 'desconto_acima_limite', { reservationId: r?.id ?? null, draft: true })
+    const exc = usableException(ctx, exceptionId, 'desconto_acima_limite', { reservationId: r?.id ?? null, draft: true, amount: discount })
     if (!exc) fail([{ code: 'DESCONTO_ACIMA_LIMITE', field: 'discount' }])
     return exc
   }
@@ -94,8 +112,9 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
   const orderDiscountOf = (r: Reservation) => round2(r.discount - r.items.reduce((s, i) => s + i.itemDiscount, 0))
 
   return {
-    createDraft: (input, exceptionId) =>
+    createDraft: (raw, exceptionId) =>
       run(() => {
+        const input = priced(raw, null)
         const { lines, gross } = validate(input)
         const fit = fittingToConvert(input, null)
         const exc = discountException(null, gross, round2(input.discount + lines.reduce((s, l) => s + (l.itemDiscount ?? 0), 0)), exceptionId)
@@ -141,9 +160,10 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
         return kit.refresh(r)
       }),
 
-    updateDraft: (id, input, exceptionId) =>
+    updateDraft: (id, raw, exceptionId) =>
       run(() => {
         const r = draftOf(id)
+        const input = priced(raw, r)
         const { lines, gross } = validate(input)
         const fit = fittingToConvert(input, r)
         const exc = discountException(r, gross, round2(input.discount + lines.reduce((s, l) => s + (l.itemDiscount ?? 0), 0)), exceptionId)
