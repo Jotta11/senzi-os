@@ -70,7 +70,7 @@ describe('Cadastro de cliente', () => {
     expect(errorOf(input(dlg, /^Nome completo/))).toBe('Informe o nome completo da cliente.')
     expect(errorOf(input(dlg, /^Telefone/))).toBe('Informe um telefone com DDD.')
     expect(errorOf(input(dlg, /^Data de nascimento/))).toBe('Informe a data de nascimento (não pode ser no futuro).')
-    expect(errorOf(input(dlg, /^CPF/))).toBe('CPF inválido.')
+    expect(errorOf(input(dlg, /^CPF/))).toBe('Informe o CPF.')
     expect(create).not.toHaveBeenCalled()
   })
 

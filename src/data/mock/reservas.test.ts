@@ -398,6 +398,33 @@ describe('reservas — pagamentos', () => {
     expect(back.payments.at(-1)).toMatchObject({ kind: 'estorno', refersTo: 'caucao', amount: 150, state: 'pago' })
     expect((await errorOf(src.returnDeposit(r0.id, 'pix'))).code).toBe('VALOR_INVALIDO')
   })
+
+  it('devolver caução retendo parte: estorna o resto, zera a custódia e lança a retenção como receita', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    await src.registerPayment(r0.id, { kind: 'caucao', method: 'dinheiro', amount: 300, reference: null, notes: null })
+    const cancelled = await src.cancelReservation(r0.id, 'Cliente desistiu')
+    expect((await errorOf(src.returnDeposit(r0.id, 'pix', { amount: 80, reason: ' ' }))).code).toBe('MOTIVO_OBRIGATORIO')
+    expect((await errorOf(src.returnDeposit(r0.id, 'pix', { amount: 300.01, reason: 'Mancha' }))).code).toBe('VALOR_EXCEDE_SALDO')
+    const back = await src.returnDeposit(r0.id, 'pix', { amount: 80, reason: 'Mancha de vinho na barra' })
+    expect(back.balance).toMatchObject({ caucao: 0, pago: cancelled.balance.pago, due: cancelled.balance.due })
+    expect(back.payments.slice(-2)).toEqual([
+      expect.objectContaining({ kind: 'estorno', refersTo: 'caucao', method: 'pix', amount: 220 }),
+      expect.objectContaining({ kind: 'estorno', refersTo: 'caucao', amount: 80 }),
+    ])
+    expect(ctx.db.receivables.at(-1)).toMatchObject({ description: `Retenção de caução · ${r0.code}`, reservationId: r0.id, amount: 80, paidAmount: 80, status: 'pago', method: 'dinheiro', isCustody: false })
+  })
+
+  it('reter a caução inteira não lança estorno para a cliente', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    await src.registerPayment(r0.id, { kind: 'caucao', method: 'pix', amount: 150, reference: null, notes: null })
+    await src.cancelReservation(r0.id, 'Cliente desistiu')
+    const before = (await src.getReservation(r0.id))!.payments.length
+    const back = await src.returnDeposit(r0.id, 'pix', { amount: 150, reason: 'Peça não devolvida' })
+    expect(back.payments).toHaveLength(before + 1)
+    expect(back.balance.caucao).toBe(0)
+  })
 })
 
 describe('reservas — revisão', () => {
@@ -414,6 +441,29 @@ describe('reservas — revisão', () => {
     const g = byName(ctx, 'Nápoles')
     expect(g.blocks.some((b) => b.reservationId === r0.id)).toBe(false)
     expect(g.state).toBe('disponivel')
+  })
+
+  it('retirada antecipada: a locação passa a começar hoje e a agenda mostra retirada e devolução quando aconteceram', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8], (n) => n)
+    await src.pickupItems(r0.id, r0.items.map((i) => ({ itemId: i.id, delivered: true })))
+    const loc = () => byName(ctx, 'Turim').blocks.find((b) => b.reservationId === r0.id && b.kind === 'locacao')!
+    expect(loc().from).toBe(TODAY)
+    const appt = (kind: string) => ctx.db.appointments.find((a) => a.reservationId === r0.id && a.kind === kind)!
+    expect(appt('retirada')).toMatchObject({ state: 'concluido', startsAt: expect.stringMatching(new RegExp(`^${TODAY}`)) })
+    await src.returnItems(r0.id, r0.items.map((i) => ({ itemId: i.id, returned: true })))
+    expect(loc()).toMatchObject({ from: TODAY, to: TODAY })
+    expect(appt('devolucao')).toMatchObject({ state: 'concluido', startsAt: expect.stringMatching(new RegExp(`^${TODAY}`)) })
+    expect(appt('evento').startsAt.startsWith(D(6))).toBe(true)
+  })
+
+  it('retirada antecipada não passa por cima de outro compromisso da peça', async () => {
+    const { ctx, src } = setup()
+    await confirmed(ctx, src, ['Turim'], [1, 1, 2], (n) => n)
+    const later = await confirmed(ctx, src, ['Turim'], [9, 10, 11], (n) => n)
+    const err = await errorOf(src.pickupItems(later.id, later.items.map((i) => ({ itemId: i.id, delivered: true }))))
+    expect(err.code).toBe('CONFLITO_AGENDA')
+    expect(byName(ctx, 'Turim').blocks.find((b) => b.reservationId === later.id && b.kind === 'locacao')!.from).toBe(D(9))
   })
 
   it('editar rascunho com contrato assinado registra a troca de versão no histórico', async () => {

@@ -4,6 +4,7 @@ import { useBrands, useCategories, useCreateGarment, useUpdateGarment } from '@/
 import { LENGTH_LABEL, SIZES } from '@/data/labels'
 import type { Garment, GarmentInput, GarmentLength, SizeEquiv } from '@/data/types'
 import { CLEANING_MAX, garmentIssues } from '@/data/validation'
+import { colorHexFor } from '@/domain/colorNames'
 import { Button, Field, Icon, Modal } from '@/ui'
 import { issuesToErrors, NO_ERRORS, numOrNull, sourceErrors, str, type FormErrors } from './formErrors'
 import './garment.css'
@@ -109,6 +110,13 @@ function GarmentFields({ garment, onDone, onCreated }: { garment?: Garment; onDo
   const catDays = cats.find((c) => c.slug === categorySlug)?.cleaningDays
 
   const set = (k: keyof Values) => (e: { target: { value: string } }) => setV((p) => ({ ...p, [k]: e.target.value }))
+  // O tom acompanha o nome da cor até a pessoa escolher um tom à mão.
+  const [toneTouched, setToneTouched] = useState(!!garment)
+  const setColorName = (e: { target: { value: string } }) => {
+    const name = e.target.value
+    const hex = toneTouched ? null : colorHexFor(name)
+    setV((p) => ({ ...p, colorPrimary: name, ...(hex ? { colorHex: hex } : {}) }))
+  }
   const f = (k: keyof Values) => ({ id: `gf-${k}`, value: v[k], onChange: set(k), error: errors.fields[k] })
 
   function submit(e: FormEvent) {
@@ -195,11 +203,19 @@ function GarmentFields({ garment, onDone, onCreated }: { garment?: Garment; onDo
           ))}
         </Field>
 
-        <Field label="Cor" placeholder="Verde esmeralda" {...f('colorPrimary')} />
+        <Field label="Cor" placeholder="Verde esmeralda" {...f('colorPrimary')} onChange={setColorName} />
         <div className="field gf-tone">
           <label htmlFor="gf-colorHex">Tom</label>
           <span className="gf-tone-row">
-            <input id="gf-colorHex" type="color" value={v.colorHex} onChange={set('colorHex')} />
+            <input
+              id="gf-colorHex"
+              type="color"
+              value={v.colorHex}
+              onChange={(e) => {
+                setToneTouched(true)
+                set('colorHex')(e)
+              }}
+            />
             <span className="mono tiny muted">{v.colorHex.toUpperCase()}</span>
           </span>
         </div>

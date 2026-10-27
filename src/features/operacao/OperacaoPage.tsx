@@ -93,7 +93,7 @@ export function OperacaoPage() {
       className: 'op-num',
       render: (o) => {
         const n = daysSince(o.openedAt, today)
-        return <span className={n >= 7 ? 'op-old' : undefined}>{n} dia(s)</span>
+        return <span className={n >= 7 ? 'op-old' : undefined}>{n === 0 ? 'hoje' : `${n} dia(s)`}</span>
       },
     },
     { key: 'due', header: 'Prazo', render: (o) => (o.dueAt ? dateBR(o.dueAt).slice(0, 5) : '—') },

@@ -198,7 +198,12 @@ function CustomerFields({
     if (measurementChanged(customer?.measurements[0], measurement)) input.measurement = measurement
 
     const issues = customerIssues(input, todayISO())
-    if (issues.length) return fail(issuesToErrors(issues, FIELDS))
+    if (issues.length) {
+      const errs = issuesToErrors(issues, FIELDS)
+      // CPF em branco não é "inválido": é campo obrigatório que faltou.
+      if (!input.cpf && errs.fields.cpf) errs.fields.cpf = 'Informe o CPF.'
+      return fail(errs)
+    }
     setErrors(NO_ERRORS)
     const onError = (x: unknown) => fail(sourceErrors(x, FIELDS))
     if (customer) {

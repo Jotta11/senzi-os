@@ -308,9 +308,10 @@ function EconomicsBand({ garment: g }: { garment: Garment }) {
   const rentals = e?.rentals ?? 0
   const revenue = e?.revenue ?? 0
   const cost = g.acquisitionCost
-  const result = revenue - (cost ?? 0)
+  const result = e?.result ?? revenue - (cost ?? 0)
   const last = e?.lastRental ?? null
-  const missing = cost && !e?.paidBack ? Math.max(1, Math.ceil((cost - revenue) / g.rentalPrice)) : 0
+  const recovered = !!cost && result >= 0
+  const missing = cost && !recovered ? Math.max(1, Math.ceil(-result / g.rentalPrice)) : 0
   const pending = !econ.data
   const v = (s: string) => (pending ? '—' : s)
   return (
@@ -327,7 +328,7 @@ function EconomicsBand({ garment: g }: { garment: Garment }) {
         {
           label: 'Payback',
           value: v(rentals === 0 || e?.payback == null ? '—' : times(e.payback)),
-          note: e?.paidBack ? 'investimento recuperado' : missing ? `faltam ${missing} ${missing === 1 ? 'locação' : 'locações'}` : 'sem custo registrado',
+          note: recovered ? 'investimento recuperado' : missing ? `faltam ${missing} ${missing === 1 ? 'locação' : 'locações'}` : 'sem custo registrado',
         },
       ]}
     />
@@ -397,19 +398,25 @@ function FinancePane({ garment: g }: { garment: Garment }) {
   const revenue = e?.revenue ?? 0
   const rentals = e?.rentals ?? 0
   const cost = g.acquisitionCost
-  const result = revenue - (cost ?? 0)
-  const missing = cost && !e?.paidBack ? Math.max(1, Math.ceil((cost - revenue) / g.rentalPrice)) : 0
+  const cleaning = e?.cleaning ?? 0
+  const maintenance = e?.maintenance ?? 0
+  const result = e?.result ?? revenue - (cost ?? 0)
+  // Zero a zero inclui higienização e manutenção: só conta como recuperado quando o resultado fica ≥ 0.
+  const recovered = !!cost && result >= 0
+  const missing = cost && !recovered ? Math.max(1, Math.ceil(-result / g.rentalPrice)) : 0
   const lines: [string, string, string?][] = [
     ['Locações', String(rentals)],
     ['Receita acumulada', brl(revenue), 'pos'],
     ['Custo de aquisição', cost == null ? '—' : `− ${brl(cost)}`],
+    ['Higienização', cleaning ? `− ${brl(cleaning)}` : '—'],
+    ['Manutenção e ajustes', maintenance ? `− ${brl(maintenance)}` : '—'],
     ['Valor de referência', g.retailReference == null ? '—' : brl(g.retailReference)],
   ]
   return (
     <section className="card">
       <div className="card-h">
         <h3>Economia da peça</h3>
-        <span className="muted tiny">receita − aquisição</span>
+        <span className="muted tiny">receita − aquisição − operação</span>
       </div>
       <div className="card-b gp-fin">
         <div className="gp-fin-tiles">
@@ -420,8 +427,8 @@ function FinancePane({ garment: g }: { garment: Garment }) {
           </div>
           <div>
             <span className="eyebrow">Payback</span>
-            <b className={e?.paidBack ? 'display gp-pos' : 'display'}>{rentals === 0 || e?.payback == null ? '—' : times(e.payback)}</b>
-            <span className="tiny muted">{e?.paidBack ? 'investimento recuperado' : missing ? `${missing} ${missing === 1 ? 'locação' : 'locações'} para o zero a zero` : 'sem custo registrado'}</span>
+            <b className={recovered ? 'display gp-pos' : 'display'}>{rentals === 0 || e?.payback == null ? '—' : times(e.payback)}</b>
+            <span className="tiny muted">{recovered ? 'investimento recuperado' : missing ? `${missing} ${missing === 1 ? 'locação' : 'locações'} para o zero a zero` : 'sem custo registrado'}</span>
           </div>
         </div>
         <dl className="gp-fin-lines">
@@ -442,11 +449,11 @@ function FinancePane({ garment: g }: { garment: Garment }) {
             <Icon name="relogio" size={15} />
             <span>Receita e despesas aparecem quando reservas e manutenções estiverem ativas.</span>
           </div>
-        ) : e?.paidBack ? (
+        ) : recovered ? (
           <div className="note green">
             <Icon name="check" size={15} />
             <span>
-              <b>Investimento recuperado.</b> A peça devolveu {times(e.payback!)} o que custou, em {rentals} {rentals === 1 ? 'locação' : 'locações'}.
+              <b>Investimento recuperado.</b> A peça devolveu {times(e!.payback!)} o que custou, já descontada a operação, em {rentals} {rentals === 1 ? 'locação' : 'locações'}.
             </span>
           </div>
         ) : cost ? (
@@ -456,7 +463,7 @@ function FinancePane({ garment: g }: { garment: Garment }) {
               <b>
                 {missing === 1 ? 'Falta 1 locação' : `Faltam ${missing} locações`}
               </b>{' '}
-              para recuperar o investimento de {brl(cost, { cents: false })}, ao preço atual de {brl(g.rentalPrice, { cents: false })}.
+              para cobrir o investimento de {brl(cost, { cents: false })}{cleaning + maintenance > 0 ? ` e ${brl(cleaning + maintenance, { cents: false })} de operação` : ''}, ao preço atual de {brl(g.rentalPrice, { cents: false })}.
             </span>
           </div>
         ) : (
@@ -465,7 +472,7 @@ function FinancePane({ garment: g }: { garment: Garment }) {
             <span>Sem custo de aquisição registrado.</span>
           </div>
         )}
-        <p className="tiny muted">Higienização e manutenção entram na conta quando a Operação estiver ativa. Valores desta prévia são fictícios.</p>
+        <p className="tiny muted">Higienização e manutenção vêm das ordens concluídas na Operação. Valores desta prévia são fictícios.</p>
       </div>
     </section>
   )

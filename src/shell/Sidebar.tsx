@@ -17,6 +17,8 @@ export type SidebarItem = {
 export type SidebarProps = {
   items: SidebarItem[]
   search?: boolean
+  /** Abre a busca global; sem ele o botão "Buscar…" não aparece. */
+  onSearch?(): void
   footer?: ReactNode
   /** Força o caminho usado para marcar o item ativo (padrão: a URL atual). */
   activePath?: string
@@ -45,7 +47,7 @@ function pickTabs<T extends { to: string }>(items: T[]): T[] {
  * Sidebar Cranberry compartilhada pelo app e pela prévia. Trilho de ícones no tablet (≤1024px).
  * No celular (≤640px) vira gaveta aberta pelo botão de menu da barra do topo, com barra de abas embaixo.
  */
-export function Sidebar({ items, search, footer, activePath, linkTo }: SidebarProps) {
+export function Sidebar({ items, search, onSearch, footer, activePath, linkTo }: SidebarProps) {
   const location = useLocation()
   const phone = useMediaQuery(PHONE_QUERY)
   const [open, setOpen] = useState(false)
@@ -122,8 +124,17 @@ export function Sidebar({ items, search, footer, activePath, linkTo }: SidebarPr
             </button>
           )}
         </div>
-        {search && (
-          <button type="button" className="sb-search" aria-label="Buscar">
+        {search && onSearch && (
+          <button
+            type="button"
+            className="sb-search"
+            aria-label="Buscar"
+            aria-keyshortcuts="Meta+K Control+K"
+            onClick={() => {
+              setOpen(false)
+              onSearch()
+            }}
+          >
             <Icon name="busca" size={15} />
             <span>Buscar…</span>
             <kbd>⌘K</kbd>

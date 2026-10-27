@@ -220,6 +220,9 @@ export type PaymentInput = {
   refersTo?: 'caucao' | null
 }
 
+/** Parte da caução que a loja retém ao devolver (dano, perda); `reason` é obrigatório quando `amount > 0`. */
+export type DepositRetention = { amount: number; reason: string }
+
 export type ContractSignInput = { signedAt: string; signerName: string; notes: string | null }
 
 export type ConfirmResult = { ok: true; reservation: Reservation } | { ok: false; conflicts: AvailabilityResult[] }

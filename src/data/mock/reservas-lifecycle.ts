@@ -103,6 +103,19 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         const exc = due > 0.005 ? usableException(ctx, exceptionId, 'retirada_com_saldo', { reservationId: r.id }) : null
         if (due > 0.005 && !exc) fail([{ code: 'SALDO_EM_ABERTO' }], brl(due))
 
+        // Retirada antecipada: a locação passa a começar hoje no calendário da peça. Se outro compromisso
+        // ocupa a peça antes da data combinada, ela não pode sair antes.
+        for (const d of valid.filter((x) => x.delivered)) {
+          const g = ctx.garment(open.get(d.itemId)!.garmentId)
+          const loc = g.blocks.find((b) => b.reservationId === r.id && b.kind === 'locacao')
+          if (!loc || loc.from <= today) continue
+          if (g.blocks.some((b) => b.reservationId !== r.id && b.from < loc.from && b.to >= today)) fail([{ code: 'CONFLITO_AGENDA', field: 'items' }])
+        }
+        for (const d of valid.filter((x) => x.delivered)) {
+          const g = ctx.garment(open.get(d.itemId)!.garmentId)
+          g.blocks = g.blocks.map((b) => (b.reservationId === r.id && b.kind === 'locacao' && b.from > today ? { ...b, from: today } : b))
+        }
+
         const now = ctx.now()
         for (const d of valid) {
           const it = open.get(d.itemId)!
@@ -118,7 +131,8 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         if (exc) consumeException(ctx, exc, r, due)
         const next = all ? 'em_uso' : 'retirada'
         if (next !== r.state) kit.transition(r, next, all ? 'Todas as peças retiradas pela cliente' : `Retirada parcial — ${out} de ${items.length} peça(s)`)
-        if (all) for (const a of apptsOf(r, 'retirada')) a.state = 'concluido'
+        // Na agenda, a retirada concluída fica no dia e hora em que a cliente de fato levou as peças.
+        if (all) for (const a of apptsOf(r, 'retirada')) Object.assign(a, { state: 'concluido', startsAt: r.pickedUpAt ?? now })
         return kit.refresh(r)
       }),
 
@@ -155,7 +169,7 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
             g.blocks = g.blocks.filter((b) => b.reservationId !== r.id)
           }
           kit.transition(r, 'em_inspecao', late > 0 ? `Devolvida com ${late} dia(s) de atraso` : 'Devolvida no prazo')
-          for (const a of apptsOf(r, 'devolucao')) a.state = 'concluido'
+          for (const a of apptsOf(r, 'devolucao')) Object.assign(a, { state: 'concluido', startsAt: now })
           for (const it of r.items.filter((i) => i.itemState === 'nao_entregue')) kit.rederive(it.garmentId, `Reserva ${r.code} encerrada sem a peça`)
         } else {
           const received = r.items.filter((i) => i.itemState === 'devolvido' || i.itemState === 'inspecionado').length

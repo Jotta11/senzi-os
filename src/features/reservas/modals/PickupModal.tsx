@@ -4,7 +4,7 @@ import { useAddNote } from '@/data/hooks'
 import { usePickupItems } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { brl, dateBR } from '@/lib/format'
+import { brl, dateBR, todayISO } from '@/lib/format'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { AuthorizeExceptionDialog } from '../../exceptions/AuthorizeExceptionDialog'
 import { GarmentThumb } from '../GarmentThumb'
@@ -94,6 +94,14 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
             <p className="note green">
               <Icon name="check" size={14} />
               <span>Reserva quitada. Pode entregar.</span>
+            </p>
+          )}
+          {r.pickupDate > todayISO() && (
+            <p className="note amber">
+              <Icon name="relogio" size={14} />
+              <span>
+                <b>Retirada antecipada.</b> O combinado era {dateBR(r.pickupDate)}. A peça passa a ficar fora da loja a partir de hoje no calendário.
+              </span>
             </p>
           )}
           <p>
