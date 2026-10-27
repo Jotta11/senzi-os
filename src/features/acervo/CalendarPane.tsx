@@ -4,7 +4,8 @@ import { useReleaseBlock } from '@/data/hooks'
 import { BLOCK_KIND } from '@/data/labels'
 import type { BlockKind, Garment, GarmentBlock } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { addDays, dateBR, todayISO } from '@/lib/format'
+import { addDays, dateBR } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { Badge, Button, DataTable, Icon, type Column } from '@/ui'
 import { STRIP_DAYS, blockOn } from './calendarDays'
 
@@ -74,7 +75,7 @@ export function MonthGrid({ month, blocks, today }: { month: Month; blocks: Garm
  */
 export function CalendarPane({ garment: g }: { garment: Garment }) {
   const { can } = usePermissions()
-  const today = todayISO()
+  const today = useToday()
   const [anchor, setAnchor] = useState<Month>(() => monthOf(today))
   const release = useReleaseBlock(g.id)
   const [releaseError, setReleaseError] = useState<string | null>(null)

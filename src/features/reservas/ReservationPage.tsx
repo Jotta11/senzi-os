@@ -6,7 +6,7 @@ import { longDay } from './reservaFormat'
 import type { AvailabilityResult, PaymentKind, ReservationDetail } from '@/data/types'
 import { SourceError } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { todayISO } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, EmptyState, Icon, Tabs, buttonClass, useToast, type TabItem } from '@/ui'
 import { RESERVATION_STATE } from '@/data/labels-ops'
@@ -77,7 +77,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
   const { can } = usePermissions()
   const href = useAppHref()
   const toast = useToast()
-  const today = todayISO()
+  const today = useToday()
   const settings = useSettings()
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<Dialog>(null)

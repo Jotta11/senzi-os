@@ -246,3 +246,46 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      item do menu tem tela real.
   7. Desempenho: cada chamada recalcula tudo (como o Financeiro). Ok para o volume de uma loja; se crescer, materializar as bases.
 
+- Área 7 (Fechamento). Sem migration nova (nada no SQL precisou mudar). Decisões:
+  1. **Rotas sob demanda:** as telas do app real vêm de `src/app/screens.ts` (`React.lazy`, um pedaço por tela; `SupabaseDataLayout`
+     dá o `<Suspense>` com "Carregando…" sem esconder o menu). A prévia inteira entra por `/preview/*` com `lazy` do react-router
+     (`src/preview/PreviewApp.tsx` monta `previewRoutes` como rotas descendentes): fonte em memória + fixture só no pedaço `PreviewApp`.
+     `previewRoutes.tsx` continua com imports diretos (os testes das telas o usam). `shell.test.tsx` checa que `router.tsx` não importa
+     prévia nem telas de forma estática e que `/preview` abre pelas rotas do app. Nenhum pedaço passa de 500 kB (maiores: `index` ≈ 359 kB
+     — React, roteador, login, menu — e o compartilhado ≈ 283 kB com supabase-js/TanStack/UI; antes era um só de 1.118 kB).
+  2. **PWA:** o plugin `senzi-pwa` passou a gerar o service worker em `generateBundle` com `order: 'post'`: com rotas sob demanda o Vite
+     cria pedaços que eram só CSS e os remove do bundle depois; a lista antiga incluía 4 arquivos inexistentes, o que faria o
+     `cache.addAll` (instalação do service worker) falhar. Conferido: todos os arquivos da lista existem em `dist/`.
+  3. **"Hoje":** `useToday()` (`src/lib/useToday.ts`) = `todayISO()` (fuso America/Araguaina, o mesmo de `store_today()`) via
+     `useSyncExternalStore`, que troca à meia-noite da loja e ao voltar a aba visível. Usado nas telas que calculam com "hoje" no render
+     (Agenda, Operação, ficha da reserva, ficha da peça e calendário, bloqueio, WhatsApp, fallback do Dashboard). Valores iniciais de
+     formulário, validações no envio e modais curtos seguem com `todayISO()` (mesmo fuso). Não vem do banco: o relógio do aparelho no
+     fuso da loja basta, e o banco revalida as datas com `store_today()`.
+  4. **Retry:** `shouldRetryQuery` em `src/lib/queryClient.ts` — até 2 novas tentativas só para falha de rede (erro sem código ou com
+     código vazio do supabase-js); `SourceError` (inclusive `SEM_PERMISSAO`, que entrou em `SourceErrorCode`) e erros com código do
+     PostgREST/Postgres não repetem. `fromDbError` passou a preservar o `code` do PostgREST (o supabase-js devolve objeto simples).
+  5. Pequenas: `npm:@supabase/supabase-js@2.118.0` fixado na Edge Function `admin-users` (mesma versão do app). README "Conectar ao
+     Supabase" reescrito (migrations, bucket, seeds, painel: cadastro público, URLs, SMTP, Data API; primeiro admin; banco começa vazio).
+     Pendências marcadas nos arquivos `01-fundacao`, `02a` e `03v`.
+  6. **PDFs no Storage: não implementado, de propósito.** Hoje contrato e OS são páginas de impressão ("Imprimir / salvar PDF"). Gerar e
+     guardar o PDF depende do template definitivo do contrato e dos dados da empresa (decisão do João); o banco já tem o necessário
+     (bucket privado + URLs assinadas, como as fotos).
+  7. **Seed de dados reais: não faz sentido agora.** O banco real já nasce com o que é configuração (categorias de peça e do financeiro,
+     configurações gerais, checklist). Dados de verdade (acervo, clientes) entram pelas telas; se a loja tiver planilhas, o certo é um
+     importador dedicado (CSV → RPCs `create_garment`/`create_customer`, que já validam e auditam), não um seed. Dados de exemplo ficam só na prévia.
+
+## Para o João decidir
+
+1. **Contrato e OS:** dados da empresa (razão social, CNPJ, endereço) e template definitivo do contrato. Depois disso: gerar o PDF,
+   guardar no Storage com link assinado e anexar ao WhatsApp.
+2. **Peça cancelada na janela de higienização:** peça que nunca saiu da loja e teve a reserva cancelada dentro da própria higienização fica
+   "Higienização" até alguém liberar na Operação (igual na prévia e no banco). Manter, ou liberar sozinha no cancelamento?
+3. **PIN de exceção:** passar para 6 dígitos e registrar na auditoria quando um PIN for bloqueado por tentativas? (hoje 4–6 dígitos, bloqueio de 15 min.)
+4. **Exceções por PIN** valem só para quem as pediu (regra do banco a mais que a prévia). Confirmar.
+5. **"Orçamento" na ficha da cliente** é estimado pelo ticket das locações. Manter a heurística ou virar campo preenchido pela loja?
+6. **Antes de publicar:** domínio de produção (para `ALLOWED_ORIGIN` no CORS da Edge Function `admin-users`, Site URL e Redirect URLs),
+   SMTP próprio e um teste de "Esqueci minha senha" com e-mail real (a tela de nova senha precisa dessa conferência).
+7. **Refatorações sem pressa** (sem efeito visível; fazer quando mexer nas telas): dividir `CustomerPage.tsx`/`GarmentPage.tsx`, levar
+   componentes compartilhados (CustomerPicker, GarmentThumb, gráficos) para `src/ui`, `rgba()` → tokens, tipos `*Summary` e
+   `getGarments(ids)` em lote.
+8. **Configurações na prévia:** hoje não entra (depende do banco). Vale uma versão de demonstração?

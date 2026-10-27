@@ -1,30 +1,32 @@
 import type { ReactNode } from 'react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AuthGate } from '@/auth/AuthGate'
-import { AcervoListPage } from '@/features/acervo/AcervoListPage'
-import { GarmentPage } from '@/features/acervo/GarmentPage'
-import { AgendaPage } from '@/features/agenda/AgendaPage'
-import { ClientesListPage } from '@/features/clientes/ClientesListPage'
-import { CustomerPage } from '@/features/clientes/CustomerPage'
-import { ConfigPage } from '@/features/config/ConfigPage'
-import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
-import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
-import { PayablesPage } from '@/features/financeiro/PayablesPage'
-import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
-import { IntelPage } from '@/features/inteligencia/IntelPage'
-import { OperacaoPage } from '@/features/operacao/OperacaoPage'
-import { FittingPage } from '@/features/provas/FittingPage'
-import { ProvasListPage } from '@/features/provas/ProvasListPage'
-import { ContractPrint } from '@/features/reservas/print/ContractPrint'
-import { OsPrint } from '@/features/reservas/print/OsPrint'
-import { ReservasListPage } from '@/features/reservas/ReservasListPage'
-import { ReservationPage } from '@/features/reservas/ReservationPage'
-import { previewRoutes } from '@/preview/previewRoutes'
+import { PREVIEW_BASE } from '@/preview/paths'
 import { AppShell } from '@/shell/AppShell'
 import { NotFound } from '@/shell/NotFound'
 import { NAV } from '@/shell/nav'
 import { RequirePerm } from '@/shell/RequirePerm'
+import {
+  AcervoListPage,
+  AgendaPage,
+  CategoriesPage,
+  ClientesListPage,
+  ConfigPage,
+  ContractPrint,
+  CustomerPage,
+  DashboardPage,
+  FinanceOverviewPage,
+  FittingPage,
+  GarmentPage,
+  IntelPage,
+  OperacaoPage,
+  OsPrint,
+  PayablesPage,
+  ProvasListPage,
+  ReceivablesPage,
+  ReservasListPage,
+  ReservationPage,
+} from './screens'
 import { SupabaseDataLayout } from './SupabaseDataLayout'
 
 /** Tela de cada item do menu no app real (todas no banco desde a área 6; `shell.test.tsx` garante que nenhum item fica sem tela). */
@@ -41,9 +43,16 @@ export const LIVE: Record<string, ReactNode> = {
   '/config': <ConfigPage />,
 }
 
-/** Rotas do Senzi OS. `/preview/*` é pública (prévia visual com dados fictícios em memória); o resto exige login. */
+/**
+ * Rotas do Senzi OS. `/preview/*` é pública (prévia visual com dados fictícios em memória); o resto exige login.
+ * A prévia inteira (fonte em memória + fixture) é carregada sob demanda: nunca entra no pedaço principal do app real.
+ * As telas do app real também (`./screens`).
+ */
 export const appRoutes: RouteObject[] = [
-  previewRoutes,
+  {
+    path: `${PREVIEW_BASE}/*`,
+    lazy: async () => ({ Component: (await import('@/preview/PreviewApp')).PreviewApp }),
+  },
   {
     element: <AuthGate />,
     children: [

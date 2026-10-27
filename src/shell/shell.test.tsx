@@ -117,6 +117,20 @@ describe('shell', () => {
     expect(screen.getAllByRole('img', { name: 'Senzi Club' }).length).toBeGreaterThan(0)
   })
 
+  // Plano 2B, área 7: a prévia (fonte em memória + fixture) e as telas chegam sob demanda, fora do pedaço principal.
+  it('a prévia abre pelas rotas do app, carregada sob demanda', async () => {
+    setup('admin', '/preview/acervo')
+    expect(await screen.findByRole('group', { name: 'Ver como' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acervo' })).toBeInTheDocument()
+  })
+
+  it('o roteador do app não importa a prévia nem as telas de forma estática', () => {
+    const src = readFileSync(resolve(__dirname, '../app/router.tsx'), 'utf8')
+    const statics = [...src.matchAll(/^import [^;]*? from '([^']+)'/gms)].map((m) => m[1])
+    expect(statics.filter((m) => m!.startsWith('@/preview/') && m !== '@/preview/paths')).toEqual([])
+    expect(statics.filter((m) => m!.startsWith('@/features/'))).toEqual([])
+  })
+
   it('rota desconhecida mostra Página não encontrada com link para /', () => {
     setup('admin', '/nada-aqui')
     expect(screen.getByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()

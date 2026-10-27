@@ -108,10 +108,18 @@ export function fail(issues: SourceIssue[]): never {
   throw new SourceError(first!.code, { field: first!.field, issues })
 }
 
-/** Erro do banco → `SourceError` quando é um código das RPCs; senão `Error` com a mensagem (ex.: SEM_PERMISSAO). */
+/**
+ * Erro do banco → `SourceError` quando é um código das RPCs (ex.: SEM_PERMISSAO); senão `Error` com a mensagem e o
+ * `code` do PostgREST (vazio = falha de rede), que o `QueryClient` usa para decidir se repete (`shouldRetryQuery`).
+ */
 export function fromDbError(err: PostgrestError | Error): Error {
   const code = err.message
-  if (!/^[A-Z][A-Z_]+$/.test(code)) return err instanceof Error ? err : new Error(code)
+  if (!/^[A-Z][A-Z_]+$/.test(code)) {
+    // supabase-js devolve o erro como objeto simples ({ message, code, … }), não como instância de Error.
+    if (err instanceof Error) return err
+    const raw = (err as { code?: unknown }).code
+    return Object.assign(new Error(code), { code: typeof raw === 'string' ? raw : '' })
+  }
   const details = 'details' in err ? err.details : null
   const hint = 'hint' in err ? err.hint : null
   return new SourceError(code as SourceErrorCode, { field: details || undefined, hint: hint || undefined })

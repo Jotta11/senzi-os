@@ -277,6 +277,7 @@ export type Recommendation = { garment: Garment; score: number; reasons: string[
 
 /** Códigos de erro — os mesmos das RPCs do Plano 2B (mensagens pt-BR em `src/lib/errorMessages.ts`). */
 export type SourceErrorCode =
+  | 'SEM_PERMISSAO'
   | 'NOME_OBRIGATORIO'
   | 'VALOR_LOCACAO_OBRIGATORIO'
   | 'PERIODO_INVALIDO'

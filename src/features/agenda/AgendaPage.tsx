@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { isValidISODate } from '@/data/validation'
 import type { AgendaItem } from '@/data/types'
-import { todayISO } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { AppointmentModal } from './AppointmentModal'
 import type { ShellProps } from './AgendaShell'
 import { isAgendaFilter, isAgendaView, type AgendaFilter, type AgendaView } from './agendaView'
@@ -23,7 +23,7 @@ const isISODate = (v: string | null): v is string => isValidISODate(v)
 export function AgendaPage() {
   const { can } = usePermissions()
   const [params, setParams] = useSearchParams()
-  const today = todayISO()
+  const today = useToday()
   const diaParam = params.get('dia')
   const anchor = isISODate(diaParam) ? diaParam : today
   const tipoParam = params.get('tipo')
