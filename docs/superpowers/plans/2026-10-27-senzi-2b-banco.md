@@ -219,3 +219,30 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      `higienizacao` (sem ordem) até ser liberada na Operação — coberto em `tests/db/operacao.test.ts`. Resolver na área 7 se for o caso.
   7. Desempates: ordens por `opened_at` (clock_timestamp, então ordens da mesma inspeção ficam na ordem de criação), fornecedores
      usados na ordem em que apareceram. Rota real `/operacao` (NAV, `operacao.view`); a aba Manutenções da ficha agora lê do banco.
+- Área 6 (Dashboard e Inteligência), migration `20261027000700_painel.sql`. Sem tabelas: tudo derivado ao vivo. Decisões:
+  1. RPCs `dashboard_summary(p_range)` (`dashboard.view`; range '7' | '30' do dia 1 | '90', senão PARAMETRO_INVALIDO `range`) e
+     `intel_report(p_days, p_category)` (`inteligencia.view`; 90 | 180 | 365, senão PARAMETRO_INVALIDO `days`; slug inexistente = escopo
+     vazio, como a fonte em memória). Internas: `painel_alerts(hoje)` (os 12 tipos de `computeAlerts`), `intel_pressure`, tipos
+     compostos `intel_garment`/`intel_line` (bases calculadas uma vez por chamada) e formatadores pt-BR (`brl0`, `pct_pt`, `num1_pt`,
+     `plural_pt`, `dm_pt`, `relative_day_pt`, `month_abbr`, `next_birthday`, `garment_state_lower`) para os textos dos alertas e insights.
+  2. **Permissões no banco:** `finance` null sem `financeiro.consolidated` (fecha a pendência do 03v); alertas filtrados como
+     `visibleAlerts` (pagamento pendente exige `financeiro.view`; os demais, a permissão da rota de destino); `fittingsSoon` sai sempre
+     (como a prévia). Inteligência sem `acervo.cost`: `idleCapital[].cost` null, `paidBack` vazio e os insights `pecas-paradas`/`payback`
+     não saem (o resto é igual). `idleAlertDays` vem direto de `app_settings` dentro da RPC (sem depender de `get_settings`/`reserva.view`).
+  3. "Hoje" = `store_today()`: o Dashboard já usava `summary.today` e a Inteligência `period`; a pendência do relógio fica resolvida para
+     essas duas telas. `agendaToday`/`agendaMonthDays` são as mesmas leituras de `agenda_range`/`agenda_month_days` (sem exigir `agenda.view`,
+     como a prévia).
+  4. **Desempates** (a fonte em memória usa a ordem dos arrays): reservas por `created_at, code`; peças e clientes por código; ordens por
+     `opened_at, id`; provas por `scheduled_at, code`; nomes/rótulos (localeCompare pt-BR) por `norm(texto)`, texto. Alertas: severidade e,
+     dentro dela, a ordem de geração da fonte em memória com esses desempates.
+  5. **Paridade testada:** `tests/db/painel.test.ts` carrega o mundo da fonte em memória (`buildWorld` com o hoje do banco) no PGlite
+     (`tests/db/painelWorld.ts`, inserção direta sem triggers; blocos sobrepostos — que a prévia permite — são cortados no dia anterior ao
+     seguinte, como a Operação faz no banco) e exige igualdade exata com `dashboardSummary` (3 períodos) e `intelReport` (6 combinações de
+     período/categoria), inclusive textos e ordem dos insights. Arredondamento: `pct` em float8 (`floor(x·100 + 0,5)` = `Math.round`), dinheiro
+     em numeric.
+  6. `createSupabaseSource` agora é um objeto completo tipado como `DataSource` (sem Proxy); o código `NAO_DISPONIVEL` saiu de
+     `SourceErrorCode`/`errorMessages`. Rotas reais `/` (Dashboard) e `/inteligencia` (RequirePerm `inteligencia.view` pelo NAV): nenhum item
+     do menu cai mais em "Em construção" (`ComingSoon` segue só na prévia); `shell.test.tsx` passou a usar a fonte em memória e checa que todo
+     item do menu tem tela real.
+  7. Desempenho: cada chamada recalcula tudo (como o Financeiro). Ok para o volume de uma loja; se crescer, materializar as bases.
+

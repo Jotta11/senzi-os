@@ -1,14 +1,21 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Perm } from '@/auth/permissions'
-import { appRoutes } from '@/app/router'
+import { appRoutes, LIVE } from '@/app/router'
+import { NAV } from '@/shell/nav'
 
 const authMock = vi.hoisted(() => ({ signOut: vi.fn(), refetch: vi.fn(), user: null as unknown, perms: [] as string[], loading: false, error: false }))
 vi.mock('@/lib/env', () => ({ getEnv: () => ({ url: 'http://x', anonKey: 'k' }) }))
+// As telas reais (Dashboard em `/`, Inteligência…) leem dados: aqui a fonte do Supabase dá lugar à fonte em memória.
+vi.mock('@/data/supabaseSource', async () => {
+  const { createMockSource } = await import('@/data/mockSource')
+  return { createSupabaseSource: () => createMockSource({ latencyMs: 0 }) }
+})
 vi.mock('@/auth/useAuth', () => ({
   useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
 }))
@@ -30,7 +37,11 @@ function setup(role: 'admin' | 'atendimento', path = '/') {
   authMock.user = { id: 'u1', full_name: 'Ana Souza', email: 'a@b.com', role, is_active: true }
   authMock.perms = role === 'admin' ? ADMIN : ATENDIMENTO
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
-  render(<RouterProvider router={router} />)
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
 }
 const navLinks = () => within(screen.getByRole('navigation', { name: /navegação principal/i })).getAllByRole('link')
 
@@ -77,12 +88,21 @@ describe('shell', () => {
     expect(authMock.refetch).toHaveBeenCalled()
   })
 
-  it('item ativo tem aria-current=page e a rota mostra Em construção', () => {
+  it('item ativo tem aria-current=page e a rota mostra a tela real', async () => {
     setup('admin', '/inteligencia')
     const ativos = navLinks().filter((l) => l.getAttribute('aria-current') === 'page')
     expect(ativos).toHaveLength(1)
     expect(ativos[0]).toHaveAttribute('aria-label', 'Inteligência')
-    expect(screen.getByText('Em construção')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Inteligência' })).toBeInTheDocument()
+    expect(screen.queryByText('Em construção')).toBeNull()
+  })
+
+  // Desde a área 6 do Plano 2B todo item do menu tem tela no banco: nenhuma rota real cai em "Em construção"
+  // (o componente segue em uso e testado na prévia, `preview.test.tsx`).
+  it('todo item do menu (e submenu) tem tela real', () => {
+    const paths = NAV.flatMap((n) => [n.path, ...(n.children ?? []).map((c) => c.path)])
+    const routed = ['/financeiro/receber', '/financeiro/pagar', '/financeiro/categorias']
+    expect(paths.filter((p) => !(p in LIVE) && !routed.includes(p))).toEqual([])
   })
 
   it('rodapé mostra o nome e Sair chama signOut', async () => {

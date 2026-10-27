@@ -9,10 +9,12 @@ import { createSupabaseSource } from '@/data/supabaseSource'
 import { GarmentPage } from '@/features/acervo/GarmentPage'
 import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
 import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
 import { PayablesPage } from '@/features/financeiro/PayablesPage'
 import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { IntelPage } from '@/features/inteligencia/IntelPage'
 import { OperacaoPage } from '@/features/operacao/OperacaoPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
@@ -21,11 +23,13 @@ import { OsPrint } from '@/features/reservas/print/OsPrint'
 import { ReservasListPage } from '@/features/reservas/ReservasListPage'
 import { ReservationPage } from '@/features/reservas/ReservationPage'
 import { PreviewPermissionsProvider } from '@/preview/PreviewPermissions'
+import { RequirePerm } from '@/shell/RequirePerm'
 import { ToastProvider } from '@/ui'
 
 /**
  * Telas ligadas no app real (Agenda, Provas, Reservas, Financeiro, Operação e as abas de reservas e manutenções das fichas): renderizadas sobre a fonte em memória, registram cada método da
- * `DataSource` que chamam. Todos precisam existir na fonte do Supabase — senão a tela cairia em `NAO_DISPONIVEL`.
+ * `DataSource` que chamam. Todos precisam existir na fonte do Supabase (desde a área 6 o TypeScript já garante isso em
+ * `createSupabaseSource`; o teste continua como rede de segurança e documenta o que cada tela lê).
  */
 const TODAY = '2026-10-24'
 
@@ -41,7 +45,7 @@ function recording(src: DataSource) {
   return { proxy, called }
 }
 
-function renderAt(path: string, element: ReactNode, source: DataSource) {
+function renderAt(path: string, element: ReactNode, source: DataSource, role: 'admin' | 'atendimento' = 'admin') {
   const router = createMemoryRouter(
     [
       { path: '/agenda', element },
@@ -58,13 +62,15 @@ function renderAt(path: string, element: ReactNode, source: DataSource) {
       { path: '/financeiro/pagar', element },
       { path: '/financeiro/categorias', element },
       { path: '/operacao', element },
+      { path: '/', element },
+      { path: '/inteligencia', element },
     ],
     { initialEntries: [path] },
   )
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <DataSourceProvider source={source}>
-        <PreviewPermissionsProvider initialRole="admin">
+        <PreviewPermissionsProvider initialRole={role}>
           <ToastProvider>
             <RouterProvider router={router} />
           </ToastProvider>
@@ -198,6 +204,61 @@ describe('telas da Operação no app real', () => {
     cleanup()
 
     for (const m of ['operacaoQueue', 'checklist', 'inspectionTarget', 'suppliers', 'maintenancesOf']) expect(called).toContain(m)
+    const missing = [...called].filter((k) => !(k in live))
+    expect(missing).toEqual([])
+  })
+})
+
+describe('Dashboard e Inteligência no app real', () => {
+  it('admin: painel (com faturamento, nos 3 períodos) e inteligência (filtros de período e categoria) só chamam métodos que a fonte do Supabase tem', async () => {
+    const mock = createMockSource({ latencyMs: 0, today: TODAY })
+    const { proxy, called } = recording(mock)
+    const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
+
+    renderAt('/', <DashboardPage />, proxy)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    for (const label of ['Últimos 7 dias', '90 dias']) {
+      fireEvent.click(await screen.findByRole('button', { name: label }))
+      expect(await screen.findByRole('button', { name: label, pressed: true })).toBeInTheDocument()
+    }
+    cleanup()
+    const screens: [string, ReactNode, RegExp][] = [
+      ['/inteligencia', <IntelPage key="i" />, /Leitura do período/],
+      ['/inteligencia?periodo=365&cat=vestido-longo', <IntelPage key="c" />, /Leitura do período/],
+    ]
+    for (const [path, el, title] of screens) {
+      renderAt(path, el, proxy)
+      expect((await screen.findAllByText(title)).length).toBeGreaterThan(0)
+      cleanup()
+    }
+    for (const m of ['dashboardSummary', 'agendaMonthDays', 'intelReport', 'listCategories']) expect(called).toContain(m)
+    const missing = [...called].filter((k) => !(k in live))
+    expect(missing).toEqual([])
+  })
+
+  it('atendimento: painel sem faturamento (provas próximas) e Inteligência barrada antes de ler o relatório', async () => {
+    const mock = createMockSource({ latencyMs: 0, today: TODAY })
+    const { proxy, called } = recording(mock)
+    const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
+
+    renderAt('/', <DashboardPage />, proxy, 'atendimento')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    expect(await screen.findByText('Provas de hoje e amanhã')).toBeInTheDocument()
+    expect(screen.queryByText('Faturamento recebido')).toBeNull()
+    cleanup()
+    renderAt(
+      '/inteligencia',
+      <RequirePerm perm="inteligencia.view">
+        <IntelPage />
+      </RequirePerm>,
+      proxy,
+      'atendimento',
+    )
+    expect(await screen.findByRole('heading', { name: 'Acesso restrito' })).toBeInTheDocument()
+    cleanup()
+
+    expect(called).toContain('dashboardSummary')
+    expect(called).not.toContain('intelReport')
     const missing = [...called].filter((k) => !(k in live))
     expect(missing).toEqual([])
   })

@@ -7,10 +7,12 @@ import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ClientesListPage } from '@/features/clientes/ClientesListPage'
 import { CustomerPage } from '@/features/clientes/CustomerPage'
 import { ConfigPage } from '@/features/config/ConfigPage'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { CategoriesPage } from '@/features/financeiro/CategoriesPage'
 import { FinanceOverviewPage } from '@/features/financeiro/FinanceOverviewPage'
 import { PayablesPage } from '@/features/financeiro/PayablesPage'
 import { ReceivablesPage } from '@/features/financeiro/ReceivablesPage'
+import { IntelPage } from '@/features/inteligencia/IntelPage'
 import { OperacaoPage } from '@/features/operacao/OperacaoPage'
 import { FittingPage } from '@/features/provas/FittingPage'
 import { ProvasListPage } from '@/features/provas/ProvasListPage'
@@ -20,14 +22,14 @@ import { ReservasListPage } from '@/features/reservas/ReservasListPage'
 import { ReservationPage } from '@/features/reservas/ReservationPage'
 import { previewRoutes } from '@/preview/previewRoutes'
 import { AppShell } from '@/shell/AppShell'
-import { ComingSoon } from '@/shell/ComingSoon'
 import { NotFound } from '@/shell/NotFound'
 import { NAV } from '@/shell/nav'
 import { RequirePerm } from '@/shell/RequirePerm'
 import { SupabaseDataLayout } from './SupabaseDataLayout'
 
-/** Telas do app real que já estão no banco; as demais seguem "Em breve". */
-const LIVE: Record<string, ReactNode> = {
+/** Tela de cada item do menu no app real (todas no banco desde a área 6; `shell.test.tsx` garante que nenhum item fica sem tela). */
+export const LIVE: Record<string, ReactNode> = {
+  '/': <DashboardPage />,
   '/agenda': <AgendaPage />,
   '/provas': <ProvasListPage />,
   '/reservas': <ReservasListPage />,
@@ -35,6 +37,7 @@ const LIVE: Record<string, ReactNode> = {
   '/clientes': <ClientesListPage />,
   '/financeiro': <FinanceOverviewPage />,
   '/operacao': <OperacaoPage />,
+  '/inteligencia': <IntelPage />,
   '/config': <ConfigPage />,
 }
 
@@ -52,7 +55,7 @@ export const appRoutes: RouteObject[] = [
             children: [
               ...NAV.map((n) => ({
                 path: n.path,
-                element: <RequirePerm perm={n.perm}>{LIVE[n.path] ?? <ComingSoon title={n.label} />}</RequirePerm>,
+                element: <RequirePerm perm={n.perm}>{LIVE[n.path] ?? <NotFound />}</RequirePerm>,
               })),
               {
                 path: '/acervo/:id',

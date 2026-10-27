@@ -84,10 +84,9 @@ describe('supabaseAcervo', () => {
 })
 
 describe('createSupabaseSource', () => {
-  it('manutenções da peça de link quebrado vêm vazias sem chamar o banco; o resto que não está no banco falha com NAO_DISPONIVEL', async () => {
+  it('reservas e manutenções da peça de link quebrado vêm vazias sem chamar o banco', async () => {
     const src = createSupabaseSource(fakeClient(() => ({})).client)
     await expect(src.reservationsOfGarment('g1')).resolves.toEqual([])
     await expect(src.maintenancesOf('g1')).resolves.toEqual({ maintenances: [], inspections: [] })
-    await expect(src.dashboardSummary('30')).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
   })
 })

@@ -25,7 +25,6 @@ export const ERROR_MESSAGES: Record<string, string> = {
   EMAIL_INVALIDO: 'E-mail inválido.',
   OBSERVACAO_OBRIGATORIA: 'Escreva a observação.',
   NAO_ENCONTRADO: 'Registro não encontrado.',
-  NAO_DISPONIVEL: 'Esta parte do sistema ainda não está ligada ao banco.',
   // Agenda, provas, reservas e financeiro (Plano 3V). Mensagens com valor recebem-no em `hint`.
   DATA_OBRIGATORIA: 'Informe a data.',
   HORARIO_OBRIGATORIO: 'Informe o horário.',
