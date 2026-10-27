@@ -16,9 +16,13 @@ vi.mock('@/data/supabaseSource', async () => {
   const { createMockSource } = await import('@/data/mockSource')
   return { createSupabaseSource: () => createMockSource({ latencyMs: 0 }) }
 })
-vi.mock('@/auth/useAuth', () => ({
-  useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
-}))
+vi.mock('@/auth/useAuth', async () => {
+  const { createContext } = await import('react')
+  return {
+    AuthContext: createContext(null),
+    useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
+  }
+})
 vi.mock('@/auth/usePermissions', () => ({
   usePermissions: () => ({
     can: (p: Perm) => authMock.perms.includes(p),

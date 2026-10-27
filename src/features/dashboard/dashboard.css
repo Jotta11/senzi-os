@@ -3,10 +3,35 @@
    agenda do dia com mini calendário, faturamento e ciclo operacional.
    ===================================================================== */
 .dash-main { min-width: 0; display: flex; flex-direction: column; }
-.dash-topbar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 26px 32px 0; }
-.dash-topbar h1 { font-size: 38px; font-weight: 400; line-height: 1.05; margin-top: 2px; }
-.dash-sub { font-size: 13px; color: var(--nevoa); margin-top: 2px; }
+/* barra de boas-vindas (Cranberry) */
+.dash-hello {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin: 24px 32px 0; padding: 18px 22px;
+  background: var(--cranberry); color: var(--beige);
+  border: 1px solid var(--rail-line); border-radius: var(--r-xl); box-shadow: var(--shadow-2);
+}
+.dash-hello::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(90% 160% at 100% 0%, rgba(254, 239, 220, .08), transparent 60%);
+}
+.dash-hello-icon {
+  flex: none; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--beige); color: var(--cranberry); box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
+}
+.dash-hello-text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dash-hello h1 { font-size: 24px; font-weight: 600; line-height: 1.15; letter-spacing: -.02em; color: var(--beige); }
+.dash-hello p { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--beige-dim); }
+.dash-hello time { font-variant-numeric: tabular-nums; color: var(--beige); }
+.dash-hello-sep { opacity: .6; }
+.dash-hello-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--beige); box-shadow: 0 0 0 3px rgba(254, 239, 220, .18); animation: dash-pulse 2.4s ease-in-out infinite; }
+@keyframes dash-pulse { 50% { box-shadow: 0 0 0 5px rgba(254, 239, 220, 0); } }
 .dash-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.dash-hello .btn { background: transparent; border-color: var(--rail-line); color: var(--beige); }
+.dash-hello .btn:hover { background: var(--rail-hover); border-color: var(--beige-dim); }
+.dash-hello .btn-primary { background: var(--beige); border-color: var(--beige); color: var(--cranberry); }
+.dash-hello .btn-primary:hover { background: #fff; border-color: #fff; }
+.dash-hello :focus-visible { outline-color: var(--beige); }
 .dash-view { padding: 22px 32px 56px; display: flex; flex-direction: column; gap: 22px; }
 .dash-skel { display: grid; gap: 14px; }
 .dash-skel i { display: block; height: 96px; border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--areia); }
@@ -124,8 +149,11 @@ a.dash-ttl:hover { color: var(--vivo); }
 }
 @media (max-width: 760px) {
   .dash-agenda-block { grid-template-columns: 1fr; }
-  .dash-topbar, .dash-view { padding-left: 16px; padding-right: 16px; }
-  .dash-actions { margin-left: 0; }
+  .dash-view { padding-left: 16px; padding-right: 16px; }
+  .dash-hello { margin: 16px 16px 0; padding: 16px; }
+  .dash-hello h1 { font-size: 20px; }
+  .dash-hello-icon { width: 44px; height: 44px; border-radius: 12px; }
+  .dash-actions { margin-left: 0; width: 100%; }
   .dash-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dash-ag-item { grid-template-columns: 48px minmax(0, 1fr); }
   .dash-ag-end { grid-column: 2; justify-content: flex-start; }

@@ -216,7 +216,7 @@ describe('Dashboard e Inteligência no app real', () => {
     const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
 
     renderAt('/', <DashboardPage />, proxy)
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ })).toBeInTheDocument()
     for (const label of ['Últimos 7 dias', '90 dias']) {
       fireEvent.click(await screen.findByRole('button', { name: label }))
       expect(await screen.findByRole('button', { name: label, pressed: true })).toBeInTheDocument()
@@ -242,7 +242,7 @@ describe('Dashboard e Inteligência no app real', () => {
     const live = createSupabaseSource({ rpc: vi.fn(), storage: { from: vi.fn() } } as unknown as SupabaseClient)
 
     renderAt('/', <DashboardPage />, proxy, 'atendimento')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ })).toBeInTheDocument()
     expect(await screen.findByText('Provas de hoje e amanhã')).toBeInTheDocument()
     expect(screen.queryByText('Faturamento recebido')).toBeNull()
     cleanup()

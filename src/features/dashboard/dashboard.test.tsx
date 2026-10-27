@@ -31,8 +31,8 @@ afterEach(() => vi.useRealTimers())
 describe('Dashboard — estrutura', () => {
   it('cabeçalho com data por extenso e as três ações; Dashboard é o item ativo da sidebar', async () => {
     renderPreview('/preview')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
-    expect(screen.getByText('Sábado, 24/10/2026')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ })).toBeInTheDocument()
+    expect(screen.getByText('Sábado, 24 de outubro')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Agendar prova/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Nova cliente/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Nova reserva/ })).toHaveAttribute('href', '/preview/reservas?nova=1')

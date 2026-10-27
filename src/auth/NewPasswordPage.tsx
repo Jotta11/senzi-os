@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Card, Field, Logo } from '@/ui'
+import { Button, Field } from '@/ui'
 import { PASSWORD_MAX_BYTES, PASSWORD_MIN, validateNewPassword } from './passwordRules'
 import { useAuth } from './useAuth'
-import './auth.css'
+import { AuthShell } from './AuthShell'
 
 /** Tela aberta pelo link de "Esqueci minha senha" (evento PASSWORD_RECOVERY). */
 export function NewPasswordPage() {
@@ -30,28 +30,20 @@ export function NewPasswordPage() {
   }
 
   return (
-    <main className="login">
-      <aside className="login-brand">
-        <Logo className="login-logo" />
-        <p>Senzi OS · back-office do Senzi Club</p>
-      </aside>
-      <div className="login-form">
-        <Card title="Definir nova senha">
-          {done ? (
-            <div className="login-fields">
-              <p role="status" className="login-info">Senha alterada com sucesso.</p>
-              <Button variant="primary" onClick={finishRecovery}>Continuar</Button>
-            </div>
-          ) : (
-            <form onSubmit={onSubmit} className="login-fields" noValidate>
-              <Field label="Nova senha" type="password" autoComplete="new-password" required hint={`De ${PASSWORD_MIN} a ${PASSWORD_MAX_BYTES} caracteres.`} value={password} onChange={(e) => setPassword(e.target.value)} />
-              <Field label="Confirmar nova senha" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-              {error && <p role="alert" className="login-error">{error}</p>}
-              <Button type="submit" variant="primary" disabled={busy}>Salvar nova senha</Button>
-            </form>
-          )}
-        </Card>
-      </div>
-    </main>
+    <AuthShell eyebrow="Recuperar acesso" title="Definir nova senha" subtitle="Escolha uma senha nova para continuar.">
+      {done ? (
+        <div className="login-fields">
+          <p role="status" className="login-info">Senha alterada com sucesso.</p>
+          <Button variant="primary" onClick={finishRecovery}>Continuar</Button>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="login-fields" noValidate>
+          <Field label="Nova senha" type="password" autoComplete="new-password" required hint={`De ${PASSWORD_MIN} a ${PASSWORD_MAX_BYTES} caracteres.`} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Field label="Confirmar nova senha" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {error && <p role="alert" className="login-error">{error}</p>}
+          <Button type="submit" variant="primary" disabled={busy}>Salvar nova senha</Button>
+        </form>
+      )}
+    </AuthShell>
   )
 }
