@@ -70,3 +70,23 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
    liberação, checklist; completar higienização/manutenção na economia da peça. Rota `/operacao`.
 6. **Dashboard e Inteligência** — leituras agregadas (`source-painel.ts`). Rotas `/` e `/inteligencia`.
 7. **Fechamento** — pendências de `03v-pendencias.md` que dependem do banco, README, revisão final.
+
+## Notas da execução
+
+- Área 1 (Clientes) em fbec2f5: CPF mascarado sem cliente.edit; `stats.spent` null sem financeiro.view (CustomerStats.spent = number | null); `customer_stats()` é placeholder que a área 3 substitui com create or replace.
+- Merge de etapa-2b-acervo (be2035c, outra sessão) com regras novas da fonte em memória — reproduzir na área 3:
+  
+  1. returnDeposit(id, method, retain?: {amount, reason}) (DepositRetention em types-reservas.ts):
+     - só reserva encerrada; caução retida > 0 senão VALOR_INVALIDO
+     - retain.amount < 0/NaN → VALOR_INVALIDO (field retainAmount); > caução retida → VALOR_EXCEDE_SALDO (hint brl(caução))
+     - amount > 0 sem motivo → MOTIVO_OBRIGATORIO (field retainReason)
+     - devolvido = caução − retido; se > 0: payment estorno refersTo 'caucao', method escolhido, notes 'Devolução da caução'
+     - retido > 0: payment estorno refersTo 'caucao', method 'outro', notes `Retida pela loja: <motivo>` + recebível AVULSO pago:
+       description `Retenção de caução · <code>`, categoria sistema 'locacao', reservationId/Code/customerId/Name,
+       amount = paidAmount = retido, status 'pago', receivedAt agora, method = method do pagamento de caução original,
+       isCustody false, notes = motivo.
+  2. pickupItems retirada antecipada: para cada peça entregue, se bloco 'locacao' da reserva começa depois de hoje e há
+     outro bloco da peça com from < loc.from e to >= hoje → CONFLITO_AGENDA (field items), nada muda; senão bloco locacao.from = hoje.
+     Quando todas saem, compromisso 'retirada' → concluido com startsAt = pickedUpAt.
+  3. returnItems devolução completa: compromisso 'devolucao' → concluido com startsAt = agora.
+  4. Busca ⌘K (src/features/search) usa useReservations('todas', limit 1000) → no banco, listReservations com filtro por texto seria bom.
