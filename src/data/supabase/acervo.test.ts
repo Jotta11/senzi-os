@@ -88,6 +88,6 @@ describe('createSupabaseSource', () => {
     const src = createSupabaseSource(fakeClient(() => ({})).client)
     await expect(src.reservationsOfGarment('g1')).resolves.toEqual([])
     await expect(src.maintenancesOf('g1')).resolves.toEqual({ maintenances: [], inspections: [] })
-    await expect(src.searchCustomers('', 'nome', { limit: 10, offset: 0 })).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
+    await expect(src.getSettings()).rejects.toMatchObject({ code: 'NAO_DISPONIVEL' })
   })
 })

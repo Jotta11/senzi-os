@@ -198,12 +198,12 @@ function columns(canMoney: boolean, to: (c: Customer) => string): Column<Custome
   ]
   if (canMoney) {
     cols.push(
-      { key: 'spent', header: 'Total gasto', align: 'right', render: (c) => brl(c.stats.spent, { cents: false }) },
+      { key: 'spent', header: 'Total gasto', align: 'right', render: (c) => brl(c.stats.spent ?? 0, { cents: false }) },
       {
         key: 'ticket',
         header: 'Ticket',
         align: 'right',
-        render: (c) => (c.stats.rentals ? brl(c.stats.spent / c.stats.rentals, { cents: false }) : <span className="muted">—</span>),
+        render: (c) => (c.stats.rentals ? brl((c.stats.spent ?? 0) / c.stats.rentals, { cents: false }) : <span className="muted">—</span>),
       },
     )
   }

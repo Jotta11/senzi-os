@@ -1,18 +1,24 @@
 /**
- * Fonte de dados do app real (Supabase). Por enquanto só o Acervo está no banco; as áreas que a ficha da peça
- * consulta de passagem (reservas e manutenções da peça) respondem vazio, e qualquer outra chamada falha com
- * `NAO_DISPONIVEL` — essas telas continuam "Em breve" no app real até entrarem no banco.
+ * Fonte de dados do app real (Supabase). Por enquanto Acervo e Clientes estão no banco; as áreas que as fichas
+ * consultam de passagem (reservas e manutenções da peça, reservas e provas da cliente) respondem vazio, e qualquer
+ * outra chamada falha com `NAO_DISPONIVEL` — essas telas continuam "Em breve" no app real até entrarem no banco.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DataSource } from './source'
-import { supabaseAcervo } from './supabase/acervo'
+import { photoSigner, supabaseAcervo } from './supabase/acervo'
+import { supabaseClientes } from './supabase/clientes'
 import { SourceError } from './types'
 
 export function createSupabaseSource(client: SupabaseClient): DataSource {
+  const sign = photoSigner(client)
   const ready: Partial<DataSource> = {
-    ...supabaseAcervo(client),
+    ...supabaseAcervo(client, sign),
+    ...supabaseClientes(client, sign),
     reservationsOfGarment: async () => [],
     maintenancesOf: async () => ({ maintenances: [], inspections: [] }),
+    // Abas Reservas e Provas da ficha da cliente: vazias até as áreas 2 (Agenda e Provas) e 3 (Reservas).
+    reservationsOfCustomer: async () => [],
+    fittingsOfCustomer: async () => [],
   }
   return new Proxy(ready, {
     get: (target, key) => (key in target ? target[key as keyof DataSource] : () => Promise.reject(new SourceError('NAO_DISPONIVEL'))),

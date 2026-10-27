@@ -209,7 +209,8 @@ export type CustomerNote = { id: string; content: string; channel: ContactChanne
 
 export type CustomerFavorite = { garmentId: string; source: FavoriteSource; note: string | null; at: string }
 
-export type CustomerStats = { rentals: number; spent: number; nextEvent: string | null }
+/** `spent` (Σ líquido das locações realizadas): `null` quando a fonte não o entrega (no banco, sem `financeiro.view`). */
+export type CustomerStats = { rentals: number; spent: number | null; nextEvent: string | null }
 
 export type Customer = {
   id: string

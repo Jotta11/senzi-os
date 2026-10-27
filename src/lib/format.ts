@@ -58,10 +58,13 @@ export function maskCPF(s: string | null | undefined): string {
     .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
 }
 
-/** CPF parcialmente oculto, para quem não pode ver o documento: `***.982.247-**`. */
+/**
+ * CPF parcialmente oculto, para quem não pode ver o documento: `***.982.247-**`.
+ * Aceita o CPF completo ou o já oculto pelo banco (`***982247**`, sem `cliente.edit`).
+ */
 export function hideCPF(s: string | null | undefined): string {
-  const d = onlyDigits(s)
-  if (d.length !== 11) return '***.***.***-**'
+  const d = (s ?? '').replace(/[^\d*]/g, '')
+  if (d.length !== 11 || !/^.{3}\d{6}.{2}$/.test(d)) return '***.***.***-**'
   return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`
 }
 

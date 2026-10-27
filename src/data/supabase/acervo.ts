@@ -20,7 +20,32 @@ const SIGNED_SECONDS = 60 * 60
 const SIGNED_MARGIN_MS = 10 * 60 * 1000
 
 type RawPhoto = { id: string; kind: PhotoKind; path: string; isCover: boolean }
-type RawGarment = Omit<Garment, 'photos'> & { photos: RawPhoto[] }
+export type RawGarment = Omit<Garment, 'photos'> & { photos: RawPhoto[] }
+
+/** Troca o `path` das fotos por URL assinada. Com `forget`, esquece a assinatura de um arquivo apagado. */
+export type PhotoSigner = ((raws: RawGarment[]) => Promise<Garment[]>) & { forget(path: string): void }
+
+/**
+ * Assinador de fotos do bucket `pecas-fotos`, com cache: reaproveita as URLs que ainda valem
+ * (o navegador não baixa a foto de novo). Um por fonte, compartilhado por Acervo e Clientes (recomendações).
+ */
+export function photoSigner(client: SupabaseClient): PhotoSigner {
+  const signed = new Map<string, { url: string; expires: number }>()
+  const sign = async (raws: RawGarment[]): Promise<Garment[]> => {
+    const now = Date.now()
+    const missing = [...new Set(raws.flatMap((g) => g.photos.map((p) => p.path)))].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
+    if (missing.length) {
+      const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_SECONDS)
+      if (error) throw error
+      for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, { url: s.signedUrl, expires: now + SIGNED_SECONDS * 1000 })
+    }
+    return raws.map(({ photos, ...g }) => ({
+      ...g,
+      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: signed.get(p.path)?.url ?? '' })),
+    }))
+  }
+  return Object.assign(sign, { forget: (path: string) => void signed.delete(path) })
+}
 
 export type AcervoSource = Pick<
   AcervoClientesSource,
@@ -42,7 +67,8 @@ export type AcervoSource = Pick<
   | 'releaseBlock'
 >
 
-function fail(issues: SourceIssue[]): never {
+/** Falha com todos os problemas de uma validação (o primeiro vira `code`/`field`). */
+export function fail(issues: SourceIssue[]): never {
   const [first] = issues
   throw new SourceError(first!.code, { field: first!.field, issues })
 }
@@ -56,28 +82,11 @@ export function fromDbError(err: PostgrestError | Error): Error {
   return new SourceError(code as SourceErrorCode, { field: details || undefined, hint: hint || undefined })
 }
 
-export function supabaseAcervo(client: SupabaseClient): AcervoSource {
-  const signed = new Map<string, { url: string; expires: number }>()
-
+export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = photoSigner(client)): AcervoSource {
   async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
     const { data, error } = await client.rpc(fn, args)
     if (error) throw fromDbError(error)
     return data as T
-  }
-
-  /** Troca `path` por URL assinada (reaproveita as que ainda valem, para o navegador não baixar a foto de novo). */
-  async function withUrls(raws: RawGarment[]): Promise<Garment[]> {
-    const now = Date.now()
-    const missing = [...new Set(raws.flatMap((g) => g.photos.map((p) => p.path)))].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
-    if (missing.length) {
-      const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_SECONDS)
-      if (error) throw error
-      for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, { url: s.signedUrl, expires: now + SIGNED_SECONDS * 1000 })
-    }
-    return raws.map(({ photos, ...g }) => ({
-      ...g,
-      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: signed.get(p.path)?.url ?? '' })),
-    }))
   }
 
   const one = async (raw: RawGarment) => (await withUrls([raw]))[0]!
@@ -161,7 +170,7 @@ export function supabaseAcervo(client: SupabaseClient): AcervoSource {
 
     removePhoto: async (id, photoId) => {
       const path = await rpc<string>('remove_garment_photo', { p_garment: id, p_photo: photoId })
-      signed.delete(path)
+      withUrls.forget(path)
       const { error } = await client.storage.from(PHOTO_BUCKET).remove([path])
       if (error) console.error('removePhoto: arquivo não apagado do bucket', { path, message: error.message })
       const g = await rpc<RawGarment | null>('get_garment', { p_id: id })

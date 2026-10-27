@@ -4,7 +4,7 @@ import type { CustomerStats, Reservation } from '@/data/types'
 import { round2 } from './money'
 
 /** Realizadas, Σ líquido delas e o próximo evento de reserva ativa (a partir de `today`). */
-export function customerStats(customerId: string, reservations: Reservation[], today: string): CustomerStats {
+export function customerStats(customerId: string, reservations: Reservation[], today: string): CustomerStats & { spent: number } {
   const mine = reservations.filter((r) => r.customerId === customerId)
   const realized = mine.filter((r) => REALIZED_RESERVATION_STATES.includes(r.state))
   const next = mine
