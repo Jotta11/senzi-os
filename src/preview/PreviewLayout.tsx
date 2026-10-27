@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 import { CurrentUserNameContext } from '@/auth/useCurrentUserName'
 import { usePermissions } from '@/auth/usePermissions'
@@ -7,6 +7,8 @@ import { createMockSource } from '@/data/mockSource'
 import { DEMO_PIN } from '@/data/mock/exceptions'
 import { DataSourceProvider, type DataSource } from '@/data/source'
 import { ExceptionAuthorizerProvider, sourceAuthorizer } from '@/features/exceptions/ExceptionAuthorizer'
+import { GlobalSearch } from '@/features/search/GlobalSearch'
+import { useSearchShortcut } from '@/features/search/useSearchShortcut'
 import { ToastProvider } from '@/ui'
 import { AppPathContext } from '@/shell/appPath'
 import { visibleNav } from '@/shell/nav'
@@ -78,11 +80,15 @@ function Frame() {
     currentRole = role
   }, [role])
   const items = visibleNav(can)
+  const [searching, setSearching] = useState(false)
+  const openSearch = useCallback(() => setSearching(true), [])
+  useSearchShortcut(openSearch)
   return (
     <CurrentUserNameContext.Provider value={who.userName}>
       <div className="sb-app">
         <Sidebar
           search
+          onSearch={openSearch}
           items={items}
           linkTo={previewHref}
           footer={
@@ -102,6 +108,7 @@ function Frame() {
           <Outlet />
         </main>
       </div>
+      {searching && <GlobalSearch onClose={() => setSearching(false)} />}
     </CurrentUserNameContext.Provider>
   )
 }

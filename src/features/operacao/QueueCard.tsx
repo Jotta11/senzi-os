@@ -15,7 +15,7 @@ export function QueueRowItem({ row, actions, focus }: { row: QueueRow; actions: 
   const href = useAppHref()
   const { garment: g, order, blockNote, nextRentalStart, daysOpen, waitingDays } = row
   const sub = order ? order.description || MAINTENANCE_KIND[order.kind] : (blockNote ?? `${g.colorPrimary} · tam. ${g.labelSize}`)
-  const age = daysOpen !== null ? { text: `há ${days(daysOpen)}`, old: daysOpen >= 7 } : waitingDays !== null ? { text: `aguarda há ${days(waitingDays)}`, old: waitingDays >= 7 } : null
+  const age = daysOpen !== null ? { text: daysOpen === 0 ? 'aberta hoje' : `há ${days(daysOpen)}`, old: daysOpen >= 7 } : waitingDays !== null ? { text: waitingDays === 0 ? 'aguarda desde hoje' : `aguarda há ${days(waitingDays)}`, old: waitingDays >= 7 } : null
   return (
     <li className={['op-row', focus && 'focus'].filter(Boolean).join(' ')} data-focus={focus ? 'true' : undefined}>
       <Link to={href(`/acervo/${g.id}`)} className="op-who">

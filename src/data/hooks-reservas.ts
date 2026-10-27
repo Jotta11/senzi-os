@@ -9,6 +9,7 @@ import { invalidateWorld } from './hooks'
 import { useDataSource } from './source'
 import type {
   ContractSignInput,
+  DepositRetention,
   PageRequest,
   PaymentInput,
   PaymentMethod,
@@ -131,7 +132,7 @@ export function useRegisterPayment(id: string) {
 
 export function useReturnDeposit(id: string) {
   const src = useDataSource()
-  return useWorldMutation((method: PaymentMethod) => src.returnDeposit(id, method))
+  return useWorldMutation(({ method, retain }: { method: PaymentMethod; retain?: DepositRetention }) => src.returnDeposit(id, method, retain))
 }
 
 export function useMarkReady(id: string) {

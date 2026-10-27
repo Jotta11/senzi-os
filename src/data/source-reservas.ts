@@ -2,6 +2,7 @@ import type {
   AvailabilityResult,
   ConfirmResult,
   ContractSignInput,
+  DepositRetention,
   ExceptionKind,
   Garment,
   PageRequest,
@@ -51,8 +52,11 @@ export interface ReservasSource {
   confirmReservation(id: string, signal: SignalInput, exceptionId?: string): Promise<ConfirmResult>
 
   registerPayment(id: string, input: PaymentInput): Promise<Reservation>
-  /** Estorno da caução retida (`refersTo: 'caucao'`); só depois de encerrada. */
-  returnDeposit(id: string, method: PaymentMethod): Promise<Reservation>
+  /**
+   * Estorno da caução retida (`refersTo: 'caucao'`); só depois de encerrada. Com `retain`, essa parte fica com a loja
+   * (dano, perda): sai da custódia e vira receita avulsa "Retenção de caução" da reserva; o motivo é obrigatório.
+   */
+  returnDeposit(id: string, method: PaymentMethod, retain?: DepositRetention): Promise<Reservation>
 
   /** `confirmada → pronta_retirada`. */
   markReady(id: string): Promise<Reservation>

@@ -19,4 +19,6 @@
 .toast-x:hover { color: var(--vivo); background: var(--surface-2); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-@media (max-width: 640px) { .toasts { right: 16px; left: 16px; bottom: calc(12px + var(--tabbar-h, 0px) + env(safe-area-inset-bottom, 0px)); width: auto; } }
+/* Com um modal aberto, os avisos sobem para não cobrir os botões do rodapé dele. */
+body:has(.modal-backdrop) .toasts { top: 20px; bottom: auto; }
+@media (max-width: 640px) { .toasts { right: 16px; left: 16px; bottom: calc(12px + var(--tabbar-h, 0px) + env(safe-area-inset-bottom, 0px)); width: auto; } body:has(.modal-backdrop) .toasts { top: calc(12px + env(safe-area-inset-top, 0px)); bottom: auto; } }

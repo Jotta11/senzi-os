@@ -1,0 +1,12 @@
+.gs { display: flex; flex-direction: column; gap: 10px; }
+.gs-input { display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--areia-2); border-radius: var(--r-sm); background: var(--surface); color: var(--nevoa); }
+.gs-input input { flex: 1; min-width: 0; border: 0; outline: 0; padding: 11px 0; font: inherit; font-size: 15px; background: transparent; color: var(--tinta); }
+.gs-input:focus-within { border-color: var(--vivo); }
+.gs-list { list-style: none; margin: 0; padding: 0; max-height: min(55vh, 420px); overflow-y: auto; }
+.gs-group { display: block; padding: 10px 8px 4px; }
+.gs-opt { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; }
+.gs-opt[aria-selected="true"] { background: var(--vivo-soft); }
+.gs-txt { display: flex; flex-direction: column; min-width: 0; }
+.gs-txt b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-txt .tiny { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-empty { padding: 6px 8px; margin: 0; }
