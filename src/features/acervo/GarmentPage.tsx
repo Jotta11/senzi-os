@@ -6,7 +6,8 @@ import { useGarmentMaintenances } from '@/data/hooks-operacao'
 import { useGarmentReservations } from '@/data/hooks-reservas'
 import { BLOCK_KIND, FIT_RUNS_LABEL, GARMENT_STATE, LENGTH_LABEL, STRETCH_LABEL } from '@/data/labels'
 import type { Garment } from '@/data/types'
-import { brl, dateBR, todayISO } from '@/lib/format'
+import { brl, dateBR } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
 import { Badge, Button, EmptyState, Icon, Silhouette, Tabs, buttonClass, type TabItem } from '@/ui'
 import { GarmentFittingsPane } from '../provas/FittingPanes'
@@ -205,7 +206,7 @@ function Ficha({ garment: g }: { garment: Garment }) {
 function SideCard({ garment: g }: { garment: Garment }) {
   const categories = useCategories()
   const st = GARMENT_STATE[g.state]
-  const today = todayISO()
+  const today = useToday()
   const next = g.blocks.filter((b) => b.to >= today).sort((a, b) => a.from.localeCompare(b.from))[0]
   const cover = g.photos.find((p) => p.isCover) ?? g.photos[0]
   const catDays = categories.data?.find((c) => c.slug === g.categorySlug)?.cleaningDays
@@ -338,7 +339,7 @@ function EconomicsBand({ garment: g }: { garment: Garment }) {
 /** Sem `acervo.cost` (Atendimento): só o que ajuda a atender — disponibilidade, próximo compromisso e higienização. */
 function AvailabilityBand({ garment: g }: { garment: Garment }) {
   const categories = useCategories()
-  const today = todayISO()
+  const today = useToday()
   const free = freeDays(g.blocks, today)
   const next = g.blocks.filter((b) => b.to >= today).sort((a, b) => a.from.localeCompare(b.from))[0]
   const days = g.cleaningDays ?? categories.data?.find((c) => c.slug === g.categorySlug)?.cleaningDays

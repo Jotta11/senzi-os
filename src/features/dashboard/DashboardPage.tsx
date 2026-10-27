@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useDashboard, type DashboardRange } from '@/data/hooks-painel'
-import { todayISO } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
 import { Button, Icon, buttonClass } from '@/ui'
 import { CustomerForm } from '../clientes/CustomerForm'
@@ -29,7 +29,8 @@ export function DashboardPage() {
   const q = useDashboard(range)
   const s = q.data
   const alerts = useMemo(() => (s ? visibleAlerts(s.alerts, can) : []), [s, can])
-  const today = s?.today ?? todayISO()
+  const storeToday = useToday()
+  const today = s?.today ?? storeToday
 
   return (
     <div className="dash-main">

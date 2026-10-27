@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useSettings } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
 import { daysLate } from '@/domain/money'
-import { todayISO } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
 import { Button, Field, Modal, buttonClass } from '@/ui'
 import { messages, waLink, type WaKey } from '../whatsapp'
@@ -12,7 +12,7 @@ import { messages, waLink, type WaKey } from '../whatsapp'
 export function WhatsAppModal({ r, onClose, initialKey }: { r: ReservationDetail; onClose(): void; initialKey?: WaKey }) {
   const settings = useSettings()
   const href = useAppHref()
-  const today = todayISO()
+  const today = useToday()
   const list = messages(r, { lateFeeDailyPercent: settings.data?.lateFeeDailyPercent ?? 0 }, today)
   const late = daysLate(r, today) > 0
   const fallback: WaKey = initialKey ?? (late ? 'atraso' : r.items.some((i) => i.itemState === 'retirado') ? 'devolucao' : 'confirmacao')

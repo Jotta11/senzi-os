@@ -18,6 +18,8 @@ export type AuthorizeExceptionDialogProps = {
   kind: ExceptionKind
   refType: string
   refId: string
+  /** Valor que a exceção cobre (desconto pedido, sinal dispensado, saldo em aberto): a autorização vale até ele. */
+  maxAmount?: number
   onAuthorized(id: string): void
   onCancel?(): void
   /** Frase de contexto (ex.: valor do desconto), sob o subtítulo. */
@@ -29,7 +31,7 @@ export type AuthorizeExceptionDialogProps = {
  * `ExceptionAuthorizer` do contexto (banco por padrão; memória na prévia, com a dica do PIN de demonstração).
  * Falhas vêm no retorno (`{ok:false,error}`) e usam o mesmo mapa de mensagens; exceção = falha de rede.
  */
-export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, onCancel, detail }: AuthorizeExceptionDialogProps) {
+export function AuthorizeExceptionDialog({ kind, refType, refId, maxAmount, onAuthorized, onCancel, detail }: AuthorizeExceptionDialogProps) {
   const titleId = useId()
   const [email, setEmail] = useState('')
   const [pin, setPin] = useState('')
@@ -51,7 +53,7 @@ export function AuthorizeExceptionDialog({ kind, refType, refId, onAuthorized, o
     }
     setBusy(true)
     try {
-      const result = await authorizer.authorize({ email, pin, kind, reason: reason.trim(), refType, refId })
+      const result = await authorizer.authorize({ email, pin, kind, reason: reason.trim(), refType, refId, maxAmount: maxAmount ?? null })
       if (result.ok) {
         onAuthorized(result.id)
         return

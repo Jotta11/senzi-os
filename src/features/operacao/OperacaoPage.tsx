@@ -8,7 +8,8 @@ import { useReservation } from '@/data/hooks-reservas'
 import { MAINTENANCE_KIND } from '@/data/labels-ops'
 import type { Garment, OperacaoQueue, QueueRow } from '@/data/types'
 import { diffDays } from '@/domain/dates'
-import { brl, dateBR, todayISO } from '@/lib/format'
+import { brl, dateBR } from '@/lib/format'
+import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
 import { Button, DataTable, EmptyState, Icon, useToast, type Column, type IconName } from '@/ui'
 import '../acervo/acervo.css'
@@ -41,7 +42,7 @@ export function OperacaoPage() {
 
   const focusIds = useMemo(() => new Set(focusReservation.data?.items.map((i) => i.garmentId) ?? []), [focusReservation.data])
   const q = queue.data
-  const today = todayISO()
+  const today = useToday()
 
   const open = (row: QueueRow) => {
     const g = row.garment

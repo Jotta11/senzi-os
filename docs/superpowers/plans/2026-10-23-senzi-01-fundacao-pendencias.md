@@ -21,8 +21,8 @@ Registro do ledger de execução (2026-10-23). Leitura obrigatória ao escrever 
 - Ruling: deferred to later plans (carry into their Global Constraints): M2 audit actor names via list_staff()/RPC (Plan 2); M3 consume exception_authorization atomically bound to kind/ref + dialog focus trap (Plan 4); M8 route table + lazy routes (fixes chunk warning) (Plan 2); M9 72-byte bcrypt limit + pin npm version in index.ts (before deploy); M10 consolidate fakeSupabase (Plan 2); T7 CORS ALLOWED_ORIGIN (before deploy); T4 6-digit PIN / lockout audit row (ask João); audit_trigger raise on no-PK tables (Plan 2).
 
 ## Pendências adiadas (minors)
-- Task 1: minor (deferred): README says .env but .env.example says .env.local — unify on .env.local
-- Task 1: minor (deferred): passWithNoTests root-level in vitest.config.ts — remove once db tests exist (Task 3)
+- ~~Task 1: minor (deferred): README says .env but .env.example says .env.local — unify on .env.local~~ (feito: README usa `.env.local`)
+- ~~Task 1: minor (deferred): passWithNoTests root-level in vitest.config.ts — remove once db tests exist (Task 3)~~ (feito)
 - Task 1: minor (deferred): tsconfig baseUrl deprecated; no engines/.nvmrc (jest-dom 7 needs node>=22)
 - Task 2: minor (deferred): .field focus style differs from global 2px outline
 - Task 2: minor (deferred): .ag-strip focusable div lacks role="region"
@@ -62,12 +62,12 @@ Registro do ledger de execução (2026-10-23). Leitura obrigatória ao escrever 
 - Task 7: minor (deferred): bootstrap --password in shell history (document CI-only); no engines field; deleteUser rollback result unchecked
 - Task 7: minor (deferred): aria-controls on inactive tabs point to unrendered panels
 - Task 7: minor (deferred): UserForm trusts any body.error string from non-2xx
-- Task 7: minor (deferred): build chunk >500kB warning
-- Task 7: minor (deferred): USUARIO_NAO_ENCONTRADO has no pt-BR mapping in errorMessages (falls to generic)
+- ~~Task 7: minor (deferred): build chunk >500kB warning~~ (feito no Plano 2B, área 7: rotas sob demanda; nenhum pedaço passa de 500 kB)
+- ~~Task 7: minor (deferred): USUARIO_NAO_ENCONTRADO has no pt-BR mapping in errorMessages (falls to generic)~~ (feito)
 - Final: minor (deferred): 72-byte limit message says "caracteres"; possible double recheck in same tick (no loop); recovery page covers loading+loadError; M5 lock test source-only; PASSWORD_RECOVERY may be missed if processed before subscribe — manual check with real reset email
 
 ## Antes de ir para produção
 - Conectar ao Supabase real (README): link, db push, functions deploy admin-users, bootstrap:admin, login real admin/atendimento.
 - Testar recuperação de senha com e-mail real (evento PASSWORD_RECOVERY).
-- CORS ALLOWED_ORIGIN na Edge Function; fixar versão do supabase-js em index.ts.
+- CORS ALLOWED_ORIGIN na Edge Function; ~~fixar versão do supabase-js em index.ts~~ (feito no Plano 2B, área 7: `npm:@supabase/supabase-js@2.118.0`, a mesma do app).
 - Decidir com o João: PIN de 6 dígitos e auditoria de bloqueio.

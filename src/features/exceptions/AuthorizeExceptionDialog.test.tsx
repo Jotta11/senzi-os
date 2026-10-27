@@ -13,7 +13,7 @@ const ADMINS = [
   { id: 'a2', full_name: 'Carla Dias', email: 'carla@senzi.com.br' },
 ]
 
-function setup(authorize: () => FakeResult) {
+function setup(authorize: () => FakeResult, maxAmount?: number) {
   const client = fakeSupabase({
     rpc: (fn) => (fn === 'list_active_admins' ? { data: ADMINS, error: null } : authorize()),
   })
@@ -23,7 +23,7 @@ function setup(authorize: () => FakeResult) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
-      <AuthorizeExceptionDialog kind="retirada_com_saldo" refType="reserva" refId="r-1" onAuthorized={onAuthorized} onCancel={onCancel} />
+      <AuthorizeExceptionDialog kind="retirada_com_saldo" refType="reserva" refId="r-1" maxAmount={maxAmount} onAuthorized={onAuthorized} onCancel={onCancel} />
     </QueryClientProvider>,
   )
   return { client, onAuthorized, onCancel }
@@ -62,7 +62,15 @@ describe('AuthorizeExceptionDialog', () => {
       p_reason: 'Cliente antiga, paga na devolução',
       p_ref_type: 'reserva',
       p_ref_id: 'r-1',
+      p_max_amount: null,
     })
+  })
+
+  it('envia o valor que a exceção cobre (maxAmount)', async () => {
+    const { client, onAuthorized } = setup(() => ({ data: { ok: true, id: 'auth-10' }, error: null }), 320.5)
+    await fill()
+    await vi.waitFor(() => expect(onAuthorized).toHaveBeenCalledWith('auth-10'))
+    expect(client.rpc).toHaveBeenCalledWith('authorize_exception', expect.objectContaining({ p_max_amount: 320.5 }))
   })
 
   it('AUTORIZACAO_INVALIDA (retornado) → Administrador ou PIN inválido', async () => {
@@ -73,10 +81,12 @@ describe('AuthorizeExceptionDialog', () => {
     expect(screen.getByLabelText('PIN')).toHaveValue('')
   })
 
-  it('PIN_BLOQUEADO (retornado) → Muitas tentativas', async () => {
+  it('PIN_BLOQUEADO (retornado) → bloqueado, aguardar ou a administradora redefinir', async () => {
     setup(() => ({ data: { ok: false, error: 'PIN_BLOQUEADO' }, error: null }))
     await fill()
-    expect(await screen.findByText('Muitas tentativas. Tente de novo em 15 minutos.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('PIN bloqueado por muitas tentativas. Tente de novo em 15 minutos; se continuar bloqueado, a administradora precisa redefinir o PIN.'),
+    ).toBeInTheDocument()
   })
 
   it('MOTIVO_OBRIGATORIO (exceção do banco) → Informe o motivo', async () => {

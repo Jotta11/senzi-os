@@ -1,8 +1,9 @@
 /** Contas a pagar em memória (spec §2.3.4, §2.3.5): lançamento manual, baixa integral e recorrência. Despesas automáticas são somente leitura. */
 import { nextRecurrence, payableStatus } from '@/domain/finance'
 import { round2 } from '@/domain/money'
-import type { FinanceiroSource, PayableInput } from '../source-financeiro'
+import type { FinanceiroSource } from '../source-financeiro'
 import { SourceError, type Payable } from '../types'
+import { recurrenceEndIssues, settleAmountIssues } from '../validation'
 import { at } from './constants'
 import { storeTime, type MockCtx } from './context'
 import { commonIssues, dueIn7, failWith, inWindow, matches, settleDateIssue } from './financeiro-shared'
@@ -24,10 +25,6 @@ export function financeiroPagar(ctx: MockCtx): Pagar {
     return p
   }
   const sum = (rows: Payable[], v: (p: Payable) => number) => round2(rows.reduce((s, p) => s + v(p), 0))
-
-  /** Valida a recorrência: data final anterior ao vencimento é erro. */
-  const endIssue = (i: { recurrence?: PayableInput['recurrence']; recurrenceEnd?: string | null; dueDate?: string }) =>
-    i.recurrence && i.recurrence !== 'nenhuma' && i.recurrenceEnd && i.dueDate && i.recurrenceEnd < i.dueDate ? [{ code: 'RECORRENCIA_FIM_INVALIDO' as const, field: 'recurrenceEnd' }] : []
 
   /** Ao pagar uma ocorrência recorrente nasce a próxima (mesma descrição/valor), até a data final. */
   function spawnNext(p: Payable): void {
@@ -74,7 +71,7 @@ export function financeiroPagar(ctx: MockCtx): Pagar {
 
     createPayable: (i) =>
       run(() => {
-        const issues = [...commonIssues(ctx, i, 'despesa'), ...endIssue(i)]
+        const issues = [...commonIssues(ctx, i, 'despesa'), ...recurrenceEndIssues(i)]
         const d = i.paid ? settleDateIssue(ctx, i.paidAt, 'paidAt') : null
         failWith(d ? [...issues, d] : issues)
         const recurrence = i.recurrence ?? 'nenhuma'
@@ -110,7 +107,7 @@ export function financeiroPagar(ctx: MockCtx): Pagar {
       run(() => {
         const p = manualOpen(id)
         const next = { ...p, ...input }
-        failWith([...commonIssues(ctx, next, 'despesa'), ...endIssue(next)])
+        failWith([...commonIssues(ctx, next, 'despesa'), ...recurrenceEndIssues(next)])
         Object.assign(p, {
           description: next.description.trim(),
           supplier: next.supplier?.trim() || null,
@@ -128,8 +125,7 @@ export function financeiroPagar(ctx: MockCtx): Pagar {
       run(() => {
         const p = find(id)
         if (p.status !== 'aberta') throw new SourceError('ESTADO_INVALIDO')
-        const issues = []
-        if (!Number.isFinite(i.paidAmount) || i.paidAmount <= 0) issues.push({ code: 'VALOR_INVALIDO' as const, field: 'paidAmount' })
+        const issues = settleAmountIssues(i.paidAmount, 'paidAmount')
         const d = settleDateIssue(ctx, i.paidAt, 'paidAt')
         failWith(d ? [...issues, d] : issues)
         Object.assign(p, { status: 'paga', paidAt: at(i.paidAt, storeTime()), paidAmount: round2(i.paidAmount), method: i.method, notes: i.notes?.trim() || p.notes })

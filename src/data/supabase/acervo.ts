@@ -5,10 +5,11 @@
  * As validações de formulário rodam antes (mesmas regras da prévia) para devolver todos os problemas de uma vez.
  */
 import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
-import { garmentEconomics } from '@/domain/economics'
+import { diffDays } from '@/domain/dates'
+import { round2 } from '@/domain/money'
 import { todayISO } from '@/lib/format'
 import type { AcervoClientesSource } from '../source'
-import { SourceError, type Category, type Garment, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
+import { SourceError, type Category, type Garment, type GarmentEconomics, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
 import { fitIssues, garmentIssues, measurementIssues } from '../validation'
 
 export const PHOTO_BUCKET = 'pecas-fotos'
@@ -20,7 +21,42 @@ const SIGNED_SECONDS = 60 * 60
 const SIGNED_MARGIN_MS = 10 * 60 * 1000
 
 type RawPhoto = { id: string; kind: PhotoKind; path: string; isCover: boolean }
-type RawGarment = Omit<Garment, 'photos'> & { photos: RawPhoto[] }
+export type RawGarment = Omit<Garment, 'photos'> & { photos: RawPhoto[] }
+
+/**
+ * Troca o `path` das fotos por URL assinada. Com `forget`, esquece a assinatura de um arquivo apagado;
+ * `urls` assina caminhos soltos do mesmo bucket (fotos da inspeção), com o mesmo cache.
+ */
+export type PhotoSigner = ((raws: RawGarment[]) => Promise<Garment[]>) & {
+  forget(path: string): void
+  urls(paths: string[]): Promise<Map<string, string>>
+}
+
+/**
+ * Assinador de fotos do bucket `pecas-fotos`, com cache: reaproveita as URLs que ainda valem
+ * (o navegador não baixa a foto de novo). Um por fonte, compartilhado por Acervo, Clientes (recomendações) e Operação.
+ */
+export function photoSigner(client: SupabaseClient): PhotoSigner {
+  const signed = new Map<string, { url: string; expires: number }>()
+  const urls = async (paths: string[]): Promise<Map<string, string>> => {
+    const now = Date.now()
+    const missing = [...new Set(paths)].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
+    if (missing.length) {
+      const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_SECONDS)
+      if (error) throw error
+      for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, { url: s.signedUrl, expires: now + SIGNED_SECONDS * 1000 })
+    }
+    return new Map(paths.map((p) => [p, signed.get(p)?.url ?? '']))
+  }
+  const sign = async (raws: RawGarment[]): Promise<Garment[]> => {
+    const url = await urls(raws.flatMap((g) => g.photos.map((p) => p.path)))
+    return raws.map(({ photos, ...g }) => ({
+      ...g,
+      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: url.get(p.path) ?? '' })),
+    }))
+  }
+  return Object.assign(sign, { forget: (path: string) => void signed.delete(path), urls })
+}
 
 export type AcervoSource = Pick<
   AcervoClientesSource,
@@ -42,42 +78,58 @@ export type AcervoSource = Pick<
   | 'releaseBlock'
 >
 
-function fail(issues: SourceIssue[]): never {
+type Num = number | string
+type RawCosts = { garment_id: string; acquisition_cost: Num | null; rentals: number; revenue: Num; last_rental: string | null; cleaning?: Num; maintenance?: Num }
+
+/** Economia da peça (`garmentEconomics` de `src/domain/economics.ts`) a partir de `garment_costs` (reservas + contas da Operação). */
+export function economicsOf(r: RawCosts, today: string): GarmentEconomics {
+  const cost = r.acquisition_cost === null ? null : Number(r.acquisition_cost)
+  const revenue = Number(r.revenue)
+  const cleaning = Number(r.cleaning ?? 0)
+  const maintenance = Number(r.maintenance ?? 0)
+  return {
+    garmentId: r.garment_id,
+    rentals: r.rentals,
+    revenue,
+    acquisitionCost: cost,
+    payback: cost ? revenue / cost : null,
+    paidBack: !!cost && revenue >= cost,
+    cleaning,
+    maintenance,
+    result: round2(revenue - (cost ?? 0) - cleaning - maintenance),
+    lastRental: r.last_rental,
+    idleDays: r.last_rental ? diffDays(r.last_rental, today) : null,
+  }
+}
+
+/** Falha com todos os problemas de uma validação (o primeiro vira `code`/`field`). */
+export function fail(issues: SourceIssue[]): never {
   const [first] = issues
   throw new SourceError(first!.code, { field: first!.field, issues })
 }
 
-/** Erro do banco → `SourceError` quando é um código das RPCs; senão `Error` com a mensagem (ex.: SEM_PERMISSAO). */
+/**
+ * Erro do banco → `SourceError` quando é um código das RPCs (ex.: SEM_PERMISSAO); senão `Error` com a mensagem e o
+ * `code` do PostgREST (vazio = falha de rede), que o `QueryClient` usa para decidir se repete (`shouldRetryQuery`).
+ */
 export function fromDbError(err: PostgrestError | Error): Error {
   const code = err.message
-  if (!/^[A-Z][A-Z_]+$/.test(code)) return err instanceof Error ? err : new Error(code)
+  if (!/^[A-Z][A-Z_]+$/.test(code)) {
+    // supabase-js devolve o erro como objeto simples ({ message, code, … }), não como instância de Error.
+    if (err instanceof Error) return err
+    const raw = (err as { code?: unknown }).code
+    return Object.assign(new Error(code), { code: typeof raw === 'string' ? raw : '' })
+  }
   const details = 'details' in err ? err.details : null
   const hint = 'hint' in err ? err.hint : null
   return new SourceError(code as SourceErrorCode, { field: details || undefined, hint: hint || undefined })
 }
 
-export function supabaseAcervo(client: SupabaseClient): AcervoSource {
-  const signed = new Map<string, { url: string; expires: number }>()
-
+export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = photoSigner(client)): AcervoSource {
   async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
     const { data, error } = await client.rpc(fn, args)
     if (error) throw fromDbError(error)
     return data as T
-  }
-
-  /** Troca `path` por URL assinada (reaproveita as que ainda valem, para o navegador não baixar a foto de novo). */
-  async function withUrls(raws: RawGarment[]): Promise<Garment[]> {
-    const now = Date.now()
-    const missing = [...new Set(raws.flatMap((g) => g.photos.map((p) => p.path)))].filter((p) => (signed.get(p)?.expires ?? 0) - now < SIGNED_MARGIN_MS)
-    if (missing.length) {
-      const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_SECONDS)
-      if (error) throw error
-      for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, { url: s.signedUrl, expires: now + SIGNED_SECONDS * 1000 })
-    }
-    return raws.map(({ photos, ...g }) => ({
-      ...g,
-      photos: photos.map((p): GarmentPhoto => ({ id: p.id, kind: p.kind, isCover: p.isCover, url: signed.get(p.path)?.url ?? '' })),
-    }))
   }
 
   const one = async (raw: RawGarment) => (await withUrls([raw]))[0]!
@@ -105,12 +157,11 @@ export function supabaseAcervo(client: SupabaseClient): AcervoSource {
 
     garmentCounts: (f) => rpc('garment_counts', { p_q: f.q ?? '', p_cat: f.cat ?? null, p_size: f.size ?? null }),
 
-    // Locações, receita, higienização e manutenção entram quando Reservas e Operação forem para o banco.
+    // Locações, receita e última locação vêm das reservas; higienização e manutenção, das contas da Operação (garment_costs).
     garmentEconomics: async (ids) => {
       if (!ids.length) return []
-      const rows = await rpc<{ garment_id: string; acquisition_cost: number | null }[]>('garment_costs', { p_ids: ids })
-      const empty = { reservations: [], payables: [], finCategories: [] }
-      return rows.map((r) => garmentEconomics({ id: r.garment_id, acquisitionCost: r.acquisition_cost }, empty, todayISO()))
+      const rows = await rpc<RawCosts[]>('garment_costs', { p_ids: ids })
+      return rows.map((r) => economicsOf(r, todayISO()))
     },
 
     acervoInvestment: async () => Number(await rpc<number | string>('acervo_investment')),
@@ -161,7 +212,7 @@ export function supabaseAcervo(client: SupabaseClient): AcervoSource {
 
     removePhoto: async (id, photoId) => {
       const path = await rpc<string>('remove_garment_photo', { p_garment: id, p_photo: photoId })
-      signed.delete(path)
+      withUrls.forget(path)
       const { error } = await client.storage.from(PHOTO_BUCKET).remove([path])
       if (error) console.error('removePhoto: arquivo não apagado do bucket', { path, message: error.message })
       const g = await rpc<RawGarment | null>('get_garment', { p_id: id })

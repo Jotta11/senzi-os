@@ -1,17 +1,28 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Perm } from '@/auth/permissions'
-import { appRoutes } from '@/app/router'
+import { appRoutes, LIVE } from '@/app/router'
+import { NAV } from '@/shell/nav'
 
 const authMock = vi.hoisted(() => ({ signOut: vi.fn(), refetch: vi.fn(), user: null as unknown, perms: [] as string[], loading: false, error: false }))
 vi.mock('@/lib/env', () => ({ getEnv: () => ({ url: 'http://x', anonKey: 'k' }) }))
-vi.mock('@/auth/useAuth', () => ({
-  useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
-}))
+// As telas reais (Dashboard em `/`, Inteligência…) leem dados: aqui a fonte do Supabase dá lugar à fonte em memória.
+vi.mock('@/data/supabaseSource', async () => {
+  const { createMockSource } = await import('@/data/mockSource')
+  return { createSupabaseSource: () => createMockSource({ latencyMs: 0 }) }
+})
+vi.mock('@/auth/useAuth', async () => {
+  const { createContext } = await import('react')
+  return {
+    AuthContext: createContext(null),
+    useAuth: () => ({ status: 'signed_in', user: authMock.user, signOut: authMock.signOut }),
+  }
+})
 vi.mock('@/auth/usePermissions', () => ({
   usePermissions: () => ({
     can: (p: Perm) => authMock.perms.includes(p),
@@ -30,7 +41,11 @@ function setup(role: 'admin' | 'atendimento', path = '/') {
   authMock.user = { id: 'u1', full_name: 'Ana Souza', email: 'a@b.com', role, is_active: true }
   authMock.perms = role === 'admin' ? ADMIN : ATENDIMENTO
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
-  render(<RouterProvider router={router} />)
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
 }
 const navLinks = () => within(screen.getByRole('navigation', { name: /navegação principal/i })).getAllByRole('link')
 
@@ -77,12 +92,21 @@ describe('shell', () => {
     expect(authMock.refetch).toHaveBeenCalled()
   })
 
-  it('item ativo tem aria-current=page e a rota mostra Em construção', () => {
-    setup('admin', '/agenda')
+  it('item ativo tem aria-current=page e a rota mostra a tela real', async () => {
+    setup('admin', '/inteligencia')
     const ativos = navLinks().filter((l) => l.getAttribute('aria-current') === 'page')
     expect(ativos).toHaveLength(1)
-    expect(ativos[0]).toHaveAttribute('aria-label', 'Agenda')
-    expect(screen.getByText('Em construção')).toBeInTheDocument()
+    expect(ativos[0]).toHaveAttribute('aria-label', 'Inteligência')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Inteligência' })).toBeInTheDocument()
+    expect(screen.queryByText('Em construção')).toBeNull()
+  })
+
+  // Desde a área 6 do Plano 2B todo item do menu tem tela no banco: nenhuma rota real cai em "Em construção"
+  // (o componente segue em uso e testado na prévia, `preview.test.tsx`).
+  it('todo item do menu (e submenu) tem tela real', () => {
+    const paths = NAV.flatMap((n) => [n.path, ...(n.children ?? []).map((c) => c.path)])
+    const routed = ['/financeiro/receber', '/financeiro/pagar', '/financeiro/categorias']
+    expect(paths.filter((p) => !(p in LIVE) && !routed.includes(p))).toEqual([])
   })
 
   it('rodapé mostra o nome e Sair chama signOut', async () => {
@@ -95,6 +119,20 @@ describe('shell', () => {
   it('sidebar mostra a logo Senzi Club', () => {
     setup('admin')
     expect(screen.getAllByRole('img', { name: 'Senzi Club' }).length).toBeGreaterThan(0)
+  })
+
+  // Plano 2B, área 7: a prévia (fonte em memória + fixture) e as telas chegam sob demanda, fora do pedaço principal.
+  it('a prévia abre pelas rotas do app, carregada sob demanda', async () => {
+    setup('admin', '/preview/acervo')
+    expect(await screen.findByRole('group', { name: 'Ver como' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acervo' })).toBeInTheDocument()
+  })
+
+  it('o roteador do app não importa a prévia nem as telas de forma estática', () => {
+    const src = readFileSync(resolve(__dirname, '../app/router.tsx'), 'utf8')
+    const statics = [...src.matchAll(/^import [^;]*? from '([^']+)'/gms)].map((m) => m[1])
+    expect(statics.filter((m) => m!.startsWith('@/preview/') && m !== '@/preview/paths')).toEqual([])
+    expect(statics.filter((m) => m!.startsWith('@/features/'))).toEqual([])
   })
 
   it('rota desconhecida mostra Página não encontrada com link para /', () => {

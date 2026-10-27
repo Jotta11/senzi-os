@@ -19,11 +19,11 @@ Plano: `2026-10-24-senzi-03v-visual-demais-telas.md` · branch `etapa-3` · 492 
 
 ## Pendências (para o Plano 2B / próximas etapas)
 
-- PDFs: hoje são páginas de impressão ("Imprimir / salvar PDF"). Link assinado no Storage e PDF anexado ao WhatsApp ficam para quando houver banco.
+- PDFs: hoje são páginas de impressão ("Imprimir / salvar PDF"). Link assinado no Storage e PDF anexado ao WhatsApp ficam para quando houver banco. **Plano 2B (área 7): continua pendente de propósito — gerar o PDF e guardá-lo no Storage depende do template definitivo do contrato e dos dados da empresa (item abaixo); gerar agora seria refazer depois. O banco já está pronto para isso (bucket privado + URLs assinadas, como as fotos).**
 - Dados da empresa no contrato/OS (razão social, CNPJ, endereço) e template definitivo do contrato.
-- No banco, as RPCs de financeiro/dashboard precisam esconder campos consolidados sem `financeiro.consolidated` (na prévia só a tela esconde).
-- Telas usam o relógio do navegador para "hoje" em alguns pontos; no banco, devolver `today` junto com as leituras.
-- Peça que nunca saiu da loja e tem a reserva cancelada dentro da própria janela de higienização fica "Higienização" até ser liberada.
+- ~~No banco, as RPCs de financeiro/dashboard precisam esconder campos consolidados sem `financeiro.consolidated` (na prévia só a tela esconde).~~ **Feito no Plano 2B: Financeiro (área 4) e Dashboard/Inteligência (área 6 — `finance` null, alertas por permissão, custos null sem `acervo.cost`).**
+- ~~Telas usam o relógio do navegador para "hoje" em alguns pontos; no banco, devolver `today` junto com as leituras.~~ **Feito: Dashboard e Inteligência na área 6 (`today` e `period.to` = `store_today()`); área 7: as demais telas usam `useToday()` (`src/lib/useToday.ts`) — dia no fuso da loja (America/Araguaina, o mesmo de `store_today()`), que troca sozinho à meia-noite da loja. Valores iniciais de formulário e modais curtos seguem com `todayISO()` (mesmo fuso). As regras de data continuam validadas no banco com `store_today()`.**
+- Peça que nunca saiu da loja e tem a reserva cancelada dentro da própria janela de higienização fica "Higienização" até ser liberada. **Mantido no Plano 2B (banco igual à prévia, coberto em `tests/db/operacao.test.ts`); está em "Para o João decidir" no plano 2B.**
 - Menu "⋯" das contas: navegação por setas e devolução de foco ao fechar clicando fora.
 - Componentes compartilhados que moram dentro de features (CustomerPicker, GarmentThumb, gráficos) podem ir para `src/ui`.
 - `CustomerPage.tsx` e `GarmentPage.tsx` passaram de ~450 linhas; dividir quando mexer de novo.

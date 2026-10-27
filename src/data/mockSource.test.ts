@@ -279,7 +279,7 @@ describe('mockSource — clientes', () => {
     const names = page.items.map((c) => c.fullName)
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'pt-BR')))
     const gasto = await src.searchCustomers('', 'gasto', ALL)
-    const spent = gasto.items.map((c) => c.stats.spent)
+    const spent = gasto.items.map((c) => c.stats.spent ?? 0)
     expect(spent).toEqual([...spent].sort((a, b) => b - a))
   })
 
