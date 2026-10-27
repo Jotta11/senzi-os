@@ -306,6 +306,14 @@ o mesmo comportamento observável pela interface `DataSource` (`src/data/source*
      `audit_trigger` grava o CPF mascarado (`***XXXXXX**`, helper `audit_mask_cpf`); as linhas de `customer` já gravadas foram mascaradas
      na própria migration.
 
+## Decisões do João (27/10)
+
+- **Contrato e OS:** ficam como estão até o João enviar o modelo de contrato; aí entram o template, os dados da empresa e o PDF no Storage.
+- **Valor de referência da peça no contrato:** pode aparecer (não é segredo). Fica como está.
+- **PIN de exceção:** sem mudanças por ora (a princípio só administradoras usam o sistema).
+- **Peça cancelada na janela de higienização:** continua "Higienização" até ser liberada na Operação (não libera sozinha).
+- **Domínio de produção:** `admin.senziclub.com` — Site URL/Redirect URLs no README e CORS da `admin-users` restrito a ele + localhost.
+
 ## Para o João decidir
 
 1. **Contrato e OS:** dados da empresa (razão social, CNPJ, endereço) e template definitivo do contrato. Depois disso: gerar o PDF,

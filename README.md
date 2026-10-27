@@ -66,8 +66,10 @@ Não há seed de dados de exemplo para o banco real, de propósito — o cadastr
    **Allow new users to sign up**. (O `supabase/config.toml` já vem com `enable_signup = false`
    e senha mínima de 8 caracteres para o ambiente local.)
 5. **URLs de redirecionamento** (usadas no e-mail de "Esqueci minha senha"): em
-   *Authentication → URL Configuration*, defina o **Site URL** com a URL de produção e inclua em
-   **Redirect URLs** a URL de produção e `http://localhost:5173`.
+   *Authentication → URL Configuration*, defina o **Site URL** como `https://admin.senziclub.com` e inclua em
+   **Redirect URLs** `https://admin.senziclub.com/**` e `http://localhost:5173/**`.
+   (A Edge Function `admin-users` só aceita chamadas do navegador vindas desse domínio e do `localhost`;
+   para mudar o domínio, edite `ALLOWED_ORIGINS` em `supabase/functions/admin-users/handler.ts`.)
 6. **SMTP próprio** (*Authentication → Emails → SMTP Settings*): o servidor de e-mail padrão do Supabase manda
    pouquíssimos e-mails por hora e serve só para teste. Configure um SMTP (ex.: o do domínio da loja, SendGrid, Resend)
    antes de usar "Esqueci minha senha" de verdade.
