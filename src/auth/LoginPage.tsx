@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Card, Field, Logo } from '@/ui'
+import { Button, Field } from '@/ui'
 import { getSupabase } from '@/lib/supabase'
 import { MSG_NO_CLIENT } from './authErrors'
 import { useAuth } from './useAuth'
-import './auth.css'
+import { AuthShell } from './AuthShell'
 
 export function LoginPage() {
   const { signIn, notice } = useAuth()
@@ -53,24 +53,16 @@ export function LoginPage() {
   }
 
   return (
-    <main className="login">
-      <aside className="login-brand">
-        <Logo className="login-logo" />
-        <p>Senzi OS · back-office do Senzi Club</p>
-      </aside>
-      <div className="login-form">
-        <Card title="Entrar">
-          <form onSubmit={onSubmit} className="login-fields">
-            {notice && <p role="alert" className="login-notice">{notice}</p>}
-            <Field label="E-mail" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Field label="Senha" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-            {error && <p role="alert" className="login-error">{error}</p>}
-            {info && <p role="status" className="login-info">{info}</p>}
-            <Button type="submit" variant="primary" disabled={busy}>Entrar</Button>
-            <button type="button" className="login-link" onClick={() => void onForgot()}>Esqueci minha senha</button>
-          </form>
-        </Card>
-      </div>
-    </main>
+    <AuthShell eyebrow="Senzi OS" title="Boas-vindas" subtitle="Entre com seu e-mail e senha para acessar o sistema.">
+      <form onSubmit={onSubmit} className="login-fields">
+        {notice && <p role="alert" className="login-notice">{notice}</p>}
+        <Field label="E-mail" type="email" autoComplete="username" placeholder="voce@senziclub.com.br" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field label="Senha" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        {error && <p role="alert" className="login-error">{error}</p>}
+        {info && <p role="status" className="login-info">{info}</p>}
+        <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</Button>
+        <button type="button" className="login-link" onClick={() => void onForgot()}>Esqueci minha senha</button>
+      </form>
+    </AuthShell>
   )
 }
