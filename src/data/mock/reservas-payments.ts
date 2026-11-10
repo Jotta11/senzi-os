@@ -6,14 +6,15 @@
  */
 import { CLOSED_RESERVATION_STATES } from '@/data/labels'
 import { systemCategoryId } from '@/domain/fin-categories'
-import { balance, round2 } from '@/domain/money'
+import { balance, hasReceivable, pendingTargets, round2 } from '@/domain/money'
 import { brl } from '@/lib/format'
+import { PAYMENT_KIND, PAYMENT_METHOD } from '@/data/labels-ops'
 import type { ReservasSource } from '../source-reservas'
 import { SourceError, type Payment, type PaymentInput, type Reservation } from '../types'
 import type { MockCtx } from './context'
 import type { ReservaKit } from './reservas-shared'
 
-type Payments = Pick<ReservasSource, 'registerPayment' | 'returnDeposit'>
+type Payments = Pick<ReservasSource, 'registerPayment' | 'cancelPayment' | 'returnDeposit'>
 
 export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
   const { db, run, fail } = ctx
@@ -52,6 +53,35 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
         if (pending && input.amount >= pending.amount - 0.005) Object.assign(pending, { ...paid(r, input), id: pending.id, dueAt: pending.dueAt, createdAt: pending.createdAt })
         else r.payments.push(paid(r, input))
         kit.syncPending(r)
+        return kit.refresh(r)
+      }),
+
+    cancelPayment: (paymentId, reason) =>
+      run(() => {
+        const why = reason.trim()
+        if (!why) fail([{ code: 'MOTIVO_OBRIGATORIO', field: 'reason' }])
+        const r = db.reservations.find((x) => x.payments.some((p) => p.id === paymentId))
+        if (!r) throw new SourceError('NAO_ENCONTRADO')
+        const pay = r.payments.find((p) => p.id === paymentId)!
+        if (pay.state !== 'pago' || r.state === 'rascunho') throw new SourceError('ESTADO_INVALIDO')
+        const b = balance(r.totalNet, r.lateFee, r.payments)
+        if ((pay.kind === 'caucao' && b.caucao < pay.amount - 0.005) || (pay.kind !== 'caucao' && pay.kind !== 'estorno' && b.pago < pay.amount - 0.005))
+          throw new SourceError('LANCAMENTO_COM_ESTORNO')
+
+        pay.state = 'cancelado'
+        pay.notes = [pay.notes, `Cancelado: ${why}`].filter(Boolean).join(' · ')
+        kit.syncPending(r)
+        if (hasReceivable(r)) {
+          const target = pendingTargets(r.totalNet, r.lateFee, r.payments)
+          for (const kind of ['saldo', 'multa'] as const) {
+            if (target[kind] <= 0 || r.payments.some((p) => p.kind === kind && p.state === 'pendente')) continue
+            r.payments.push({
+              id: ctx.newId('pay'), reservationId: r.id, kind, method: pay.method, amount: target[kind], state: 'pendente', paidAt: null,
+              dueAt: kind === 'saldo' ? r.pickupDate : ctx.today, reference: null, notes: null, refersTo: null, createdBy: ctx.userId(), createdAt: ctx.now(),
+            })
+          }
+        }
+        kit.log(r, null, r.state, `Lançamento cancelado: ${PAYMENT_KIND[pay.kind]} de ${brl(pay.amount)} (${PAYMENT_METHOD[pay.method]}). Motivo: ${why}`)
         return kit.refresh(r)
       }),
 

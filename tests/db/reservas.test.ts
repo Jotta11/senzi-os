@@ -391,6 +391,38 @@ describe('reservas', () => {
   })
 
   describe('pagamentos e caução', () => {
+    it('cancelar lançamento: sinal em dobro sai do saldo, a parcela pendente volta e o histórico registra o motivo', async () => {
+      const voidPay = (id: string, reason: string) => as<Res>(atend, 'public.cancel_reservation_payment($1, $2)', [id, reason])
+      const r0 = await confirmed([turim], [5, 6, 8])
+      const dup = await pay(r0.id, 'sinal', 200)
+      expect(dup.balance).toMatchObject({ pago: 425, due: 25 })
+      const extra = dup.payments.find((p) => p.kind === 'sinal' && p.amount === 200)!
+      expect(await errOf(voidPay(extra.id, '  '))).toMatchObject({ message: 'MOTIVO_OBRIGATORIO' })
+      const pending = dup.payments.find((p) => p.state === 'pendente')!
+      expect((await errOf(voidPay(pending.id, 'x')))?.message).toBe('ESTADO_INVALIDO')
+
+      const r1 = await voidPay(extra.id, 'Lançado em dobro')
+      expect(r1.balance).toMatchObject({ pago: 225, due: 225, status: 'parcial' })
+      expect(r1.payments.find((p) => p.id === extra.id)).toMatchObject({ state: 'cancelado', notes: 'Cancelado: Lançado em dobro' })
+      expect(r1.payments.filter((p) => p.state === 'pendente')).toEqual([expect.objectContaining({ kind: 'saldo', amount: 225, dueAt: D(5) })])
+      expect(r1.history.at(-1)).toMatchObject({ reason: 'Lançamento cancelado: Sinal de R$ 200,00 (PIX). Motivo: Lançado em dobro', userName: 'Bia Atendimento' })
+      expect((await errOf(voidPay(extra.id, 'de novo')))?.message).toBe('ESTADO_INVALIDO')
+
+      // Saldo quitado e depois cancelado: a parcela pendente de saldo é recriada.
+      const paidOff = await pay(r0.id, 'saldo', 225)
+      expect(paidOff.payments.filter((p) => p.state === 'pendente')).toHaveLength(0)
+      const saldo = paidOff.payments.find((p) => p.kind === 'saldo' && p.state === 'pago')!
+      const r2 = await voidPay(saldo.id, 'Pix não caiu')
+      expect(r2.balance).toMatchObject({ pago: 225, due: 225 })
+      expect(r2.payments.filter((p) => p.state === 'pendente')).toEqual([expect.objectContaining({ kind: 'saldo', amount: 225, dueAt: D(5) })])
+
+      // Caução já devolvida em parte não pode ser cancelada inteira.
+      const dep = await pay(r0.id, 'caucao', 300)
+      await pay(r0.id, 'estorno', 100, 'caucao')
+      const caucao = dep.payments.find((p) => p.kind === 'caucao')!
+      expect((await errOf(voidPay(caucao.id, 'x')))?.message).toBe('LANCAMENTO_COM_ESTORNO')
+    })
+
     it('saldo parcial atualiza a parcela; o resto quita sem duplicar; limites do VALOR_EXCEDE_SALDO', async () => {
       const r0 = await confirmed([turim], [5, 6, 8])
       expect(r0.payments.filter((p) => p.state === 'pendente')).toEqual([expect.objectContaining({ kind: 'saldo', amount: 225 })])

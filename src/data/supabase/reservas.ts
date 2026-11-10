@@ -87,6 +87,8 @@ export function supabaseReservas(client: SupabaseClient, withUrls: PhotoSigner =
 
     registerPayment: (id, input) => res('register_reservation_payment', { p_id: id, p: input }),
 
+    cancelPayment: (paymentId, reason) => res('cancel_reservation_payment', { p_payment: paymentId, p_reason: reason }),
+
     returnDeposit: (id, method, retain) => res('return_reservation_deposit', { p_id: id, p_method: method, p_retain: retain ?? null }),
 
     markReady: (id) => res('mark_reservation_ready', { p_id: id }),

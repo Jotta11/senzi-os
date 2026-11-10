@@ -390,6 +390,26 @@ async function confirmed(ctx: MockCtx, src: ReturnType<typeof reservas>, names: 
 const pendings = (r: Reservation, kind: string) => r.payments.filter((p) => p.kind === kind && p.state === 'pendente')
 
 describe('reservas — pagamentos', () => {
+  it('cancelar lançamento: sinal em dobro sai do saldo, a parcela volta e o histórico guarda o motivo', async () => {
+    const { ctx, src } = setup()
+    const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])
+    const dup = await src.registerPayment(r0.id, { kind: 'sinal', method: 'pix', amount: 200, reference: null, notes: null })
+    expect(dup.balance).toMatchObject({ pago: 500, due: 100 })
+    const extra = dup.payments.find((p) => p.kind === 'sinal' && p.amount === 200)!
+    expect((await errorOf(src.cancelPayment(extra.id, ' '))).code).toBe('MOTIVO_OBRIGATORIO')
+    const r1 = await src.cancelPayment(extra.id, 'Lançado em dobro')
+    expect(r1.balance).toMatchObject({ pago: 300, due: 300 })
+    expect(r1.payments.find((p) => p.id === extra.id)).toMatchObject({ state: 'cancelado', notes: 'Cancelado: Lançado em dobro' })
+    expect(pendings(r1, 'saldo')).toEqual([expect.objectContaining({ amount: 300 })])
+    expect(r1.history.at(-1)?.reason).toBe('Lançamento cancelado: Sinal de R$ 200,00 (PIX). Motivo: Lançado em dobro')
+    expect((await errorOf(src.cancelPayment(extra.id, 'de novo'))).code).toBe('ESTADO_INVALIDO')
+
+    const paidOff = await src.registerPayment(r0.id, { kind: 'saldo', method: 'pix', amount: 300, reference: null, notes: null })
+    const saldo = paidOff.payments.find((p) => p.kind === 'saldo' && p.state === 'pago')!
+    const r2 = await src.cancelPayment(saldo.id, 'Pix não caiu')
+    expect(pendings(r2, 'saldo')).toEqual([expect.objectContaining({ amount: 300, dueAt: D(5) })])
+  })
+
   it('saldo pago em parte atualiza a parcela pendente; pago no resto, quita sem duplicar', async () => {
     const { ctx, src } = setup()
     const r0 = await confirmed(ctx, src, ['Turim'], [5, 6, 8])

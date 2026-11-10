@@ -1,9 +1,12 @@
+import { useState, type FormEvent } from 'react'
 import { usePermissions } from '@/auth/usePermissions'
+import { useCancelPayment } from '@/data/hooks-reservas'
 import { CLOSED_RESERVATION_STATES, PAYMENT_KIND, PAYMENT_METHOD } from '@/data/labels-ops'
 import type { Payment, PaymentState, ReservationDetail } from '@/data/types'
 import { hasReceivable } from '@/domain/money'
+import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateBR } from '@/lib/format'
-import { Badge, Button, DataTable, EmptyState, type Column, type Tone } from '@/ui'
+import { Badge, Button, DataTable, EmptyState, Field, Modal, useToast, type Column, type Tone } from '@/ui'
 
 const PAY: Record<PaymentState, { label: string; tone: Tone }> = {
   pago: { label: 'Pago', tone: 'green' },
@@ -31,6 +34,7 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
   const { can } = usePermissions()
   const canPay = can('financeiro.payment')
   const status = STATUS[r.balance.status]
+  const [voiding, setVoiding] = useState<Payment | null>(null)
   const rows = [...r.payments].sort((a, b) => stamp(b).localeCompare(stamp(a)))
   const columns: Column<Payment>[] = [
     {
@@ -51,6 +55,10 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
         canPay && p.state === 'pendente' && (p.kind === 'saldo' || p.kind === 'multa') ? (
           <Button size="sm" onClick={() => onLaunch({ kind: p.kind, amount: p.amount })}>
             Receber
+          </Button>
+        ) : canPay && p.state === 'pago' && r.state !== 'rascunho' ? (
+          <Button size="sm" variant="ghost" icon="x" aria-label={`Cancelar lançamento ${PAYMENT_KIND[p.kind]} de ${brl(p.amount)}`} title="Cancelar lançamento" onClick={() => setVoiding(p)}>
+            Cancelar
           </Button>
         ) : null,
     },
@@ -80,6 +88,58 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
         rowKey={(p) => p.id}
         empty={<EmptyState icon="moeda" title="Nenhum pagamento lançado" description="Registre o sinal ou o valor integral." />}
       />
+      {voiding && <CancelPaymentModal r={r} p={voiding} onClose={() => setVoiding(null)} />}
     </section>
+  )
+}
+
+/** Cancela um lançamento feito errado ou em dobro. Motivo obrigatório; fica no histórico da reserva. */
+function CancelPaymentModal({ r, p, onClose }: { r: ReservationDetail; p: Payment; onClose(): void }) {
+  const cancel = useCancelPayment()
+  const toast = useToast()
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState<string | undefined>()
+  const what = `${PAYMENT_KIND[p.kind]} de ${brl(p.amount)} (${PAYMENT_METHOD[p.method]}${p.paidAt ? `, ${dateBR(p.paidAt)}` : ''})`
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!reason.trim()) return setError(errorMessage('MOTIVO_OBRIGATORIO'))
+    cancel.mutate(
+      { paymentId: p.id, reason: reason.trim() },
+      {
+        onSuccess: () => {
+          toast({ title: 'Lançamento cancelado', description: `${r.code} · ${what}. Saldo recalculado.` })
+          onClose()
+        },
+        onError: (err) => {
+          setError(errorMessage(err))
+          toast({ title: 'Não foi possível cancelar o lançamento', description: errorMessage(err), tone: 'error' })
+        },
+      },
+    )
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Cancelar lançamento"
+      description={`${r.code} · ${r.customer.fullName}`}
+      footer={
+        <>
+          <Button onClick={onClose}>Voltar</Button>
+          <Button variant="danger" type="submit" form="rd-void-pay" disabled={cancel.isPending}>
+            Cancelar lançamento
+          </Button>
+        </>
+      }
+    >
+      <form id="rd-void-pay" className="rd-form" onSubmit={submit} noValidate>
+        <p>
+          Cancelar o lançamento <b>{what}</b>? Ele deixa de contar no saldo e no financeiro, e o valor volta a ficar em aberto. A linha continua visível como “Cancelado”, com o motivo, no histórico da reserva.
+        </p>
+        <Field as="textarea" label="Motivo" rows={3} placeholder="Ex.: lançado em dobro" value={reason} onChange={(e) => setReason(e.target.value)} error={error} />
+      </form>
+    </Modal>
   )
 }
