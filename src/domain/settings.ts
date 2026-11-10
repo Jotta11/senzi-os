@@ -7,6 +7,6 @@ export const DEFAULT_SETTINGS: Settings = {
   lateFeeDailyPercent: 20,
   depositPercent: 0,
   discountLimitPercent: 15,
-  minSignalPercent: 50,
+  minSignalPercent: 0,
   idleAlertDays: 90,
 }

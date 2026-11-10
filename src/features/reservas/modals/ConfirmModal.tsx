@@ -21,7 +21,7 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
   const toast = useToast()
   const signed = !!r.contract?.signedAt
   const min = r.minSignal
-  const [amount, setAmount] = useState(min.toFixed(2))
+  const [amount, setAmount] = useState(min > 0 ? min.toFixed(2) : '')
   const [method, setMethod] = useState<PaymentMethod>('pix')
   const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
@@ -66,7 +66,7 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
     else run()
   }
 
-  const pct = settings.data?.minSignalPercent ?? 50
+  const pct = settings.data?.minSignalPercent ?? 0
   return (
     <>
       <Modal
@@ -96,10 +96,12 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
                 )}
               </span>
             </li>
-            <li className="info">
-              <Icon name="moeda" size={14} />
-              <span>Sinal mínimo: {brl(min)}</span>
-            </li>
+            {min > 0 && (
+              <li className="info">
+                <Icon name="moeda" size={14} />
+                <span>Sinal mínimo: {brl(min)}</span>
+              </li>
+            )}
           </ul>
           {!signed && <p className="tiny muted">Marque o contrato como assinado antes de confirmar.</p>}
 

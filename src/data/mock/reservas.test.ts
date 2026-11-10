@@ -9,7 +9,7 @@ const TODAY = '2026-10-24'
 const D = (n: number) => addDays(TODAY, n)
 
 function setup() {
-  const ctx = createMockCtx({ latencyMs: 0, today: TODAY })
+  const ctx = createMockCtx({ latencyMs: 0, today: TODAY, settings: { minSignalPercent: 50 } })
   return { ctx, src: reservas(ctx), auth: exceptionsMock(ctx) }
 }
 

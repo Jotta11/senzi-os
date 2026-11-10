@@ -10,7 +10,7 @@ import { previewRoutes } from '@/preview/previewRoutes'
 
 /** Sábado: "hoje" da fonte e do relógio da tela coincidem. */
 const TODAY = '2026-10-24'
-const newSource = () => createMockSource({ latencyMs: 0, today: TODAY })
+const newSource = () => createMockSource({ latencyMs: 0, today: TODAY, settings: { minSignalPercent: 50 } })
 const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 function renderPreview(path: string, source: DataSource) {

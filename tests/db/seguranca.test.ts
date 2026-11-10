@@ -95,6 +95,8 @@ describe('segurança (auditoria)', () => {
     admin = await createUser(db, { email: 'ana@senzi.test', full_name: 'Ana Admin', role: 'admin' })
     atend = await createUser(db, { email: 'bia@senzi.test', full_name: 'Bia Atendimento', role: 'atendimento' })
     await asUser(db, admin, (tx) => tx.query(`select public.set_my_pin('1234')`))
+    // Produção roda sem trava (0%); aqui a trava de 50% é exercitada de propósito.
+    await db.query(`update public.app_settings set min_signal_percent = 50`)
     today = (await db.query<{ d: string }>(`select public.store_today()::text d`)).rows[0].d
     cust = await as(admin, 'public.create_customer($1)', [
       JSON.stringify({ fullName: 'Mariana Fontes', phone: '63996124478', birthDate: '1995-03-10', cpf: '52998224725' }),

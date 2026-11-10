@@ -8,7 +8,7 @@ import { STORE_TZ, todayISO } from '@/lib/format'
 import { customerStats } from '@/domain/customers'
 import { buildWorld, type World } from '../fixture'
 import { at, USER } from './constants'
-import { SourceError, type Customer, type Garment, type Reservation, type SourceIssue } from '../types'
+import { SourceError, type Customer, type Garment, type Reservation, type Settings, type SourceIssue } from '../types'
 
 export type MockSourceOptions = {
   /** Latência simulada em ms (padrão 150; use 0 nos testes). */
@@ -17,6 +17,8 @@ export type MockSourceOptions = {
   today?: string
   /** Nome de quem registra observações e históricos (padrão "Júlia Senzi"). */
   userName?: () => string
+  /** Sobrepõe parâmetros do sistema (ex.: testes da trava de sinal mínimo). */
+  settings?: Partial<Settings>
 }
 
 export type MockCtx = {
@@ -52,6 +54,7 @@ export function createMockCtx(opts: MockSourceOptions = {}): MockCtx {
   const latency = opts.latencyMs ?? 150
   const today = opts.today ?? todayISO()
   const db = buildWorld(today)
+  if (opts.settings) Object.assign(db.settings, opts.settings)
   let seq = 0
   const find = <T extends { id: string }>(list: T[], id: string): T => {
     const x = list.find((i) => i.id === id)
