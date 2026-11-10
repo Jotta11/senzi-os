@@ -56,7 +56,7 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
           <Button size="sm" onClick={() => onLaunch({ kind: p.kind, amount: p.amount })}>
             Receber
           </Button>
-        ) : canPay && p.state === 'pago' && r.state !== 'rascunho' ? (
+        ) : canPay && (p.state === 'pago' || p.state === 'cancelado') && r.state !== 'rascunho' ? (
           <Button size="sm" variant="ghost" icon="x" aria-label={`Apagar lançamento ${PAYMENT_KIND[p.kind]} de ${brl(p.amount)}`} title="Apagar lançamento" onClick={() => setVoiding(p)}>
             Apagar
           </Button>

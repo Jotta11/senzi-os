@@ -417,6 +417,14 @@ describe('reservas', () => {
       expect(r2.balance).toMatchObject({ pago: 225, due: 225 })
       expect(r2.payments.filter((p) => p.state === 'pendente')).toEqual([expect.objectContaining({ kind: 'saldo', amount: 225, dueAt: D(5) })])
 
+      // Lançamento já cancelado também pode ser apagado; o saldo não muda.
+      const again = await pay(r0.id, 'sinal', 50)
+      const old = again.payments.find((p) => p.kind === 'sinal' && p.amount === 50)!
+      await db.query(`update public.reservation_payment set state = 'cancelado' where id = $1`, [old.id])
+      const r3 = await voidPay(old.id, 'Limpeza')
+      expect(r3.payments.find((p) => p.id === old.id)).toBeUndefined()
+      expect(r3.balance).toMatchObject({ pago: 225, due: 225 })
+
       // Caução já devolvida em parte não pode ser apagada inteira.
       const dep = await pay(r0.id, 'caucao', 300)
       await pay(r0.id, 'estorno', 100, 'caucao')

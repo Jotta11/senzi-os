@@ -63,9 +63,9 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
         const r = db.reservations.find((x) => x.payments.some((p) => p.id === paymentId))
         if (!r) throw new SourceError('NAO_ENCONTRADO')
         const pay = r.payments.find((p) => p.id === paymentId)!
-        if (pay.state !== 'pago' || r.state === 'rascunho') throw new SourceError('ESTADO_INVALIDO')
+        if ((pay.state !== 'pago' && pay.state !== 'cancelado') || r.state === 'rascunho') throw new SourceError('ESTADO_INVALIDO')
         const b = balance(r.totalNet, r.lateFee, r.payments)
-        if ((pay.kind === 'caucao' && b.caucao < pay.amount - 0.005) || (pay.kind !== 'caucao' && pay.kind !== 'estorno' && b.pago < pay.amount - 0.005))
+        if (pay.state === 'pago' && ((pay.kind === 'caucao' && b.caucao < pay.amount - 0.005) || (pay.kind !== 'caucao' && pay.kind !== 'estorno' && b.pago < pay.amount - 0.005)))
           throw new SourceError('LANCAMENTO_COM_ESTORNO')
 
         r.payments = r.payments.filter((p) => p.id !== pay.id)

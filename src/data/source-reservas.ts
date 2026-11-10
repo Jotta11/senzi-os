@@ -53,7 +53,7 @@ export interface ReservasSource {
 
   registerPayment(id: string, input: PaymentInput): Promise<Reservation>
   /**
-   * Apaga do banco um lançamento pago (errado ou em dobro): some da reserva e do financeiro; o histórico registra
+   * Apaga do banco um lançamento pago ou cancelado (errado ou em dobro): some da reserva e do financeiro; o histórico registra
    * o quê, quem e o motivo (obrigatório). Saldo/multa reabertos voltam como parcela pendente.
    */
   deletePayment(paymentId: string, reason: string): Promise<Reservation>
