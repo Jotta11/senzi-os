@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { usePermissions } from '@/auth/usePermissions'
-import { useCancelPayment } from '@/data/hooks-reservas'
+import { useDeletePayment } from '@/data/hooks-reservas'
 import { CLOSED_RESERVATION_STATES, PAYMENT_KIND, PAYMENT_METHOD } from '@/data/labels-ops'
 import type { Payment, PaymentState, ReservationDetail } from '@/data/types'
 import { hasReceivable } from '@/domain/money'
@@ -57,8 +57,8 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
             Receber
           </Button>
         ) : canPay && p.state === 'pago' && r.state !== 'rascunho' ? (
-          <Button size="sm" variant="ghost" icon="x" aria-label={`Cancelar lançamento ${PAYMENT_KIND[p.kind]} de ${brl(p.amount)}`} title="Cancelar lançamento" onClick={() => setVoiding(p)}>
-            Cancelar
+          <Button size="sm" variant="ghost" icon="x" aria-label={`Apagar lançamento ${PAYMENT_KIND[p.kind]} de ${brl(p.amount)}`} title="Apagar lançamento" onClick={() => setVoiding(p)}>
+            Apagar
           </Button>
         ) : null,
     },
@@ -88,14 +88,14 @@ export function PaymentsTab({ r, onLaunch, onReturnDeposit }: PaymentsTabProps) 
         rowKey={(p) => p.id}
         empty={<EmptyState icon="moeda" title="Nenhum pagamento lançado" description="Registre o sinal ou o valor integral." />}
       />
-      {voiding && <CancelPaymentModal r={r} p={voiding} onClose={() => setVoiding(null)} />}
+      {voiding && <DeletePaymentModal r={r} p={voiding} onClose={() => setVoiding(null)} />}
     </section>
   )
 }
 
-/** Cancela um lançamento feito errado ou em dobro. Motivo obrigatório; fica no histórico da reserva. */
-function CancelPaymentModal({ r, p, onClose }: { r: ReservationDetail; p: Payment; onClose(): void }) {
-  const cancel = useCancelPayment()
+/** Apaga um lançamento feito errado ou em dobro. Motivo obrigatório; fica registrado no histórico da reserva. */
+function DeletePaymentModal({ r, p, onClose }: { r: ReservationDetail; p: Payment; onClose(): void }) {
+  const remove = useDeletePayment()
   const toast = useToast()
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | undefined>()
@@ -104,16 +104,16 @@ function CancelPaymentModal({ r, p, onClose }: { r: ReservationDetail; p: Paymen
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!reason.trim()) return setError(errorMessage('MOTIVO_OBRIGATORIO'))
-    cancel.mutate(
+    remove.mutate(
       { paymentId: p.id, reason: reason.trim() },
       {
         onSuccess: () => {
-          toast({ title: 'Lançamento cancelado', description: `${r.code} · ${what}. Saldo recalculado.` })
+          toast({ title: 'Lançamento apagado', description: `${r.code} · ${what}. Saldo recalculado.` })
           onClose()
         },
         onError: (err) => {
           setError(errorMessage(err))
-          toast({ title: 'Não foi possível cancelar o lançamento', description: errorMessage(err), tone: 'error' })
+          toast({ title: 'Não foi possível apagar o lançamento', description: errorMessage(err), tone: 'error' })
         },
       },
     )
@@ -123,20 +123,20 @@ function CancelPaymentModal({ r, p, onClose }: { r: ReservationDetail; p: Paymen
     <Modal
       open
       onClose={onClose}
-      title="Cancelar lançamento"
+      title="Apagar lançamento"
       description={`${r.code} · ${r.customer.fullName}`}
       footer={
         <>
           <Button onClick={onClose}>Voltar</Button>
-          <Button variant="danger" type="submit" form="rd-void-pay" disabled={cancel.isPending}>
-            Cancelar lançamento
+          <Button variant="danger" type="submit" form="rd-del-pay" disabled={remove.isPending}>
+            Apagar lançamento
           </Button>
         </>
       }
     >
-      <form id="rd-void-pay" className="rd-form" onSubmit={submit} noValidate>
+      <form id="rd-del-pay" className="rd-form" onSubmit={submit} noValidate>
         <p>
-          Cancelar o lançamento <b>{what}</b>? Ele deixa de contar no saldo e no financeiro, e o valor volta a ficar em aberto. A linha continua visível como “Cancelado”, com o motivo, no histórico da reserva.
+          Apagar o lançamento <b>{what}</b>? Ele é removido de vez da reserva e do financeiro, e o valor volta a ficar em aberto. Não dá para desfazer.
         </p>
         <Field as="textarea" label="Motivo" rows={3} placeholder="Ex.: lançado em dobro" value={reason} onChange={(e) => setReason(e.target.value)} error={error} />
       </form>

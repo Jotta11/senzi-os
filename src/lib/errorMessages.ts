@@ -12,7 +12,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTORIZACAO_INVALIDA: 'Administrador ou PIN inválido',
   PIN_BLOQUEADO: 'PIN bloqueado por muitas tentativas. Tente de novo em 15 minutos; se continuar bloqueado, a administradora precisa redefinir o PIN.',
   MOTIVO_OBRIGATORIO: 'Informe o motivo',
-  LANCAMENTO_COM_ESTORNO: 'Este lançamento já tem estorno em cima dele. Cancele o estorno primeiro.',
+  LANCAMENTO_COM_ESTORNO: 'Este lançamento já tem estorno em cima dele. Apague o estorno primeiro.',
   // Acervo e Clientes (Plano 2B; a prévia em memória usa os mesmos códigos)
   NOME_OBRIGATORIO: 'Informe o nome ou modelo da peça.',
   VALOR_LOCACAO_OBRIGATORIO: 'Informe o valor da locação.',

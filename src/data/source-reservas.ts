@@ -53,10 +53,10 @@ export interface ReservasSource {
 
   registerPayment(id: string, input: PaymentInput): Promise<Reservation>
   /**
-   * Cancela um lançamento pago (errado ou em dobro): vira `cancelado`, sai do saldo e do financeiro, o motivo
-   * (obrigatório) fica nas observações e no histórico. Saldo/multa reabertos voltam como parcela pendente.
+   * Apaga do banco um lançamento pago (errado ou em dobro): some da reserva e do financeiro; o histórico registra
+   * o quê, quem e o motivo (obrigatório). Saldo/multa reabertos voltam como parcela pendente.
    */
-  cancelPayment(paymentId: string, reason: string): Promise<Reservation>
+  deletePayment(paymentId: string, reason: string): Promise<Reservation>
   /**
    * Estorno da caução retida (`refersTo: 'caucao'`); só depois de encerrada. Com `retain`, essa parte fica com a loja
    * (dano, perda): sai da custódia e vira receita avulsa "Retenção de caução" da reserva; o motivo é obrigatório.

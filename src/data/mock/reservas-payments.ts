@@ -14,7 +14,7 @@ import { SourceError, type Payment, type PaymentInput, type Reservation } from '
 import type { MockCtx } from './context'
 import type { ReservaKit } from './reservas-shared'
 
-type Payments = Pick<ReservasSource, 'registerPayment' | 'cancelPayment' | 'returnDeposit'>
+type Payments = Pick<ReservasSource, 'registerPayment' | 'deletePayment' | 'returnDeposit'>
 
 export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
   const { db, run, fail } = ctx
@@ -56,7 +56,7 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
         return kit.refresh(r)
       }),
 
-    cancelPayment: (paymentId, reason) =>
+    deletePayment: (paymentId, reason) =>
       run(() => {
         const why = reason.trim()
         if (!why) fail([{ code: 'MOTIVO_OBRIGATORIO', field: 'reason' }])
@@ -68,8 +68,7 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
         if ((pay.kind === 'caucao' && b.caucao < pay.amount - 0.005) || (pay.kind !== 'caucao' && pay.kind !== 'estorno' && b.pago < pay.amount - 0.005))
           throw new SourceError('LANCAMENTO_COM_ESTORNO')
 
-        pay.state = 'cancelado'
-        pay.notes = [pay.notes, `Cancelado: ${why}`].filter(Boolean).join(' · ')
+        r.payments = r.payments.filter((p) => p.id !== pay.id)
         kit.syncPending(r)
         if (hasReceivable(r)) {
           const target = pendingTargets(r.totalNet, r.lateFee, r.payments)
@@ -81,7 +80,7 @@ export function reservasPayments(ctx: MockCtx, kit: ReservaKit): Payments {
             })
           }
         }
-        kit.log(r, null, r.state, `Lançamento cancelado: ${PAYMENT_KIND[pay.kind]} de ${brl(pay.amount)} (${PAYMENT_METHOD[pay.method]}). Motivo: ${why}`)
+        kit.log(r, null, r.state, `Lançamento apagado: ${PAYMENT_KIND[pay.kind]} de ${brl(pay.amount)} (${PAYMENT_METHOD[pay.method]}). Motivo: ${why}`)
         return kit.refresh(r)
       }),
 

@@ -130,9 +130,9 @@ export function useRegisterPayment(id: string) {
   return useWorldMutation((input: PaymentInput) => src.registerPayment(id, input))
 }
 
-export function useCancelPayment() {
+export function useDeletePayment() {
   const src = useDataSource()
-  return useWorldMutation(({ paymentId, reason }: { paymentId: string; reason: string }) => src.cancelPayment(paymentId, reason))
+  return useWorldMutation(({ paymentId, reason }: { paymentId: string; reason: string }) => src.deletePayment(paymentId, reason))
 }
 
 export function useReturnDeposit(id: string) {
