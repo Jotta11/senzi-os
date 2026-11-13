@@ -265,6 +265,22 @@ describe('Reservas — ficha', () => {
     expect(within(dialog).getByLabelText('Mensagem')).toHaveValue('contrato')
   })
 
+  it('WhatsApp: texto editável vai no link; "Restaurar texto padrão" volta ao original', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Enviar no WhatsApp' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
+    const box = within(dialog).getByLabelText('Texto da mensagem') as HTMLTextAreaElement
+    const original = box.value
+    await user.clear(box)
+    await user.type(box, 'Oi Mariana, tudo certo!')
+    expect(within(dialog).getByRole('link', { name: 'Abrir WhatsApp' }).getAttribute('href')).toContain(encodeURIComponent('Oi Mariana, tudo certo!'))
+    await user.click(within(dialog).getByRole('button', { name: 'Restaurar texto padrão' }))
+    expect(box).toHaveValue(original)
+  })
+
   it('cancelar → "Lançar estorno" abre o lançamento de estorno de receita com o valor pago', async () => {
     const user = userEvent.setup()
     const source = newSource()

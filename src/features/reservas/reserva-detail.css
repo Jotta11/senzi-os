@@ -68,4 +68,4 @@
 .rd-conf li { border: 1px solid var(--areia); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .rd-conf-h { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .rd-chk { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.rd-wa-text { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font-size: 13.5px; line-height: 1.5; }
+.rd-wa-text { width: 100%; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font: inherit; font-size: 13.5px; line-height: 1.5; resize: vertical; }
