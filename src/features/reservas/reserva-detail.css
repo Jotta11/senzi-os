@@ -41,7 +41,7 @@
 /* contrato / histórico */
 .rd-contract { display: flex; flex-direction: column; gap: 12px; }
 .rd-contract .note { margin: 0; }
-.rd-contract-text { margin: 0; padding: 16px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font-family: var(--f-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 520px; overflow-y: auto; }
+.rd-contract-text { margin: 0; padding: 24px 28px; background: var(--surface); border: 1px solid var(--areia); border-radius: var(--r-md); max-height: 560px; overflow-y: auto; }
 .rd-timeline { list-style: none; margin: 0; padding: 8px 16px 16px; display: flex; flex-direction: column; }
 .rd-timeline li { display: grid; grid-template-columns: 12px 96px minmax(0, 1fr); gap: 10px; padding: 9px 0; align-items: start; }
 .rd-timeline li > div { display: flex; flex-direction: column; }
@@ -64,6 +64,14 @@
 .rd-check .ok { color: var(--t-green); }
 .rd-check .no { color: var(--t-red); }
 .rd-check .info { color: var(--nevoa); }
+.rd-file-l { font-size: 11.5px; font-weight: 600; color: var(--nevoa); }
+.rd-file-box { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--areia); border-radius: 10px; background: var(--fundo); }
+.rd-file.has-error .rd-file-box { border-color: var(--t-red); }
+.rd-file-box > svg { flex: none; color: var(--nevoa); }
+.rd-file-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.rd-file-txt strong { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rd-file-act { display: flex; align-items: center; gap: 6px; flex: none; }
+@media (max-width: 640px) { .rd-file-box { flex-wrap: wrap; } .rd-file-act { width: 100%; justify-content: flex-end; } }
 .rd-conf { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .rd-conf li { border: 1px solid var(--areia); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .rd-conf-h { display: flex; align-items: center; gap: 10px; cursor: pointer; }

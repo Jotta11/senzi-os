@@ -14,7 +14,7 @@ import {
   type ReservationState,
 } from '../types'
 import { projectGarment, type MockCtx } from './context'
-import { renderContract } from './contract'
+import { CONTRACT_TEMPLATE_VERSION, renderContract } from './contract'
 
 const NAME_PREFIX = /^(Vestido|Macacão|Conjunto|Saia|Clutch) /
 
@@ -99,7 +99,7 @@ export function reservaKit(ctx: MockCtx) {
       version: prev ? prev.version + 1 : 1,
       bodyRendered: '',
       generatedAt: now,
-      templateVersion: 1,
+      templateVersion: CONTRACT_TEMPLATE_VERSION,
       terms: { lateFeeDailyPercent: db.settings.lateFeeDailyPercent, deposit: r.depositAmount },
       signedAt: null,
       signedBy: null,

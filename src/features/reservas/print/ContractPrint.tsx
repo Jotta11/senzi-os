@@ -1,7 +1,9 @@
 import { Logo } from '@/ui'
-import { PrintShell, STORE_PLACEHOLDER } from './PrintShell'
+import { STORE } from '@/domain/store'
+import { ContractBody } from '../ContractBody'
+import { PrintShell } from './PrintShell'
 
-/** `/reservas/:id/contrato` — contrato de locação (texto da spec §5.1) em folha A4 para imprimir ou salvar em PDF. */
+/** `/reservas/:id/contrato` — contrato de locação (modelo da loja) em folha A4, com a logo no cabeçalho, para imprimir ou salvar em PDF. */
 export function ContractPrint() {
   return (
     <PrintShell>
@@ -9,10 +11,16 @@ export function ContractPrint() {
         <>
           <header className="pr-head">
             <Logo className="pr-logo" />
-            <p className="pr-store">{STORE_PLACEHOLDER}</p>
+            <p className="pr-store">
+              {STORE.name}
+              <br />
+              CNPJ {STORE.cnpj}
+              <br />
+              {STORE.address}
+            </p>
           </header>
           {r.contract ? (
-            <pre className="pr-contract">{r.contract.bodyRendered}</pre>
+            <ContractBody text={r.contract.bodyRendered} className="pr-contract" />
           ) : (
             <p className="pr-empty">Esta reserva ainda não tem contrato gerado.</p>
           )}

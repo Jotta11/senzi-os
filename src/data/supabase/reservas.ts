@@ -10,10 +10,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { todayISO } from '@/lib/format'
 import type { ExceptionsSource, ReservasSource } from '../source-reservas'
 import { SourceError, type AvailabilityResult, type ConfirmResult, type Reservation, type ReservationDetail, type ReservationInput } from '../types'
-import { contractSignIssues, reservationDiscountHint, reservationIssues } from '../validation'
+import { CONTRACT_FILE_TYPES, contractFileIssues, contractSignIssues, reservationDiscountHint, reservationIssues } from '../validation'
 import { fail, fromDbError, photoSigner, type PhotoSigner, type RawGarment } from './acervo'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/** Bucket privado dos contratos assinados digitalizados: `<reserva>/<arquivo>`. */
+export const CONTRACT_BUCKET = 'contratos'
 const NIL = '00000000-0000-0000-0000-000000000000'
 
 type RawDetail = Omit<ReservationDetail, 'garments'> & { garments: RawGarment[] }
@@ -81,6 +83,28 @@ export function supabaseReservas(client: SupabaseClient, withUrls: PhotoSigner =
       const issues = contractSignIssues(input, todayISO())
       if (issues.length) fail(issues)
       return res('sign_reservation_contract', { p_id: id, p: input })
+    },
+
+    attachContractFile: async (id, file) => {
+      const issues = contractFileIssues(file)
+      if (issues.length) fail(issues)
+      if (!UUID.test(id)) throw new SourceError('NAO_ENCONTRADO')
+      const path = `${id}/${crypto.randomUUID()}.${CONTRACT_FILE_TYPES[file.type]}`
+      const up = await client.storage.from(CONTRACT_BUCKET).upload(path, file, { contentType: file.type, upsert: false })
+      if (up.error) throw up.error
+      try {
+        return await res('attach_reservation_contract_file', { p_id: id, p_path: path })
+      } catch (err) {
+        // Registro recusado (reserva cancelada, sem permissão): não deixa o arquivo órfão no bucket.
+        await client.storage.from(CONTRACT_BUCKET).remove([path])
+        throw err
+      }
+    },
+
+    contractFileUrl: async (path) => {
+      const { data, error } = await client.storage.from(CONTRACT_BUCKET).createSignedUrl(path, 10 * 60)
+      if (error) throw error
+      return data.signedUrl
     },
 
     confirmReservation: (id, signal, exceptionId) => rpc<ConfirmResult>('confirm_reservation', { p_id: id, p: signal, p_exception: exceptionId ?? null }),

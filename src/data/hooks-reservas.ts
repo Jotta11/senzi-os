@@ -119,6 +119,11 @@ export function useMarkContractSigned(id: string) {
   return useWorldMutation((input: ContractSignInput) => src.markContractSigned(id, input))
 }
 
+export function useAttachContractFile(id: string) {
+  const src = useDataSource()
+  return useWorldMutation((file: File) => src.attachContractFile(id, file))
+}
+
 /** Resultado `{ ok: false, conflicts }` não é erro: a tela mostra "Confirmação recusada". */
 export function useConfirmReservation(id: string) {
   const src = useDataSource()

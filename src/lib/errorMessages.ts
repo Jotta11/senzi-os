@@ -7,6 +7,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTO_REBAIXAMENTO: 'Você não pode desativar ou rebaixar a si mesmo.',
   ULTIMO_ADMIN: 'É preciso manter ao menos um administrador ativo.',
   PARAMETRO_INVALIDO: 'Dados inválidos. Revise os campos e tente de novo.',
+  ARQUIVO_INVALIDO: 'Envie o contrato em PDF ou foto (JPG, PNG, WEBP, HEIC), até 10 MB.',
   USUARIO_NAO_ENCONTRADO: 'Usuário não encontrado.',
   PIN_INVALIDO: 'O PIN deve ter de 4 a 6 dígitos.',
   AUTORIZACAO_INVALIDA: 'Administrador ou PIN inválido',

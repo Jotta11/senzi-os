@@ -4,11 +4,12 @@ import { usePermissions } from '@/auth/usePermissions'
 import { useReservation } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
 import { useAppHref } from '@/shell/appPath'
+import { STORE } from '@/domain/store'
 import { Button, EmptyState, Icon } from '@/ui'
 import './print.css'
 
-/** Dados da loja ainda não configuráveis (placeholders; pendência do Plano 2B). */
-export const STORE_PLACEHOLDER = 'Senzi Club — razão social, CNPJ e endereço a configurar'
+/** Linha de dados da loja no cabeçalho/rodapé dos documentos. */
+export const STORE_LINE = `${STORE.name} · CNPJ ${STORE.cnpj} · ${STORE.address}`
 
 /**
  * Carrega a reserva da rota e envolve o documento: barra de ações (voltar + "Imprimir / salvar PDF", ocultas na

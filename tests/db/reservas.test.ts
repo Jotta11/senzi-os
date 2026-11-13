@@ -3,7 +3,7 @@ import { asAnon, asUser, createTestDb, createUser } from './harness'
 
 type Payment = { id: string; kind: string; method: string; amount: number; state: string; paidAt: string | null; dueAt: string | null; reference: string | null; notes: string | null; refersTo: string | null }
 type Item = { id: string; garmentId: string; unitPrice: number; itemDiscount: number; allocatedOrderDiscount: number; netRevenue: number; itemState: string; pickupNote: string | null; returnNote: string | null }
-type Contract = { number: string; version: number; bodyRendered: string; signedAt: string | null; signerName: string | null; terms: { lateFeeDailyPercent: number; deposit: number } }
+type Contract = { number: string; version: number; bodyRendered: string; signedAt: string | null; signerName: string | null; terms: { lateFeeDailyPercent: number; deposit: number }; pdfPath: string | null }
 type Hist = { fromState: string | null; toState: string; reason: string | null; userName: string }
 type Auth = { id: string; kind: string; amount: number; reservationId: string; authorizedByName: string; refType: string }
 type Res = {
@@ -167,14 +167,19 @@ describe('reservas', () => {
       expect(r.code).toMatch(new RegExp(`^RS-${today.slice(0, 4)}-\\d{4}$`))
       expect(r.contract).toMatchObject({ number: r.code.replace('RS', 'CT'), version: 1, signedAt: null, terms: { lateFeeDailyPercent: 20, deposit: 0 } })
       const body = r.contract!.bodyRendered
-      expect(body).toContain(`CONTRATO DE LOCAÇÃO DE VESTUÁRIO Nº ${r.code.replace('RS', 'CT')}`)
-      expect(body).toContain('LOCATÁRIA: Mariana Fontes — CPF 529.982.247-25')
-      expect(body).toContain('Telefone: (63) 99612-4478 · mari@x.com')
-      expect(body).toContain(`• ${turim.code} — ${turim.name} (Verde, tam. 38) — R$ 450,00`)
-      expect(body).toContain('Valor de referência do acervo cedido: R$ 2.000,00.')
-      expect(body).toContain('Sinal: R$ 225,00 · Saldo: R$ 225,00 até a retirada.')
-      expect(body).toContain('multa diária de 20% sobre o valor da locação')
-      expect(body.split('\n').at(-2)).toBe(`Mariana Fontes${' '.repeat(26)}Senzi Club`)
+      expect(body).toContain(`CONTRATO DE LOCAÇÃO DE VESTUÁRIO E ACESSÓRIOS\nNº ${r.code.replace('RS', 'CT')}`)
+      expect(body).toContain('LOCADORA: SENZI CLUB, inscrita no CNPJ sob nº 69.364.448/0001-90')
+      expect(body).toContain('LOCATÁRIA: MARIANA FONTES, nascida em ')
+      expect(body).toContain('inscrita no CPF sob nº 529.982.247-25')
+      expect(body).toContain('telefone/WhatsApp (63) 99612-4478, e-mail mari@x.com')
+      expect(body).toContain('é de R$ 450,00 (quatrocentos e cinquenta reais).')
+      expect(body).toContain('sinal de R$ 225,00 (duzentos e vinte e cinco reais), na confirmação da reserva, e saldo de R$ 225,00 (duzentos e vinte e cinco reais), até a retirada da peça.')
+      expect(body).toContain('20% (vinte por cento) do valor da locação no primeiro dia de atraso, equivalente a R$ 90,00 (noventa reais)')
+      expect(body).toContain('valor de reposição de referência de R$ 2.000,00 (dois mil reais)')
+      expect(body).toContain(`Código da peça: ${turim.code}\nDescrição/modelo: `)
+      expect(body).toContain('Cor: Verde\nTamanho: 38')
+      expect(body).toContain('Sinal: R$ 225,00\nSaldo na retirada: R$ 225,00')
+      expect(body.split('\n').at(-1)).toBe(`Conferência — SENZI CLUB: ${'_'.repeat(32)}`)
       expect(r.history).toEqual([expect.objectContaining({ fromState: null, toState: 'rascunho', reason: 'Reserva criada', userName: 'Bia Atendimento' })])
       expect(r.balance).toEqual({ devido: 450, pago: 0, caucao: 0, due: 450, status: 'nao_pago' })
 
@@ -197,6 +202,17 @@ describe('reservas', () => {
       const [ign] = await as<Avail[]>(atend, 'public.check_availability($1, $2, $3, $4)', [[turim.id], D(14), D(15), other.id])
       expect(ign!.conflicts.map((c) => c.reservationCode)).toEqual([r.code])
       expect(ign!.window).toEqual({ from: D(14), to: D(17), cleaningDays: 2 })
+    })
+
+    it('anexar contrato assinado: arquivo do bucket contratos na pasta da reserva vira pdfPath; fora dela é recusado', async () => {
+      const r = await draft(input([siena], [60, 61, 62]))
+      const path = `${r.id}/assinado.pdf`
+      await asUser(db, atend, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [path]))
+      const res = await as<Res>(atend, 'public.attach_reservation_contract_file($1, $2)', [r.id, path])
+      expect(res.contract!.pdfPath).toBe(path)
+      expect((await errOf(as(atend, 'public.attach_reservation_contract_file($1, $2)', [r.id, `${r.id}/nao-enviado.pdf`])))?.message).toBe('ARQUIVO_INVALIDO')
+      const other = '00000000-0000-0000-0000-000000000000/x.pdf'
+      expect(await errOf(asUser(db, atend, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [other])))).not.toBeNull()
     })
 
     it('valida como a fonte em memória: primeiro problema com o campo; desconto maior que o bruto com o texto', async () => {
@@ -753,10 +769,10 @@ describe('reservas', () => {
 
       await db.query(`delete from public.user_permission_override where user_id = $1 and permission_key = 'reserva.view'`, [u])
       const d = (await get(r0.id, u))!
-      expect(d.contract!.bodyRendered).toContain('CPF ***.982.247-**')
+      expect(d.contract!.bodyRendered).toContain('CPF sob nº ***.982.247-**')
       expect(d.contract!.bodyRendered).not.toContain('529.982.247-25')
       expect(d.customer.cpf).toBe('***982247**')
-      expect((await get(r0.id, atend))!.contract!.bodyRendered).toContain('CPF 529.982.247-25')
+      expect((await get(r0.id, atend))!.contract!.bodyRendered).toContain('CPF: 529.982.247-25')
     })
 
     it('anon não executa nenhuma RPC de reservas nem lê as tabelas', async () => {

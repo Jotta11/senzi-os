@@ -213,6 +213,21 @@ export function contractSignIssues(input: ContractSignInput, today: string): Sou
   return out
 }
 
+/** Contrato assinado digitalizado: PDF ou foto, até 10 MB (bucket `contratos`). Tipo → extensão do arquivo salvo. */
+export const CONTRACT_FILE_TYPES: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+}
+export const CONTRACT_FILE_MAX_BYTES = 10 * 1024 * 1024
+
+export function contractFileIssues(file: { type: string; size: number }): SourceIssue[] {
+  return CONTRACT_FILE_TYPES[file.type] && file.size > 0 && file.size <= CONTRACT_FILE_MAX_BYTES ? [] : [{ code: 'ARQUIVO_INVALIDO', field: 'file' }]
+}
+
 /** Campos comuns de um lançamento financeiro (conta a pagar ou a receber). */
 export type FinEntryFields = { description?: string; categoryId?: string | null; amount?: number; dueDate?: string }
 

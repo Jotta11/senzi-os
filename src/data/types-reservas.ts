@@ -80,6 +80,7 @@ export type Contract = {
   signatureKind: 'presencial' | null
   /** Observação de quem marcou como assinado. */
   signatureNotes?: string | null
+  /** Contrato assinado digitalizado (PDF/foto), anexado na confirmação. */
   pdfPath: string | null
 }
 

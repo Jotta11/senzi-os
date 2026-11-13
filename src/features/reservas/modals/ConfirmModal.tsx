@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useConfirmReservation, useSettings } from '@/data/hooks-reservas'
+import { useAttachContractFile, useConfirmReservation, useSettings } from '@/data/hooks-reservas'
 import { PAYMENT_METHOD } from '@/data/labels-ops'
 import { SourceError, type AvailabilityResult, type PaymentMethod, type ReservationDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
@@ -7,16 +7,19 @@ import { brl } from '@/lib/format'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
 import { numOrNull } from '../../acervo/formErrors'
 import { AuthorizeExceptionDialog } from '../../exceptions/AuthorizeExceptionDialog'
+import { ContractFileField } from '../ContractFile'
 import { SignContractModal } from './SignContractModal'
 
 export type ConfirmModalProps = { r: ReservationDetail; onClose(): void; onRefused(conflicts: AvailabilityResult[]): void }
 
 /**
- * Confirmar reserva (spec §3.2): checklist (contrato assinado, sinal mínimo) + sinal. Abaixo do mínimo o botão vira
+ * Confirmar reserva (spec §3.2): checklist (contrato assinado, sinal mínimo) + arquivo do contrato assinado (opcional,
+ * anexado antes de confirmar) + sinal. Abaixo do mínimo o botão vira
  * "Dispensar sinal mínimo e confirmar" e pede PIN. Conflito de agenda → "Confirmação recusada" (nada muda).
  */
 export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
   const confirm = useConfirmReservation(r.id)
+  const attach = useAttachContractFile(r.id)
   const settings = useSettings()
   const toast = useToast()
   const signed = !!r.contract?.signedAt
@@ -28,15 +31,29 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
   const [error, setError] = useState<string | undefined>()
   const [signing, setSigning] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | undefined>()
+  const busy = confirm.isPending || attach.isPending
 
   const value = numOrNull(amount)
   const valid = value != null && Number.isFinite(value) && value > 0
   const below = valid && value < min - 0.005
 
-  function run(exceptionId?: string) {
+  async function run(exceptionId?: string) {
     if (!valid) return setError(errorMessage('VALOR_INVALIDO'))
     if (value > r.totalNet + 0.005) return setError(`O valor excede o saldo em aberto (${brl(r.totalNet)}).`)
     setError(undefined)
+    // O arquivo vai antes: se a confirmação for recusada, o contrato já fica anexado (nada a reenviar).
+    if (file) {
+      try {
+        await attach.mutateAsync(file)
+        setFile(null)
+      } catch (err) {
+        setFileError(errorMessage(err))
+        toast({ title: 'Não foi possível anexar o contrato', description: errorMessage(err), tone: 'error' })
+        return
+      }
+    }
     confirm.mutate(
       { signal: { amount: value, method, reference: reference.trim() || null, notes: notes.trim() || null }, exceptionId },
       {
@@ -61,9 +78,9 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
 
   function submit(e: FormEvent) {
     e.preventDefault()
-    if (!signed || confirm.isPending) return
+    if (!signed || busy) return
     if (below) setAuthOpen(true)
-    else run()
+    else void run()
   }
 
   const pct = settings.data?.minSignalPercent ?? 0
@@ -77,8 +94,8 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
         footer={
           <>
             <Button onClick={onClose}>Cancelar</Button>
-            <Button variant="primary" type="submit" form="rd-confirm" disabled={!signed || confirm.isPending}>
-              {below ? 'Dispensar sinal mínimo e confirmar' : 'Confirmar reserva'}
+            <Button variant="primary" type="submit" form="rd-confirm" disabled={!signed || busy}>
+              {attach.isPending ? 'Anexando contrato…' : below ? 'Dispensar sinal mínimo e confirmar' : 'Confirmar reserva'}
             </Button>
           </>
         }
@@ -104,6 +121,17 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
             )}
           </ul>
           {!signed && <p className="tiny muted">Marque o contrato como assinado antes de confirmar.</p>}
+
+          <ContractFileField
+            attached={r.contract?.pdfPath ?? null}
+            file={file}
+            disabled={busy}
+            error={fileError}
+            onChange={(f) => {
+              setFile(f)
+              setFileError(f && f.size > 10 * 1024 * 1024 ? errorMessage('ARQUIVO_INVALIDO') : undefined)
+            }}
+          />
 
           <div className="rd-grid">
             <Field label="Valor do sinal (R$)" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} error={error} />
@@ -136,7 +164,7 @@ export function ConfirmModal({ r, onClose, onRefused }: ConfirmModalProps) {
           detail={`${r.customer.fullName} vai confirmar ${r.code} com sinal de ${brl(value)}, abaixo do mínimo de ${brl(min)} (${pct}%).`}
           onAuthorized={(id) => {
             setAuthOpen(false)
-            run(id)
+            void run(id)
           }}
           onCancel={() => setAuthOpen(false)}
         />

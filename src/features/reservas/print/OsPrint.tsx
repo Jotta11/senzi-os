@@ -7,7 +7,7 @@ import { lateFeePercent } from '@/domain/money'
 import { brl, dateBR, maskPhone, todayISO } from '@/lib/format'
 import { Logo, Silhouette } from '@/ui'
 import { longDay } from '../reservaFormat'
-import { PrintShell, STORE_PLACEHOLDER } from './PrintShell'
+import { PrintShell, STORE_LINE } from './PrintShell'
 
 /** `/reservas/:id/os` — Ordem de Serviço / Confirmação de Reserva (spec §5.3). Valores só com `financeiro.view`; contato só com `cliente.view`. */
 export function OsPrint() {
@@ -155,7 +155,7 @@ function Os({ r }: { r: ReservationDetail }) {
         </ul>
       </section>
 
-      <footer className="pr-foot">{STORE_PLACEHOLDER}</footer>
+      <footer className="pr-foot">{STORE_LINE}</footer>
     </>
   )
 }

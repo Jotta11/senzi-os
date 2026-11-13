@@ -70,7 +70,7 @@ describe('reservas — rascunho', () => {
     expect(r.state).toBe('rascunho')
     expect(r.code).toMatch(/^RS-2026-\d{4}$/)
     expect(r.contract?.number).toBe(r.code.replace('RS', 'CT'))
-    expect(r.contract?.bodyRendered).toContain('Senzi Club')
+    expect(r.contract?.bodyRendered).toContain('LOCADORA: SENZI CLUB, inscrita no CNPJ sob nº 69.364.448/0001-90')
     expect(r.contract?.signedAt).toBeNull()
     expect(bolonha.state).toBe('disponivel')
     expect(bolonha.blocks).toEqual(blocksBefore)

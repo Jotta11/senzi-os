@@ -6,13 +6,13 @@
 import { discountNeedsException, round2 } from '@/domain/money'
 import type { ReservasSource } from '../source-reservas'
 import { SourceError, type ExceptionAuthorization, type Reservation, type ReservationInput } from '../types'
-import { contractSignIssues, reservationDiscountHint, reservationGross, reservationIssues } from '../validation'
+import { contractFileIssues, contractSignIssues, reservationDiscountHint, reservationGross, reservationIssues } from '../validation'
 import type { MockCtx } from './context'
 import { consumeException, usableException } from './exceptions'
 import { priceItems, type PriceLine } from './pricing'
 import type { ReservaKit } from './reservas-shared'
 
-type Draft = Pick<ReservasSource, 'createDraft' | 'updateDraft' | 'addDraftItem' | 'removeDraftItem' | 'markContractSigned'>
+type Draft = Pick<ReservasSource, 'createDraft' | 'updateDraft' | 'addDraftItem' | 'removeDraftItem' | 'markContractSigned' | 'attachContractFile' | 'contractFileUrl'>
 
 const OPEN_FITTING = ['agendada', 'em_curso']
 
@@ -218,5 +218,21 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
         })
         return kit.refresh(r)
       }),
+
+    // Na prévia o arquivo fica só neste navegador (URL `blob:`).
+    attachContractFile: (id, file) =>
+      run(() => {
+        const r = ctx.reservation(id)
+        if (r.state === 'cancelada' || r.state === 'no_show') throw new SourceError('ESTADO_INVALIDO')
+        const issues = contractFileIssues(file)
+        if (issues.length) fail(issues)
+        if (!r.contract) kit.writeContract(r)
+        const old = r.contract!.pdfPath
+        if (old?.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(old)
+        r.contract!.pdfPath = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `blob:preview/${ctx.newId('ct')}`
+        return kit.refresh(r)
+      }),
+
+    contractFileUrl: async (path) => path,
   }
 }

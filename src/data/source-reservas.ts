@@ -48,6 +48,10 @@ export interface ReservasSource {
   removeDraftItem(id: string, itemId: string): Promise<Reservation>
   /** `signedAt` em `aaaa-mm-dd`. Congela o corpo do contrato. */
   markContractSigned(id: string, input: ContractSignInput): Promise<Reservation>
+  /** Anexa o contrato assinado digitalizado (PDF/foto) ao contrato vigente (`pdfPath`). Substitui o anterior. */
+  attachContractFile(id: string, file: File): Promise<Reservation>
+  /** Link temporário para abrir o arquivo anexado (`pdfPath`). */
+  contractFileUrl(path: string): Promise<string>
   /** Conflito de agenda em qualquer peça → `{ ok: false }` e nada muda. */
   confirmReservation(id: string, signal: SignalInput, exceptionId?: string): Promise<ConfirmResult>
 

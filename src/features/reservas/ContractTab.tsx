@@ -4,11 +4,13 @@ import type { ReservationDetail } from '@/data/types'
 import { dateBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Button, EmptyState, Icon, buttonClass, useToast } from '@/ui'
+import { ContractBody } from './ContractBody'
+import { ContractUpload } from './ContractFile'
 
 export type ContractTabProps = { r: ReservationDetail; onSign(): void; onWhatsApp(): void }
 
 
-/** Aba Contrato: número, situação da assinatura, ações (visualizar, copiar, imprimir, assinar) e o texto. */
+/** Aba Contrato: número, situação da assinatura, ações (copiar, imprimir, assinar), envio do contrato assinado e o texto. */
 export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
   const { can } = usePermissions()
   const href = useAppHref()
@@ -72,6 +74,7 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
             </span>
           </p>
         )}
+        {c && <ContractUpload r={r} canEdit={!closed && can('reserva.confirm')} />}
         {!r.customer.cpf && (
           <p className="note amber">
             <Icon name="alerta" size={14} />
@@ -79,9 +82,9 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
           </p>
         )}
         {c ? (
-          <pre className="rd-contract-text" tabIndex={0} aria-label="Texto do contrato">
-            {c.bodyRendered}
-          </pre>
+          <div className="rd-contract-text" tabIndex={0} role="document" aria-label="Texto do contrato">
+            <ContractBody text={c.bodyRendered} />
+          </div>
         ) : (
           <EmptyState icon="doc" title="Sem contrato gerado" description="O contrato é gerado quando o rascunho é salvo. Marque como assinado para emitir a via." />
         )}

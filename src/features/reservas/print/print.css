@@ -7,10 +7,9 @@
 .pr-sheet { background: var(--surface); color: var(--tinta); border: 1px solid var(--areia); border-radius: var(--r-md); box-shadow: var(--shadow-1); padding: 40px 48px; max-width: 794px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 .pr-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--areia); padding-bottom: 14px; }
 .pr-logo { width: 130px; height: auto; color: var(--cranberry); flex: none; }
-.pr-store { margin: 0; font-size: 11px; color: var(--nevoa); text-align: right; }
+.pr-store { margin: 0; font-size: 11px; line-height: 1.5; color: var(--nevoa); text-align: right; }
 .pr-title h1 { font-size: 24px; font-weight: 400; line-height: 1.15; }
 .pr-title p { margin: 4px 0 0; font-size: 12.5px; }
-.pr-contract { margin: 0; font-family: var(--f-mono); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pr-empty { margin: 0; color: var(--nevoa); }
 .pr-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--areia); font-size: 10.5px; color: var(--nevoa); }
 .pr-sec h2 { font-family: var(--f-display); font-weight: 400; font-size: 16px; margin: 0 0 6px; color: var(--cranberry); }
@@ -37,7 +36,6 @@
   body:has(.pr-doc) .sb-app { display: block; }
   .pr-page { padding: 0; }
   .pr-sheet { border: none; box-shadow: none; padding: 0; max-width: none; border-radius: 0; }
-  .pr-contract { font-size: 10.5pt; }
 }
 .pr-photo .silhouette { width: 100%; height: 100%; border-radius: 0; padding: 3px 2px 0; }
 .pr-photo .silhouette > rect { fill: transparent; }

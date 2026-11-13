@@ -82,6 +82,53 @@ describe('Reservas — ficha', () => {
     expect(await within(panel).findByText('Confirmada')).toBeInTheDocument()
   })
 
+  it('anexa o contrato assinado (PDF) na confirmação e a aba Contrato oferece "Ver contrato assinado"', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, draftOf('Capri'))
+    await signed(source, row.id)
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Confirmar reserva' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar reserva' })
+    const pdf = new File(['%PDF-1.4'], 'contrato-assinado.pdf', { type: 'application/pdf' })
+    await user.upload(within(dialog).getByLabelText(/Contrato assinado \(arquivo\)/), pdf)
+    expect(within(dialog).getByText('contrato-assinado.pdf')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar reserva' }))
+    expect(await screen.findByText('Reserva confirmada')).toBeInTheDocument()
+    expect((await source.getReservation(row.id))?.contract?.pdfPath).toBeTruthy()
+    await user.click(await screen.findByRole('tab', { name: 'Contrato' }))
+    expect(await screen.findByText('Contrato anexado')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ver' })).toBeInTheDocument()
+  })
+
+  it('aba Contrato: envia o contrato assinado (foto) e mostra o modelo novo formatado', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
+    renderPreview(`/preview/reservas/${row.id}?aba=contrato`, source)
+    const doc = await screen.findByRole('document', { name: 'Texto do contrato' })
+    expect(within(doc).getByRole('heading', { name: 'CONTRATO DE LOCAÇÃO DE VESTUÁRIO E ACESSÓRIOS' })).toBeInTheDocument()
+    expect(within(doc).getByRole('heading', { name: 'ANEXO I — FICHA DE LOCAÇÃO E VISTORIA' })).toBeInTheDocument()
+    expect(screen.getByText('Anexar contrato assinado')).toBeInTheDocument()
+    await user.upload(screen.getByLabelText('Contrato assinado (arquivo)'), new File(['jpg'], 'via.jpg', { type: 'image/jpeg' }))
+    expect(await screen.findByText('Contrato anexado')).toBeInTheDocument()
+    expect((await source.getReservation(row.id))?.contract?.pdfPath).toBeTruthy()
+  })
+
+  it('arquivo de contrato inválido (texto) não confirma e mostra o erro', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    const source = newSource()
+    const row = await find(source, draftOf('Capri'))
+    await signed(source, row.id)
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Confirmar reserva' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar reserva' })
+    await user.upload(within(dialog).getByLabelText(/Contrato assinado \(arquivo\)/), new File(['x'], 'nota.txt', { type: 'text/plain' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar reserva' }))
+    expect(await within(dialog).findByText(/Envie o contrato em PDF ou foto/)).toBeInTheDocument()
+    expect((await source.getReservation(row.id))?.state).toBe('rascunho')
+  })
+
   it('confirmação recusada (Bolonha): modal "Confirmação recusada" com "nada foi alterado"', async () => {
     const user = userEvent.setup()
     const source = newSource()
@@ -193,20 +240,20 @@ describe('Reservas — ficha', () => {
     const source = newSource()
     const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
     renderPreview(`/preview/reservas/${row.id}/contrato`, source)
-    expect(await screen.findByText(/CONTRATO DE LOCAÇÃO DE VESTUÁRIO Nº CT-/)).toBeInTheDocument()
+    expect(await screen.findByText('CONTRATO DE LOCAÇÃO DE VESTUÁRIO E ACESSÓRIOS')).toBeInTheDocument()
     expect(document.body.textContent).toContain('Senzi Club')
     expect(document.body.textContent).not.toContain(['Senzi', 'e'].join(''))
     expect(screen.getByRole('button', { name: 'Imprimir / salvar PDF' })).toBeInTheDocument()
   })
 
-  it('rota da OS: cabeçalho, peças, valores e dados da loja a configurar', async () => {
+  it('rota da OS: cabeçalho, peças, valores e dados da loja', async () => {
     const source = newSource()
     const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
     renderPreview(`/preview/reservas/${row.id}/os`, source)
     expect(await screen.findByRole('heading', { name: 'Ordem de Serviço / Confirmação de Reserva' })).toBeInTheDocument()
     expect(screen.getByText(/Vestido Verona/)).toBeInTheDocument()
     expect(screen.getByText('Saldo')).toBeInTheDocument()
-    expect(screen.getByText(/razão social, CNPJ e endereço a configurar/)).toBeInTheDocument()
+    expect(screen.getByText(/CNPJ 69\.364\.448\/0001-90/)).toBeInTheDocument()
   })
 
   it('WhatsApp: botão abre o modal com a mensagem e o link wa.me', async () => {
@@ -216,8 +263,24 @@ describe('Reservas — ficha', () => {
     renderPreview(`/preview/reservas/${row.id}`, source)
     await user.click(await screen.findByRole('button', { name: 'Enviar no WhatsApp' }))
     const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
-    expect(within(dialog).getByLabelText('Texto da mensagem').textContent).toMatch(/^Olá, Mariana! Sua reserva .* está confirmada\./)
+    expect((within(dialog).getByLabelText('Texto da mensagem') as HTMLTextAreaElement).value).toMatch(/^Olá, Mariana! Sua reserva .* está confirmada\./)
     expect(within(dialog).getByRole('link', { name: 'Abrir WhatsApp' }).getAttribute('href')).toMatch(/^https:\/\/wa\.me\/55\d{10,11}\?text=/)
+  })
+
+  it('WhatsApp: texto editável vai no link; "Restaurar texto padrão" volta ao original', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Enviar no WhatsApp' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
+    const box = within(dialog).getByLabelText('Texto da mensagem') as HTMLTextAreaElement
+    const original = box.value
+    await user.clear(box)
+    await user.type(box, 'Oi Mariana, tudo certo!')
+    expect(within(dialog).getByRole('link', { name: 'Abrir WhatsApp' }).getAttribute('href')).toContain(encodeURIComponent('Oi Mariana, tudo certo!'))
+    await user.click(within(dialog).getByRole('button', { name: 'Restaurar texto padrão' }))
+    expect(box).toHaveValue(original)
   })
 
   it('retirada: "Observação da retirada" vira nota de atendimento da cliente (só com cliente.note)', async () => {
@@ -263,22 +326,6 @@ describe('Reservas — ficha', () => {
     await user.click(await within(panel).findByRole('button', { name: 'Enviar no WhatsApp' }))
     const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
     expect(within(dialog).getByLabelText('Mensagem')).toHaveValue('contrato')
-  })
-
-  it('WhatsApp: texto editável vai no link; "Restaurar texto padrão" volta ao original', async () => {
-    const user = userEvent.setup()
-    const source = newSource()
-    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
-    renderPreview(`/preview/reservas/${row.id}`, source)
-    await user.click(await screen.findByRole('button', { name: 'Enviar no WhatsApp' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Enviar no WhatsApp' })
-    const box = within(dialog).getByLabelText('Texto da mensagem') as HTMLTextAreaElement
-    const original = box.value
-    await user.clear(box)
-    await user.type(box, 'Oi Mariana, tudo certo!')
-    expect(within(dialog).getByRole('link', { name: 'Abrir WhatsApp' }).getAttribute('href')).toContain(encodeURIComponent('Oi Mariana, tudo certo!'))
-    await user.click(within(dialog).getByRole('button', { name: 'Restaurar texto padrão' }))
-    expect(box).toHaveValue(original)
   })
 
   it('cancelar → "Lançar estorno" abre o lançamento de estorno de receita com o valor pago', async () => {

@@ -125,7 +125,7 @@ export function makeReservation(w: World, spec: ReservationSpec): Reservation {
           version: 1,
           bodyRendered: '',
           generatedAt: spec.createdAt,
-          templateVersion: 1,
+          templateVersion: 2,
           terms: { lateFeeDailyPercent: w.settings.lateFeeDailyPercent, deposit: 0 },
           signedAt: spec.contractSignedAt || null,
           signedBy: spec.contractSignedAt ? spec.createdBy : null,
