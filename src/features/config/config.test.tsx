@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -60,23 +60,20 @@ const tab = (name: string) => screen.getByRole('tab', { name })
 beforeEach(() => vi.clearAllMocks())
 
 describe('ConfigPage — abas', () => {
-  it('admin vê as quatro abas acessíveis', () => {
+  it('admin vê as três abas acessíveis (sem PIN)', () => {
     setup()
     expect(screen.getByRole('tablist', { name: 'Configurações' })).toBeInTheDocument()
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Usuários', 'Permissões', 'PIN', 'Auditoria'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Usuários', 'Permissões', 'Auditoria'])
     expect(tab('Usuários')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tabpanel', { name: 'Usuários' })).toBeInTheDocument()
   })
 
-  it('aba PIN só aparece para admin', () => {
-    setup({ role: 'atendimento', perms: ['config.view', 'config.users', 'config.audit'] })
-    expect(screen.queryByRole('tab', { name: 'PIN' })).toBeNull()
-    expect(tab('Usuários')).toBeInTheDocument()
-  })
-
   it('sem config.audit não mostra Auditoria; sem config.users não mostra Usuários nem Permissões', () => {
-    setup({ perms: ['config.view'] })
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['PIN'])
+    setup({ perms: ['config.view', 'config.users'] })
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Usuários', 'Permissões'])
+    cleanup()
+    setup({ perms: ['config.view', 'config.audit'] })
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Auditoria'])
   })
 
   it('sem nenhuma aba disponível mostra aviso', () => {
@@ -256,53 +253,6 @@ describe('Permissões por usuário', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Gerenciar usuários e permissões' }), 'revogado')
     await userEvent.click(screen.getByRole('button', { name: 'Salvar permissões' }))
     expect(await screen.findByText('Você não pode desativar ou rebaixar a si mesmo.')).toBeInTheDocument()
-  })
-})
-
-describe('PIN', () => {
-  it('salva o PIN com set_my_pin', async () => {
-    const c = setup()
-    await userEvent.click(tab('PIN'))
-    const pin = screen.getByLabelText('Novo PIN')
-    expect(pin).toHaveAttribute('inputmode', 'numeric')
-    expect(pin).toHaveAttribute('type', 'password')
-    await userEvent.type(pin, '1234')
-    await userEvent.type(screen.getByLabelText('Confirmar PIN'), '1234')
-    await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
-    expect(await screen.findByText('PIN salvo.')).toBeInTheDocument()
-    expect(c.rpc).toHaveBeenCalledWith('set_my_pin', { p_pin: '1234' })
-  })
-
-  it('PINs diferentes não chamam o banco', async () => {
-    const c = setup()
-    await userEvent.click(tab('PIN'))
-    await userEvent.type(screen.getByLabelText('Novo PIN'), '1234')
-    await userEvent.type(screen.getByLabelText('Confirmar PIN'), '1235')
-    await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
-    expect(await screen.findByText('Os PINs não conferem.')).toBeInTheDocument()
-    expect(c.rpc).not.toHaveBeenCalledWith('set_my_pin', expect.anything())
-  })
-
-  it('PIN_INVALIDO do banco aparece em pt-BR e limpa os dois campos', async () => {
-    setup({ rpc: (fn) => (fn === 'set_my_pin' ? { data: null, error: { message: 'PIN_INVALIDO' } } : undefined) })
-    await userEvent.click(tab('PIN'))
-    await userEvent.type(screen.getByLabelText('Novo PIN'), '12')
-    await userEvent.type(screen.getByLabelText('Confirmar PIN'), '12')
-    await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
-    expect(await screen.findByText('O PIN deve ter de 4 a 6 dígitos.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Novo PIN')).toHaveValue('')
-    expect(screen.getByLabelText('Confirmar PIN')).toHaveValue('')
-  })
-
-  it('falha de rede no set_my_pin também limpa os campos', async () => {
-    setup({ rpc: (fn) => { if (fn === 'set_my_pin') throw new Error('network'); return undefined } })
-    await userEvent.click(tab('PIN'))
-    await userEvent.type(screen.getByLabelText('Novo PIN'), '1234')
-    await userEvent.type(screen.getByLabelText('Confirmar PIN'), '1234')
-    await userEvent.click(screen.getByRole('button', { name: 'Salvar PIN' }))
-    expect(await screen.findByText('Algo deu errado. Tente novamente.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Novo PIN')).toHaveValue('')
-    expect(screen.getByLabelText('Confirmar PIN')).toHaveValue('')
   })
 })
 

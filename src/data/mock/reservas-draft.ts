@@ -64,13 +64,13 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
     return f
   }
 
-  /** Desconto acima do limite: autorização já gravada que cubra o valor, ou exceção nova utilizável; senão erro. */
+  /** Desconto acima do limite: autorização já gravada que cubra o valor, ou exceção nova utilizável (sem exceção, passa). */
   function discountException(r: Reservation | null, gross: number, discount: number, exceptionId?: string): ExceptionAuthorization | null {
     if (!discountNeedsException(gross, discount, db.settings.discountLimitPercent)) return null
     const covered = r?.authorizations.some((a) => a.kind === 'desconto_acima_limite' && a.amount >= discount - 0.005)
     if (covered) return null
     const exc = usableException(ctx, exceptionId, 'desconto_acima_limite', { reservationId: r?.id ?? null, draft: true, amount: discount })
-    if (!exc) fail([{ code: 'DESCONTO_ACIMA_LIMITE', field: 'discount' }])
+    // Sem PIN (13/11/2026): desconto acima do limite não bloqueia.
     return exc
   }
 

@@ -1,18 +1,17 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { dataKeys, useCustomer } from '@/data/hooks'
-import { useCreateDraft, useSettings, useUpdateDraft } from '@/data/hooks-reservas'
+import { useCreateDraft, useUpdateDraft } from '@/data/hooks-reservas'
 import { useDataSource } from '@/data/source'
 import { SourceError, type Channel, type Garment, type ReservationDetail, type ReservationInput } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
-import { addDays, brl, todayISO } from '@/lib/format'
+import { addDays, todayISO } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
 import { Button, Modal, useToast } from '@/ui'
 import { numOrNull } from '../acervo/formErrors'
 import { CustomerForm } from '../clientes/CustomerForm'
-import { AuthorizeExceptionDialog } from '../exceptions/AuthorizeExceptionDialog'
 import { ReservationFields, type FormValues } from './ReservationFields'
 
 export type ReservationFormProps = {
@@ -27,8 +26,8 @@ export type ReservationFormProps = {
 const days = (a: string, b: string) => Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000)
 
 /**
- * Nova reserva / Editar rascunho (modal largo). Conflito de agenda é só aviso; desconto acima do limite pede PIN de
- * administrador; criar leva à ficha da reserva. Resolve as peças iniciais antes de montar o formulário.
+ * Nova reserva / Editar rascunho (modal largo). Conflito de agenda é só aviso; desconto não pede PIN;
+ * criar leva à ficha da reserva. Resolve as peças iniciais antes de montar o formulário.
  */
 export function ReservationForm({ open, onClose, draft, initial }: ReservationFormProps) {
   const src = useDataSource()
@@ -43,12 +42,10 @@ export function ReservationForm({ open, onClose, draft, initial }: ReservationFo
 function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProps, 'open'> & { start: Garment[] }) {
   const create = useCreateDraft()
   const update = useUpdateDraft(draft?.id ?? '')
-  const settings = useSettings()
   const { can } = usePermissions()
   const toast = useToast()
   const navigate = useNavigate()
   const href = useAppHref()
-  const tempId = useId()
   const errorsRef = useRef<HTMLDivElement>(null)
 
   const [v, setV] = useState<FormValues>(() => {
@@ -80,7 +77,6 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
   })
   const [picked, setPicked] = useState<Garment[]>(start)
   const [errors, setErrors] = useState<string[]>([])
-  const [authOpen, setAuthOpen] = useState(false)
   const [newCustomer, setNewCustomer] = useState(false)
   const customer = useCustomer(v.customerId ?? undefined).data ?? null
   const put = <K extends keyof FormValues>(k: K, val: FormValues[K]) => setV((p) => ({ ...p, [k]: val }))
@@ -103,11 +99,6 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
   }
 
   function fail(err: unknown) {
-    if (err instanceof SourceError && err.issues?.some((i) => i.code === 'DESCONTO_ACIMA_LIMITE')) {
-      setErrors([])
-      setAuthOpen(true)
-      return
-    }
     const issues = err instanceof SourceError ? (err.issues?.length ? err.issues : [{ code: err.code }]) : []
     const list = issues.length
       ? issues.map((i) => (i.code === 'DESCONTO_MAIOR_QUE_BRUTO' && err instanceof SourceError && err.hint ? err.hint : errorMessage(i.code)))
@@ -117,7 +108,7 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
     toast({ title: 'Revise a reserva', description: unique[0], tone: 'error' })
   }
 
-  function submit(e?: FormEvent, exceptionId?: string) {
+  function submit(e?: FormEvent) {
     e?.preventDefault()
     if (pending) return
     const frozen = new Map((draft?.items ?? []).map((i) => [i.garmentId, i.unitPrice]))
@@ -137,7 +128,7 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
     setErrors([])
     if (draft) {
       update.mutate(
-        { input, exceptionId },
+        { input },
         {
           onSuccess: () => {
             toast({ title: 'Rascunho atualizado', description: draft.code })
@@ -148,7 +139,7 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
       )
     } else {
       create.mutate(
-        { input, exceptionId },
+        { input },
         {
           onSuccess: (r) => {
             toast({ title: 'Reserva criada', description: `${r.code} · rascunho` })
@@ -160,13 +151,10 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
     }
   }
 
-  const limit = settings.data?.discountLimitPercent ?? 15
-  const pct = gross > 0 ? Math.round((discount / gross) * 1000) / 10 : 0
-
   return (
     <>
       <Modal
-        open={!authOpen}
+        open
         onClose={onClose}
         size="lg"
         title={draft ? 'Editar rascunho' : 'Nova reserva'}
@@ -211,20 +199,6 @@ function Controller({ onClose, draft, initial, start }: Omit<ReservationFormProp
         </form>
       </Modal>
 
-      {authOpen && (
-        <AuthorizeExceptionDialog
-          kind="desconto_acima_limite"
-          refType="reserva_rascunho"
-          refId={draft?.id ?? `tmp-${tempId}`}
-          maxAmount={discount}
-          detail={`O desconto de ${brl(discount)} representa ${pct.toLocaleString('pt-BR')}% do valor das peças, acima do limite de ${limit}% da casa.`}
-          onAuthorized={(id) => {
-            setAuthOpen(false)
-            submit(undefined, id)
-          }}
-          onCancel={() => setAuthOpen(false)}
-        />
-      )}
       <CustomerForm
         open={newCustomer}
         onClose={() => setNewCustomer(false)}

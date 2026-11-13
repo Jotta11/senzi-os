@@ -31,9 +31,13 @@
   @page { size: A4; margin: 16mm; }
   body:has(.pr-doc) .sb-rail,
   body:has(.pr-doc) .pv-band,
+  body:has(.pr-doc) .sb-top,
+  body:has(.pr-doc) .sb-tabs,
+  body:has(.pr-doc) .sb-scrim,
   .no-print { display: none !important; }
   body:has(.pr-doc) { background: var(--surface); }
-  body:has(.pr-doc) .sb-app { display: block; }
+  body:has(.pr-doc) .sb-app { display: block; min-height: 0; }
+  body:has(.pr-doc) .sb-content { padding: 0 !important; }
   .pr-page { padding: 0; }
   .pr-sheet { border: none; box-shadow: none; padding: 0; max-width: none; border-radius: 0; }
 }

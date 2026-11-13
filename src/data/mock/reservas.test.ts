@@ -55,12 +55,6 @@ async function signed(src: ReturnType<typeof reservas>, ctx: MockCtx, id: string
   return ctx.reservation(id)
 }
 
-async function authorize(auth: ReturnType<typeof exceptionsMock>, kind: Parameters<typeof auth.authorize>[0]['kind'], refType: string, refId: string, maxAmount?: number) {
-  const r = await auth.authorize({ email: 'julia@senzi.com.br', pin: '1234', kind, reason: 'Cliente antiga', refType, refId, maxAmount })
-  if (!r.ok) throw new Error(r.error)
-  return r.id
-}
-
 describe('reservas — rascunho', () => {
   it('rascunho com peça em conflito é criado: estado rascunho, peça continua disponível e sem blocos novos', async () => {
     const { ctx, src } = setup()
@@ -92,23 +86,14 @@ describe('reservas — rascunho', () => {
     ])
   })
 
-  it('desconto de 16% sem exceção → DESCONTO_ACIMA_LIMITE; com exceção válida cria e religa a exceção', async () => {
-    const { ctx, src, auth } = setup()
+  it('desconto de 16% não pede PIN: cria o rascunho direto', async () => {
+    const { ctx, src } = setup()
     const base = input(ctx, ['Turim', 'Nápoles'], [5, 6, 8])
     const discount = Math.round(880 * 0.16 * 100) / 100
-    const err = await errorOf(src.createDraft({ ...base, discount }))
-    expect(err.code).toBe('DESCONTO_ACIMA_LIMITE')
-    expect(err.field).toBe('discount')
-    expect(ctx.db.reservations.some((r) => r.items.some((i) => i.garmentId === byName(ctx, 'Turim').id))).toBe(false)
-
-    const exId = await authorize(auth, 'desconto_acima_limite', 'reserva_rascunho', 'tmp-1', discount)
-    const r = await src.createDraft({ ...base, discount }, exId)
+    const r = await src.createDraft({ ...base, discount })
     expect(r.totalNet).toBe(880 - discount)
     expect(r.items.reduce((s, i) => s + i.netRevenue, 0)).toBeCloseTo(r.totalNet, 2)
-    expect(r.authorizations).toEqual([expect.objectContaining({ id: exId, kind: 'desconto_acima_limite', amount: discount, reservationId: r.id })])
-    expect(ctx.db.exceptions.find((e) => e.id === exId)!.reservationId).toBe(r.id)
-    // A mesma exceção não serve duas vezes.
-    expect((await errorOf(src.createDraft({ ...base, discount }, exId))).code).toBe('DESCONTO_ACIMA_LIMITE')
+    expect(r.authorizations).toEqual([])
   })
 
   it('criar a partir da prova converte a prova e conclui o compromisso dela', async () => {
@@ -187,32 +172,30 @@ describe('reservas — confirmação', () => {
     expect(r.history.at(-1)).toMatchObject({ fromState: 'rascunho', toState: 'confirmada', reason: 'Confirmação da reserva' })
   })
 
-  it('sinal abaixo de 50% sem exceção → SINAL_INSUFICIENTE; com dispensa autorizada confirma', async () => {
-    const { ctx, src, auth } = setup()
+  it('sinal abaixo de 50% não pede PIN: confirma direto', async () => {
+    const { ctx, src } = setup()
     const draft = await src.createDraft(input(ctx, ['Turim'], [5, 6, 8]))
     await signed(src, ctx, draft.id)
     const pay = { amount: 100, method: 'pix' as const, reference: null, notes: null }
-    const err = await errorOf(src.confirmReservation(draft.id, pay))
-    expect(err.code).toBe('SINAL_INSUFICIENTE')
-    expect(ctx.reservation(draft.id).state).toBe('rascunho')
     expect((await errorOf(src.confirmReservation(draft.id, { ...pay, amount: 0 }))).code).toBe('VALOR_INVALIDO')
     expect((await errorOf(src.confirmReservation(draft.id, { ...pay, amount: 601 }))).code).toBe('VALOR_EXCEDE_SALDO')
-
-    const exId = await authorize(auth, 'dispensa_sinal_minimo', 'reserva', draft.id)
-    const res = await src.confirmReservation(draft.id, pay, exId)
+    const res = await src.confirmReservation(draft.id, pay)
     expect(res.ok).toBe(true)
-    if (res.ok) expect(res.reservation.authorizations).toEqual([expect.objectContaining({ id: exId, amount: 200 })])
+    if (res.ok) expect(res.reservation.authorizations).toEqual([])
   })
 })
 
 describe('reservas — retirada, devolução e cancelamento', () => {
-  it('retirada com saldo sem exceção → SALDO_EM_ABERTO', async () => {
+  it('retirada com saldo não pede PIN: a peça sai e o saldo segue em aberto', async () => {
     const { ctx, src } = setup()
     const sorrento = resOf(ctx, 'Sorrento', 'confirmada')
-    expect(sorrento.balance.due).toBeGreaterThan(0)
-    const err = await errorOf(src.pickupItems(sorrento.id, [{ itemId: sorrento.items[0]!.id, delivered: true }]))
-    expect(err.code).toBe('SALDO_EM_ABERTO')
-    expect(sorrento.items[0]!.itemState).toBe('pendente')
+    const due = sorrento.balance.due
+    const before = sorrento.authorizations.length
+    expect(due).toBeGreaterThan(0)
+    const res = await src.pickupItems(sorrento.id, [{ itemId: sorrento.items[0]!.id, delivered: true }])
+    expect(res.items[0]!.itemState).toBe('retirado')
+    expect(res.balance.due).toBeCloseTo(due, 2)
+    expect(res.authorizations).toHaveLength(before)
   })
 
   it('devolução parcial de 1 de 2 peças atrasada 1 dia: uma multa pendente de 20% × total e aguardando_devolucao', async () => {
@@ -297,35 +280,15 @@ describe('reservas — segurança (auditoria)', () => {
     expect(u.items.map((i) => i.unitPrice)).toEqual([frozen, napoles.rentalPrice])
   })
 
-  it('preço baixo na entrada não escapa do limite de desconto', async () => {
+  it('preço na entrada é ignorado: vale o preço de locação da peça', async () => {
     const { ctx, src } = setup()
     const turim = byName(ctx, 'Turim')
-    // 16% do preço real: com unitPrice inflado o desconto pareceria pequeno; com o real, passa do limite.
     const discount = Math.round(turim.rentalPrice * 0.16 * 100) / 100
-    const err = await errorOf(src.createDraft({ ...input(ctx, ['Turim'], [5, 6, 8]), discount, items: [{ garmentId: turim.id, unitPrice: 100000 }] }))
-    expect(err.code).toBe('DESCONTO_ACIMA_LIMITE')
+    const r = await src.createDraft({ ...input(ctx, ['Turim'], [5, 6, 8]), discount, items: [{ garmentId: turim.id, unitPrice: 100000 }] })
+    expect(r.totalNet).toBeCloseTo(turim.rentalPrice - discount, 2)
   })
 
-  it('exceção de desconto vale até o valor autorizado (maxAmount); sem valor não é concedida', async () => {
-    const { ctx, src, auth } = setup()
-    const base = input(ctx, ['Turim', 'Nápoles'], [5, 6, 8])
-    expect(await auth.authorize({ email: 'julia@senzi.com.br', pin: '1234', kind: 'desconto_acima_limite', reason: 'x', refType: 'reserva_rascunho', refId: 'tmp-1' })).toEqual({ ok: false, error: 'PARAMETRO_INVALIDO' })
-    const exId = await authorize(auth, 'desconto_acima_limite', 'reserva_rascunho', 'tmp-1', 150)
-    const err = await errorOf(src.createDraft({ ...base, discount: 400 }, exId))
-    expect([err.code, err.field]).toEqual(['DESCONTO_ACIMA_LIMITE', 'discount'])
-    const r = await src.createDraft({ ...base, discount: 150 }, exId)
-    expect(r.authorizations).toEqual([expect.objectContaining({ id: exId, amount: 150, maxAmount: 150 })])
-  })
 
-  it('dispensa de sinal vale até o valor autorizado', async () => {
-    const { ctx, src, auth } = setup()
-    const draft = await src.createDraft(input(ctx, ['Turim'], [5, 6, 8]))
-    await signed(src, ctx, draft.id)
-    const pay = { amount: 100, method: 'pix' as const, reference: null, notes: null }
-    const exId = await authorize(auth, 'dispensa_sinal_minimo', 'reserva', draft.id, 50)
-    expect((await errorOf(src.confirmReservation(draft.id, pay, exId))).code).toBe('SINAL_INSUFICIENTE')
-    expect((await src.confirmReservation(draft.id, { ...pay, amount: 250 }, exId)).ok).toBe(true)
-  })
 
   it('PIN: 10 erros em 24 h (fora da janela de 15 min) bloqueiam mesmo depois de 24 h; 9 não', async () => {
     const args = { email: 'julia@senzi.com.br', kind: 'retirada_com_saldo' as const, reason: 'teste', refType: 'reserva', refId: 'r-1' }

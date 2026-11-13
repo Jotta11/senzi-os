@@ -4,7 +4,6 @@ import { usePermissions } from '@/auth/usePermissions'
 import { useMarkReady, useRemoveDraftItem, useReservation, useSettings } from '@/data/hooks-reservas'
 import { longDay } from './reservaFormat'
 import type { AvailabilityResult, PaymentKind, ReservationDetail } from '@/data/types'
-import { SourceError } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
 import { useToday } from '@/lib/useToday'
 import { useAppHref } from '@/shell/appPath'
@@ -124,10 +123,9 @@ function Ficha({ r }: { r: ReservationDetail }) {
     removeItem.mutate(itemId, {
       onSuccess: () => toast({ title: 'Peça removida', description: `${r.code} · contrato regerado.` }),
       onError: (err) => {
-        const needsPin = err instanceof SourceError && (err.code === 'DESCONTO_ACIMA_LIMITE' || err.issues?.some((i) => i.code === 'DESCONTO_ACIMA_LIMITE'))
         toast({
           title: 'Não foi possível remover a peça',
-          description: needsPin ? 'Sem essa peça o desconto passaria do limite da casa. Use "Editar rascunho" para ajustar o desconto e autorizar com PIN.' : errorMessage(err),
+          description: errorMessage(err),
           tone: 'error',
         })
       },

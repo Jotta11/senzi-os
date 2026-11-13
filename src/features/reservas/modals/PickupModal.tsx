@@ -6,14 +6,13 @@ import type { ReservationDetail } from '@/data/types'
 import { errorMessage } from '@/lib/errorMessages'
 import { brl, dateBR, todayISO } from '@/lib/format'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
-import { AuthorizeExceptionDialog } from '../../exceptions/AuthorizeExceptionDialog'
 import { GarmentThumb } from '../GarmentThumb'
 
 export type PickupModalProps = { r: ReservationDetail; onClose(): void; onReceive(): void }
 
 /**
- * Registrar retirada (spec §3.5): conferência por peça (marcada por padrão). Com saldo em aberto a entrega exige
- * a exceção `retirada_com_saldo` por PIN ("Autorizar e entregar").
+ * Registrar retirada (spec §3.5): conferência por peça (marcada por padrão). Saldo em aberto só é avisado:
+ * a peça sai sem PIN e o saldo continua em aberto na reserva.
  */
 export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
   const pickup = usePickupItems(r.id)
@@ -25,20 +24,17 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [pickupNote, setPickupNote] = useState('')
   const [guidance, setGuidance] = useState(true)
-  const [authOpen, setAuthOpen] = useState(false)
   const due = r.balance.due
   const owes = due > 0.005
   const chosen = open.filter((i) => picked[i.id])
 
-  function run(exceptionId?: string) {
+  function run() {
     pickup.mutate(
-      { decisions: open.map((i) => ({ itemId: i.id, delivered: !!picked[i.id], note: notes[i.id]?.trim() || undefined })), exceptionId },
+      { decisions: open.map((i) => ({ itemId: i.id, delivered: !!picked[i.id], note: notes[i.id]?.trim() || undefined })) },
       {
         onSuccess: (res) => {
           // Observação da retirada vira memória de atendimento da cliente (só quem pode anotar)
           if (can('cliente.note') && pickupNote.trim()) addNote.mutate({ content: `Retirada — ${pickupNote.trim()}`, channel: 'presencial', pinned: false })
-          const by = res.authorizations.find((a) => a.id === exceptionId)?.authorizedByName
-          if (by) toast({ title: 'Retirada autorizada', description: `${brl(due)} em aberto · autorizada por ${by}.` })
           const pending = res.items.filter((i) => i.itemState === 'pendente' || i.itemState === 'nao_entregue').length
           const out = res.items.filter((i) => i.itemState === 'retirado').length
           if (pending > 0) toast({ title: 'Retirada parcial registrada', description: `${chosen.length} entregue(s), ${pending} pendente(s) na loja.` })
@@ -47,7 +43,6 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
         },
         onError: (err) => {
           toast({ title: 'Não foi possível registrar a retirada', description: errorMessage(err), tone: 'error' })
-          setAuthOpen(false)
         },
       },
     )
@@ -60,14 +55,13 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
       toast({ title: 'Nenhuma peça marcada', description: 'Marque o que a cliente está levando.', tone: 'error' })
       return
     }
-    if (owes) setAuthOpen(true)
-    else run()
+    run()
   }
 
   return (
     <>
       <Modal
-        open={!authOpen}
+        open
         onClose={onClose}
         size="lg"
         title="Registrar retirada"
@@ -77,17 +71,17 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
             <Button onClick={onClose}>Cancelar</Button>
             {owes && can('financeiro.payment') && <Button onClick={onReceive}>Receber agora</Button>}
             <Button variant="primary" type="submit" form="rd-pickup" disabled={pickup.isPending}>
-              {owes ? 'Autorizar e entregar' : 'Confirmar retirada'}
+              Confirmar retirada
             </Button>
           </>
         }
       >
         <form id="rd-pickup" className="rd-form" onSubmit={submit} noValidate>
           {owes ? (
-            <p className={`note ${can('reserva.authorize') ? 'amber' : 'red'}`}>
+            <p className="note amber">
               <Icon name="alerta" size={14} />
               <span>
-                <b>Retirada com saldo pendente exige autorização.</b> Falta {brl(due)}. Um administrador precisa digitar o PIN.
+                <b>Saldo em aberto: {brl(due)}.</b> Dá para entregar assim; o valor continua pendente na reserva.
               </span>
             </p>
           ) : (
@@ -144,22 +138,6 @@ export function PickupModal({ r, onClose, onReceive }: PickupModalProps) {
           </label>
         </form>
       </Modal>
-
-      {authOpen && (
-        <AuthorizeExceptionDialog
-          kind="retirada_com_saldo"
-          refType="reserva"
-          refId={r.id}
-          maxAmount={due}
-          detail={
-            <>
-              {r.customer.fullName} está levando a(s) peça(s) com <b>{brl(due)}</b> em aberto na reserva {r.code}.
-            </>
-          }
-          onAuthorized={(id) => run(id)}
-          onCancel={() => setAuthOpen(false)}
-        />
-      )}
     </>
   )
 }

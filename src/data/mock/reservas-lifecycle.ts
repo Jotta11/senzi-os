@@ -54,8 +54,8 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         if (!Number.isFinite(amount) || amount <= 0) fail([{ code: 'VALOR_INVALIDO', field: 'amount' }])
         if (amount > r.totalNet + 0.005) fail([{ code: 'VALOR_EXCEDE_SALDO', field: 'amount' }], brl(r.totalNet))
         const min = minSignal(r.totalNet, db.settings.minSignalPercent)
+        // Sem PIN (13/11/2026): sinal abaixo do mínimo não bloqueia; exceção só é usada se vier.
         const waiver = amount < min - 0.005 ? usableException(ctx, exceptionId, 'dispensa_sinal_minimo', { reservationId: r.id, amount: round2(min - amount) }) : null
-        if (amount < min - 0.005 && !waiver) fail([{ code: 'SINAL_INSUFICIENTE', field: 'amount' }], brl(min))
 
         const checks = r.items.map((i) => kit.availability(i.garmentId, r.pickupDate, r.returnDueDate, r.id))
         const conflicts = checks.filter(kit.blocking)
@@ -101,7 +101,7 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         if (!valid.some((d) => d.delivered)) fail([{ code: 'PARAMETRO_INVALIDO', field: 'items' }])
         const due = r.balance.due
         const exc = due > 0.005 ? usableException(ctx, exceptionId, 'retirada_com_saldo', { reservationId: r.id, amount: due }) : null
-        if (due > 0.005 && !exc) fail([{ code: 'SALDO_EM_ABERTO' }], brl(due))
+        // Sem PIN (13/11/2026): saldo em aberto não impede a retirada.
 
         // Retirada antecipada: a locação passa a começar hoje no calendário da peça. Se outro compromisso
         // ocupa a peça antes da data combinada, ela não pode sair antes.

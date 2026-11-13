@@ -135,7 +135,7 @@ describe('Reservas — nova reserva', () => {
     expect(await within(dialog).findByText(/O desconto \(R\$\s2\.000,00\) é maior que o valor das peças \(R\$\s890,00\)\./)).toBeInTheDocument()
   })
 
-  it('desconto acima de 15% pede o PIN; com 1234 cria o rascunho', async () => {
+  it('desconto acima de 15% não pede PIN: cria o rascunho direto', async () => {
     const user = userEvent.setup()
     const source = newSource()
     const c = (await source.searchCustomers('Patrícia', 'nome', { limit: 1, offset: 0 })).items[0]!
@@ -144,19 +144,11 @@ describe('Reservas — nova reserva', () => {
     await within(dialog).findByRole('button', { name: /Vestido Verona/, pressed: true })
     fireEvent.change(within(dialog).getByLabelText('Desconto (R$)'), { target: { value: '200' } })
     await user.click(within(dialog).getByRole('button', { name: 'Criar rascunho' }))
-
-    const pin = await screen.findByRole('dialog', { name: 'Autorizar exceção' })
-    expect(within(pin).getByText('Desconto acima do limite')).toBeInTheDocument()
-    await user.selectOptions(within(pin).getByLabelText('Administrador'), await within(pin).findByRole('option', { name: /Júlia Senzi/ }))
-    await user.type(within(pin).getByLabelText('PIN'), '1234')
-    await user.type(within(pin).getByLabelText('Motivo'), 'Cliente antiga')
-    await user.click(within(pin).getByRole('button', { name: 'Autorizar' }))
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/preview\/reservas\/res-/))
-    const list = await source.listReservations('rascunhos', { limit: 10, offset: 0 })
-    expect(list.items).toHaveLength(3)
-    // O PIN autoriza o desconto pedido (maxAmount), não um cheque em branco.
+    expect(screen.queryByRole('dialog', { name: 'Autorizar exceção' })).not.toBeInTheDocument()
     const created = await source.getReservation(router.state.location.pathname.split('/').pop()!)
-    expect(created!.authorizations).toEqual([expect.objectContaining({ kind: 'desconto_acima_limite', amount: 200, maxAmount: 200 })])
+    expect(created!.discount).toBe(200)
+    expect(created!.authorizations).toEqual([])
   })
 
   it('vindo de prova, preenche a cliente e as peças aprovadas e deixa a prova "Convertida"', async () => {

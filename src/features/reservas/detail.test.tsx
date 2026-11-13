@@ -145,7 +145,7 @@ describe('Reservas — ficha', () => {
     expect((await source.getReservation(row.id))!.state).toBe('rascunho')
   })
 
-  it('sinal abaixo do mínimo troca o botão para "Dispensar sinal mínimo e confirmar"', async () => {
+  it('sinal abaixo do mínimo só avisa: o botão continua "Confirmar reserva" (sem PIN)', async () => {
     const user = userEvent.setup()
     const source = newSource()
     const row = await find(source, draftOf('Capri'))
@@ -154,30 +154,23 @@ describe('Reservas — ficha', () => {
     await user.click(await screen.findByRole('button', { name: 'Confirmar reserva' }))
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar reserva' })
     fireEvent.change(within(dialog).getByLabelText('Valor do sinal (R$)'), { target: { value: '100' } })
-    expect(within(dialog).getByRole('button', { name: 'Dispensar sinal mínimo e confirmar' })).toBeInTheDocument()
-    expect(within(dialog).getByText(/Sinal abaixo do mínimo/)).toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: /Dispensar/ })).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar reserva' }))
+    expect(screen.queryByRole('dialog', { name: 'Autorizar exceção' })).not.toBeInTheDocument()
+    await waitFor(async () => expect((await source.getReservation(row.id))!.state).toBe('confirmada'))
   })
 
-  it('reserva com saldo: retirada pede PIN ("Autorizar e entregar") e passa para Em uso', async () => {
+  it('reserva com saldo: retirada sem PIN, só avisa o saldo, e passa para Em uso', async () => {
     const user = userEvent.setup()
     const source = newSource()
     const row = await find(source, (r) => r.state === 'confirmada' && has('Sorrento')(r))
     renderPreview(`/preview/reservas/${row.id}`, source)
     await user.click(await screen.findByRole('button', { name: 'Registrar retirada' }))
     const dialog = await screen.findByRole('dialog', { name: 'Registrar retirada' })
-    expect(within(dialog).getByText(/Retirada com saldo pendente exige autorização\./)).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Autorizar e entregar' }))
-    const pin = await screen.findByRole('dialog', { name: 'Autorizar exceção' })
-    await user.selectOptions(within(pin).getByLabelText('Administrador'), await within(pin).findByRole('option', { name: /Júlia Senzi/ }))
-    await user.type(within(pin).getByLabelText('PIN'), '1234')
-    await user.type(within(pin).getByLabelText('Motivo'), 'Cliente conhecida')
-    await user.click(within(pin).getByRole('button', { name: 'Autorizar' }))
-    expect(await screen.findByText('Retirada autorizada')).toBeInTheDocument()
+    expect(within(dialog).getByText(/Saldo em aberto:/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar retirada' }))
+    expect(screen.queryByRole('dialog', { name: 'Autorizar exceção' })).not.toBeInTheDocument()
     await waitFor(async () => expect((await source.getReservation(row.id))!.state).toBe('em_uso'))
-    // O diálogo autoriza exatamente o saldo em aberto (maxAmount) e a retirada usa esse valor.
-    const auth = (await source.getReservation(row.id))!.authorizations.find((a) => a.kind === 'retirada_com_saldo')!
-    expect(auth.maxAmount).toBeGreaterThan(0)
-    expect(auth.amount).toBe(auth.maxAmount)
   })
 
   it('reserva atrasada mostra a faixa vermelha com a multa calculada e não oferece Cancelar', async () => {

@@ -113,11 +113,6 @@ describe('reservas', () => {
   const cancel = (id: string, reason: string) => as<Res>(atend, 'public.cancel_reservation($1, $2)', [id, reason])
   const deposit = (id: string, method: string, retain: unknown = null) =>
     as<Res>(atend, 'public.return_reservation_deposit($1, $2, $3)', [id, method, retain === null ? null : JSON.stringify(retain)])
-  const authorize = async (kind: string, refType: string, refId: string | null, user = atend, maxAmount: number | null = null) => {
-    const r = await as<{ ok: boolean; id?: string; error?: string }>(user, `public.authorize_exception('ana@senzi.test', '1234', $1, 'Cliente antiga', $2, $3, $4)`, [kind, refType, refId, maxAmount])
-    if (!r.ok) throw new Error(r.error)
-    return r.id!
-  }
   /** Rascunho assinado e confirmado (padrão: sinal mínimo de 50%). */
   const confirmed = async (gs: Garment[], d: [number, number, number], amount?: (net: number) => number) => {
     const r = await draft(input(gs, d))
@@ -235,25 +230,15 @@ describe('reservas', () => {
       expect(await errOf(draft({ ...base, items: [{ garmentId: 'x', unitPrice: 1 }] }))).toMatchObject({ message: 'NAO_ENCONTRADO' })
     })
 
-    it('desconto de 16%: DESCONTO_ACIMA_LIMITE; exceção do rascunho vale uma vez, só do tipo certo e de quem pediu', async () => {
+    it('desconto de 16% passa sem PIN (13/11/2026: sem exceção por PIN)', async () => {
       const base = input([turim, napoles], [5, 6, 8], { discount: 144 })
-      expect(await errOf(draft(base))).toMatchObject({ message: 'DESCONTO_ACIMA_LIMITE', detail: 'discount' })
-      const wrongKind = await authorize('dispensa_sinal_minimo', 'reserva_rascunho', null)
-      expect((await errOf(draft(base, wrongKind)))?.message).toBe('DESCONTO_ACIMA_LIMITE')
-      const byAdmin = await authorize('desconto_acima_limite', 'reserva_rascunho', null, admin, 144)
-      expect((await errOf(draft(base, byAdmin)))?.message).toBe('DESCONTO_ACIMA_LIMITE')
-
-      const exc = await authorize('desconto_acima_limite', 'reserva_rascunho', null, atend, 144)
-      const r = await draft(base, exc)
+      const r = await draft(base)
       expect(r.totalNet).toBe(900 - 144)
       expect(r.items.map((i) => [i.allocatedOrderDiscount, i.netRevenue])).toEqual([
         [72, 378],
         [72, 378],
       ])
-      expect(r.authorizations).toEqual([expect.objectContaining({ id: exc, kind: 'desconto_acima_limite', amount: 144, reservationId: r.id, refType: 'reserva', authorizedByName: 'Ana Admin' })])
-      expect(r.history.at(-1)).toMatchObject({ fromState: null, toState: 'rascunho', reason: 'Exceção autorizada: Cliente antiga (Ana Admin)' })
-      expect((await errOf(draft(base, exc)))?.message).toBe('DESCONTO_ACIMA_LIMITE')
-      // Editar mantendo o mesmo desconto: a autorização gravada cobre.
+      expect(r.authorizations).toEqual([])
       const again = await as<Res>(atend, 'public.update_reservation_draft($1, $2, $3)', [r.id, JSON.stringify({ ...base, notes: 'x' }), null])
       expect(again.contract!.version).toBe(2)
       // O preço vem da peça (450), não da entrada (tests/db/seguranca.test.ts cobre o ataque).
@@ -333,22 +318,15 @@ describe('reservas', () => {
   })
 
   describe('confirmação', () => {
-    it('regras do sinal e do contrato; dispensa autorizada vale para a reserva certa', async () => {
+    it('regras do sinal e do contrato; sinal abaixo do mínimo confirma sem PIN', async () => {
       const r = await draft(input([turim], [5, 6, 8]))
       expect((await errOf(confirm(r.id, 450)))?.message).toBe('CONTRATO_NAO_ASSINADO')
       await sign(r.id)
       expect(await errOf(confirm(r.id, 0))).toMatchObject({ message: 'VALOR_INVALIDO', detail: 'amount' })
       expect(await errOf(confirm(r.id, 451))).toMatchObject({ message: 'VALOR_EXCEDE_SALDO', detail: 'amount', hint: 'R$ 450,00' })
-      expect(await errOf(confirm(r.id, 100))).toMatchObject({ message: 'SINAL_INSUFICIENTE', detail: 'amount', hint: 'R$ 225,00' })
-      const other = await draft(input([napoles], [5, 6, 8]))
-      const forOther = await authorize('dispensa_sinal_minimo', 'reserva', other.id)
-      expect((await errOf(confirm(r.id, 100, forOther)))?.message).toBe('SINAL_INSUFICIENTE')
-      const draftKind = await authorize('dispensa_sinal_minimo', 'reserva_rascunho', null)
-      expect((await errOf(confirm(r.id, 100, draftKind)))?.message).toBe('SINAL_INSUFICIENTE')
-      const exc = await authorize('dispensa_sinal_minimo', 'reserva', r.id)
-      const res = await confirm(r.id, 100, exc)
+      const res = await confirm(r.id, 100)
       expect(res.ok).toBe(true)
-      expect(res.reservation!.authorizations).toEqual([expect.objectContaining({ id: exc, amount: 125 })])
+      expect(res.reservation!.authorizations).toEqual([])
     })
 
     it('uma das peças em conflito → ok false e nada muda', async () => {
@@ -513,22 +491,21 @@ describe('reservas', () => {
   })
 
   describe('ciclo completo', () => {
-    it('pronta → retirada antecipada (com saldo só por exceção) → devolução no prazo → finalizada → caução devolvida', async () => {
+    it('pronta → retirada antecipada (com saldo, sem PIN) → devolução no prazo → finalizada → caução devolvida', async () => {
       const r0 = await confirmed([turim], [5, 6, 8])
       expect((await errOf(as(atend, 'public.mark_reservation_no_show($1)', [r0.id])))?.message).toBe('ESTADO_INVALIDO')
       const ready = await as<Res>(atend, 'public.mark_reservation_ready($1)', [r0.id])
       expect(ready.state).toBe('pronta_retirada')
       expect((await errOf(as(atend, 'public.mark_reservation_ready($1)', [r0.id])))?.message).toBe('ESTADO_INVALIDO')
       const decisions = r0.items.map((i) => ({ itemId: i.id, delivered: true, note: 'Com capa' }))
-      expect(await errOf(pickup(r0.id, decisions))).toMatchObject({ message: 'SALDO_EM_ABERTO', hint: 'R$ 225,00' })
       expect(await errOf(pickup(r0.id, [{ itemId: r0.items[0]!.id, delivered: false }]))).toMatchObject({ message: 'PARAMETRO_INVALIDO', detail: 'items' })
-      const exc = await authorize('retirada_com_saldo', 'reserva', r0.id)
-      const out = await pickup(r0.id, decisions, exc)
+      const out = await pickup(r0.id, decisions)
       expect(out.state).toBe('em_uso')
       expect(out.items[0]).toMatchObject({ itemState: 'retirado', pickupNote: 'Com capa' })
       expect(out.pickedUpAt!.slice(0, 10)).toBe(today)
-      expect(out.authorizations).toEqual([expect.objectContaining({ kind: 'retirada_com_saldo', amount: 225 })])
-      expect(out.history.slice(-2).map((h) => h.reason)).toEqual(['Exceção autorizada: Cliente antiga (Ana Admin)', 'Todas as peças retiradas pela cliente'])
+      expect(out.authorizations).toEqual([])
+      expect(out.balance.due).toBe(225)
+      expect(out.history.at(-1)!.reason).toBe('Todas as peças retiradas pela cliente')
       let g = await getGarment(turim.id)
       expect(g.state).toBe('em_uso')
       expect(g.history[0]!.reason).toBe(`Retirada — ${r0.code}`)
