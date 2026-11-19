@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { invalidateWorld } from './hooks'
 import { useDataSource } from './source'
-import type { CloseMaintenanceInput, InspectionInput } from './types'
+import type { CloseMaintenanceInput, InspectionInput, SendToCleaningInput } from './types'
 
 export function useOperacaoQueue() {
   const src = useDataSource()
@@ -43,6 +43,11 @@ function useWorldMutation<V, R>(fn: (v: V) => Promise<R>) {
 export function useRegisterInspection() {
   const src = useDataSource()
   return useWorldMutation((input: InspectionInput) => src.registerInspection(input))
+}
+
+export function useSendToCleaning() {
+  const src = useDataSource()
+  return useWorldMutation((input: SendToCleaningInput) => src.sendToCleaning(input))
 }
 
 export function useCloseMaintenance() {

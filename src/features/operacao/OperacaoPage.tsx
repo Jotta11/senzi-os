@@ -17,6 +17,7 @@ import { CloseMaintenanceModal, ReleaseModal } from './CloseMaintenanceModal'
 import { InspectionModal } from './InspectionModal'
 import { orderTarget, type OrderTarget } from './orderTarget'
 import { QueueCard } from './QueueCard'
+import { SendToCleaningModal } from './SendToCleaningModal'
 import './operacao.css'
 
 type Order = OperacaoQueue['openOrders'][number]
@@ -39,6 +40,7 @@ export function OperacaoPage() {
   const [inspecting, setInspecting] = useState<Garment | null>(null)
   const [closing, setClosing] = useState<OrderTarget | null>(null)
   const [releasing, setReleasing] = useState<Garment | null>(null)
+  const [sending, setSending] = useState(false)
 
   const focusIds = useMemo(() => new Set(focusReservation.data?.items.map((i) => i.garmentId) ?? []), [focusReservation.data])
   const q = queue.data
@@ -175,7 +177,21 @@ export function OperacaoPage() {
                   )
                 }
               />
-              <QueueCard title="Em higienização" tone="teal" description="Na lavanderia. Ao concluir, lance o custo — ele entra no resultado da peça." rows={q.higienizacao} focusIds={focusIds} action={open} />
+              <QueueCard
+                title="Em higienização"
+                tone="teal"
+                description="Na lavanderia. Ao concluir, lance o custo — ele entra no resultado da peça."
+                rows={q.higienizacao}
+                focusIds={focusIds}
+                action={open}
+                headerAction={
+                  can('operacao.maintenance') && (
+                    <Button size="sm" icon="plus" onClick={() => setSending(true)}>
+                      Lançar avulsa
+                    </Button>
+                  )
+                }
+              />
               <QueueCard title="Em ajuste" tone="ochre" description="Alterações reversíveis feitas para uma cliente específica." rows={q.ajuste} focusIds={focusIds} action={open} />
               <QueueCard title="Em manutenção" tone="ochre" description="Reparos. Custo lançado aqui abate o resultado econômico da peça." rows={q.manutencao} focusIds={focusIds} action={open} />
               {q.bloqueado.length > 0 && (
@@ -220,6 +236,7 @@ export function OperacaoPage() {
       <InspectionModal garment={inspecting} onClose={() => setInspecting(null)} />
       <CloseMaintenanceModal order={closing} onClose={() => setClosing(null)} />
       <ReleaseModal garment={releasing} onClose={() => setReleasing(null)} />
+      <SendToCleaningModal open={sending} onClose={() => setSending(false)} />
     </div>
   )
 }

@@ -14,6 +14,20 @@
 .op-grid .wide { grid-column: 1 / -1; }
 .op-card-d { margin: 0; padding: 0 16px 10px; font-size: 12.5px; color: var(--nevoa); border-bottom: 1px solid var(--areia); }
 .op-card-h { gap: 8px; }
+.op-card-act { margin-left: auto; }
+
+/* higienização avulsa: busca e escolha da peça */
+.op-search { display: flex; flex-direction: column; gap: 8px; }
+.op-results { border: 1px solid var(--areia); border-radius: var(--r-md); max-height: 300px; overflow-y: auto; }
+.op-results > li + li { border-top: 1px solid var(--areia); }
+.op-results > li.muted { padding: 10px 14px; }
+.op-pick-row { width: 100%; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; grid-template-columns: 38px minmax(0, 1fr); }
+.op-pick-row:hover:not(:disabled) { background: var(--surface-2); }
+.op-pick-row:hover:not(:disabled) .op-name { color: var(--vivo); }
+.op-pick-row:disabled { opacity: .45; cursor: not-allowed; }
+.op-pick { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--areia); border-radius: var(--r-md); }
+.op-pick .op-thumb { width: 38px; height: 50px; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); border: 1px solid var(--areia); display: block; }
+.op-pick .op-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .op-list { list-style: none; margin: 0; padding: 0; }
 .op-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 16px; }

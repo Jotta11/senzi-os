@@ -43,6 +43,11 @@ export function supabaseOperacao(client: SupabaseClient, withUrls: PhotoSigner =
       return { result: r.result, garment: await one(r.garment) }
     },
 
+    sendToCleaning: async (input) => {
+      if (!UUID.test(input.garmentId)) throw new SourceError('PECA_NAO_ENCONTRADA')
+      return one(await rpc<RawGarment>('send_to_cleaning', { p: input }))
+    },
+
     closeMaintenance: async (input) => one(await rpc<RawGarment>('close_maintenance', { p: input })),
 
     releaseGarment: async (garmentId, note) => {

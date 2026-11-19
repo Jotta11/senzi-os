@@ -155,6 +155,28 @@ describe('Operação — fonte em memória', () => {
     expect(hist.inspections.length).toBeGreaterThan(0)
   })
 
+  it('higienização avulsa: peça disponível vai para a fila sem devolução; concluir com liberação volta ao acervo', async () => {
+    const { ctx, src } = setup()
+    const g = ctx.db.garments.find((x) => x.state === 'disponivel' && !x.blocks.some((b) => b.from <= TODAY && b.to >= TODAY))!
+    const out = await src.sendToCleaning({ garmentId: g.id, provider: 'Lavanderia Branca Neve', note: 'usada em prova', days: 2 })
+    expect(out.state).toBe('higienizacao')
+    const m = ctx.db.maintenances.find((x) => x.garmentId === g.id && x.state === 'em_andamento')!
+    expect(m).toMatchObject({ kind: 'higienizacao', reservationId: null, inspectionId: null, dueAt: D(2), description: 'Higienização avulsa · usada em prova' })
+    expect(out.blocks.some((b) => b.maintenanceId === m.id && b.from === TODAY)).toBe(true)
+    expect((await src.operacaoQueue()).higienizacao.some((r) => r.garment.id === g.id)).toBe(true)
+    const done = await src.closeMaintenance({ maintenanceId: m.id, cost: 0, provider: null, note: null, release: true })
+    expect(done.state).toBe('disponivel')
+  })
+
+  it('higienização avulsa: só peça na loja; dias fora de 1–60 recusados', async () => {
+    const { ctx, src } = setup()
+    const modena = byName(ctx, 'Modena')
+    await expect(src.sendToCleaning({ garmentId: modena.id, provider: null, note: null, days: null })).rejects.toMatchObject({ code: 'ESTADO_INVALIDO' })
+    await expect(src.sendToCleaning({ garmentId: 'nada', provider: null, note: null, days: null })).rejects.toMatchObject({ code: 'PECA_NAO_ENCONTRADA' })
+    const g = ctx.db.garments.find((x) => x.state === 'disponivel')!
+    await expect(src.sendToCleaning({ garmentId: g.id, provider: null, note: null, days: 0 })).rejects.toBeInstanceOf(SourceError)
+  })
+
   it('checklist ativo e fornecedores sugeridos', async () => {
     const { src } = setup()
     expect(await src.checklist()).toHaveLength(10)

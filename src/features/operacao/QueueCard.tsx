@@ -52,10 +52,12 @@ export type QueueCardProps = {
   action(row: QueueRow): ReactNode
   /** Peças a destacar (vindo de `?reserva=`). */
   focusIds?: Set<string>
+  /** Ação do card (ao lado da contagem). */
+  headerAction?: ReactNode
 }
 
 /** Card de uma fila: título, contagem (tom do estado), descrição e linhas; vazia mostra "Fila vazia.". */
-export function QueueCard({ title, tone, description, rows, wide, action, focusIds }: QueueCardProps) {
+export function QueueCard({ title, tone, description, rows, wide, action, focusIds, headerAction }: QueueCardProps) {
   return (
     <section className={['card', wide && 'wide'].filter(Boolean).join(' ')} aria-label={title}>
       <div className="card-h op-card-h">
@@ -63,6 +65,7 @@ export function QueueCard({ title, tone, description, rows, wide, action, focusI
         <Badge tone={tone} dot={false}>
           {rows.length}
         </Badge>
+        {headerAction && <div className="op-card-act">{headerAction}</div>}
       </div>
       <p className="op-card-d">{description}</p>
       {rows.length === 0 ? (

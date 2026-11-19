@@ -195,6 +195,24 @@ export function operacao(ctx: MockCtx): OperacaoSource {
         return { result, garment: pg(g) }
       }),
 
+    sendToCleaning: (input) =>
+      run(() => {
+        const g = db.garments.find((x) => x.id === input.garmentId)
+        if (!g) throw new SourceError('PECA_NAO_ENCONTRADA')
+        if (g.state !== 'disponivel' && g.state !== 'reservado') throw new SourceError('ESTADO_INVALIDO')
+        if (input.days != null && (!Number.isInteger(input.days) || input.days < 1 || input.days > 60)) fail([{ code: 'PARAMETRO_INVALIDO', field: 'days' }])
+        const live = pg(g).blocks
+        if (live.some((b) => b.from <= today && b.to >= today)) throw new SourceError('CONFLITO_AGENDA')
+        const days = input.days ?? Math.max(1, effectiveCleaningDays(g, db.categories, db.settings))
+        const next = live.filter((b) => b.from > today).map((b) => b.from).sort()[0]
+        const to = next ? [addDays(today, days), addDays(next, -1)].sort()[0]! : addDays(today, days)
+        const note = input.note?.trim() || null
+        const m = newOrder({ garmentId: g.id, kind: 'higienizacao', state: 'em_andamento', dueAt: addDays(today, days), description: note ? `Higienização avulsa · ${note}` : 'Higienização avulsa', provider: input.provider?.trim() || null, blocksGarment: true })
+        g.blocks.push({ id: newId('blk'), kind: 'higienizacao', from: today, to, note: 'Higienização avulsa', maintenanceId: m.id })
+        kit.setGarmentState(g.id, 'higienizacao', 'Enviada para higienização avulsa')
+        return pg(g)
+      }),
+
     closeMaintenance: (input) =>
       run(() => {
         const m = db.maintenances.find((x) => x.id === input.maintenanceId)

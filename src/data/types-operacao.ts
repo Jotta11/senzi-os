@@ -56,6 +56,15 @@ export type InspectionInput = {
   notes: string | null
 }
 
+/** Higienização avulsa: peça na loja (disponível ou reservada sem compromisso hoje) vai para a lavanderia sem ter sido devolvida. */
+export type SendToCleaningInput = {
+  garmentId: string
+  provider: string | null
+  note: string | null
+  /** Dias previstos (1–60); `null` usa o prazo de higienização da peça. */
+  days: number | null
+}
+
 export type CloseMaintenanceInput = { maintenanceId: string; cost: number; provider: string | null; note: string | null; release: boolean }
 
 export type QueueRow = {
