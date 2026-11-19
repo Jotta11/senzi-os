@@ -2,7 +2,7 @@ import type { PGlite, Transaction } from '@electric-sql/pglite'
 import { asAnon, asUser, createTestDb, createUser } from './harness'
 
 type Payment = { id: string; kind: string; method: string; amount: number; state: string; paidAt: string | null; dueAt: string | null; reference: string | null; notes: string | null; refersTo: string | null }
-type Item = { id: string; garmentId: string; unitPrice: number; itemDiscount: number; allocatedOrderDiscount: number; netRevenue: number; itemState: string; pickupNote: string | null; returnNote: string | null }
+type Item = { id: string; garmentId: string; unitPrice: number; itemDiscount: number; allocatedOrderDiscount: number; netRevenue: number; itemState: string; pickupNote: string | null; returnNote: string | null; returnedAt: string | null }
 type Contract = { number: string; version: number; bodyRendered: string; signedAt: string | null; signerName: string | null; terms: { lateFeeDailyPercent: number; deposit: number }; pdfPath: string | null }
 type Hist = { fromState: string | null; toState: string; reason: string | null; userName: string }
 type Auth = { id: string; kind: string; amount: number; reservationId: string; authorizedByName: string; refType: string }
@@ -582,6 +582,28 @@ describe('reservas', () => {
       expect(done.payments.filter((p) => p.kind === 'multa')).toHaveLength(0)
       expect(done.balance.due).toBe(0)
       expect(done.returnedAt).not.toBeNull()
+    })
+
+    it('devolução com data informada e multa opcional: valida a data, usa o dia escolhido e dispensa a multa', async () => {
+      const giveBackOn = (id: string, decisions: unknown[], on: string | null, charge: boolean) =>
+        as<Res>(atend, 'public.return_reservation_items($1, $2, $3, $4)', [id, JSON.stringify(decisions), on, charge])
+      const r0 = await confirmed([turim], [-1, -1, -1], (n) => n)
+      const picked = await pickup(r0.id, [{ itemId: r0.items[0]!.id, delivered: true }])
+      const all = [{ itemId: picked.items[0]!.id, returned: true }]
+      expect(await errOf(giveBackOn(r0.id, all, D(1), true))).toMatchObject({ message: 'DATA_FUTURA', detail: 'returnedOn' })
+      expect(await errOf(giveBackOn(r0.id, all, D(-1), true))).toMatchObject({ message: 'DEVOLUCAO_ANTES_RETIRADA' })
+      // Retirada lançada no dia certo; devolução esquecida, lançada hoje com a data de ontem.
+      await db.query(`update public.reservation_item set picked_up_at = public.store_at($2::date, '10:00') where reservation_id = $1`, [r0.id, D(-3)])
+      await db.query(`update public.reservation set pickup_date = $2, event_date = $2, return_due_date = $3 where id = $1`, [r0.id, D(-3), D(-2)])
+      const back = await giveBackOn(r0.id, all, D(-1), false)
+      expect(back.state).toBe('em_inspecao')
+      expect(back.items[0]!.returnedAt!.slice(0, 10)).toBe(D(-1))
+      expect(back.lateFee).toBe(0)
+      expect(back.payments.filter((p) => p.kind === 'multa')).toEqual([])
+      expect(back.history.at(-1)!.reason).toBe('Devolvida com 1 dia(s) de atraso — multa dispensada')
+      expect((await appts(r0.id)).find((a) => a.kind === 'devolucao')!.at.slice(0, 10)).toBe(D(-1))
+      const g = await getGarment(turim.id)
+      expect(g.blocks.find((b) => b.reservationId === r0.id && b.kind === 'higienizacao')!.from).toBe(today)
     })
 
     it('devolução completa com peça que nunca saiu: item não entregue e agenda da peça liberada', async () => {

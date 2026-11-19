@@ -243,6 +243,22 @@ describe('reservas — retirada, devolução e cancelamento', () => {
     expect(lateFeePercent({ contract: null }, ctx.db.settings)).toBe(5)
   })
 
+  it('devolução com data informada (nem futura, nem antes da retirada) e multa opcional', async () => {
+    const { ctx, src } = setup()
+    const draft = await src.createDraft(input(ctx, ['Turim'], [-1, -1, -1]))
+    await signed(src, ctx, draft.id)
+    await src.confirmReservation(draft.id, { amount: draft.totalNet, method: 'pix', reference: null, notes: null })
+    const picked = await src.pickupItems(draft.id, draft.items.map((i) => ({ itemId: i.id, delivered: true })))
+    const all = picked.items.map((i) => ({ itemId: i.id, returned: true }))
+    expect((await errorOf(src.returnItems(draft.id, all, { returnedOn: D(1) }))).code).toBe('DATA_FUTURA')
+    expect((await errorOf(src.returnItems(draft.id, all, { returnedOn: D(-1) }))).code).toBe('DEVOLUCAO_ANTES_RETIRADA')
+    const r = await src.returnItems(draft.id, all, { returnedOn: TODAY, chargeLateFee: false })
+    expect(r.state).toBe('em_inspecao')
+    expect(r.lateFee).toBe(0)
+    expect(r.payments.filter((p) => p.kind === 'multa')).toEqual([])
+    expect(r.items[0]!.returnedAt!.slice(0, 10)).toBe(TODAY)
+  })
+
   it('cancelar sem motivo → MOTIVO_OBRIGATORIO; com motivo libera blocos e compromissos', async () => {
     const { ctx, src } = setup()
     const verona = resOf(ctx, 'Verona', 'confirmada')

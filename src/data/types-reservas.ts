@@ -160,6 +160,9 @@ export type ReservationInput = {
 export type PickupDecision = { itemId: string; delivered: boolean; note?: string }
 export type ReturnDecision = { itemId: string; returned: boolean; note?: string }
 
+/** Devolução: `returnedOn` = dia em que a cliente devolveu (padrão hoje; nem futuro, nem antes da retirada); `chargeLateFee: false` dispensa a multa. */
+export type ReturnOptions = { returnedOn?: string; chargeLateFee?: boolean }
+
 export type ReservationFilter = 'ativas' | 'hoje' | 'rascunhos' | 'com_saldo' | 'rua' | 'inspecao' | 'futuras' | 'encerradas' | 'todas'
 
 /** Conflito de agenda de uma peça (`draft: true` = outro rascunho, só aviso). */

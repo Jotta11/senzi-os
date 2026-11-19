@@ -121,7 +121,7 @@ describe('supabaseReservas', () => {
       ['confirm_reservation', { p_id: ID, p: signal, p_exception: null }],
       ['mark_reservation_ready', { p_id: ID }],
       ['pickup_reservation_items', { p_id: ID, p_decisions: [{ itemId: 'i1', delivered: true }], p_exception: EXC }],
-      ['return_reservation_items', { p_id: ID, p_decisions: [{ itemId: 'i1', returned: true }] }],
+      ['return_reservation_items', { p_id: ID, p_decisions: [{ itemId: 'i1', returned: true }], p_returned_on: null, p_charge_late_fee: true }],
       ['cancel_reservation', { p_id: ID, p_reason: 'Desistiu' }],
       ['mark_reservation_no_show', { p_id: ID }],
       ['register_reservation_payment', { p_id: ID, p: pay }],

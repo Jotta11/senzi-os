@@ -119,7 +119,8 @@ export function supabaseReservas(client: SupabaseClient, withUrls: PhotoSigner =
 
     pickupItems: (id, decisions, exceptionId) => res('pickup_reservation_items', { p_id: id, p_decisions: decisions, p_exception: exceptionId ?? null }),
 
-    returnItems: (id, decisions) => res('return_reservation_items', { p_id: id, p_decisions: decisions }),
+    returnItems: (id, decisions, opts) =>
+      res('return_reservation_items', { p_id: id, p_decisions: decisions, p_returned_on: opts?.returnedOn ?? null, p_charge_late_fee: opts?.chargeLateFee ?? true }),
 
     cancelReservation: (id, reason) => res('cancel_reservation', { p_id: id, p_reason: reason }),
 

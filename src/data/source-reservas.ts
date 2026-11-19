@@ -16,6 +16,7 @@ import type {
   ReservationInput,
   ReservationRow,
   ReturnDecision,
+  ReturnOptions,
   Settings,
   SignalInput,
 } from './types'
@@ -72,7 +73,7 @@ export interface ReservasSource {
   /** Com saldo em aberto exige exceção `retirada_com_saldo`. */
   pickupItems(id: string, decisions: PickupDecision[], exceptionId?: string): Promise<Reservation>
   /** Multa única por reserva, recalculada a cada devolução. Peça devolvida → `inspecao`. */
-  returnItems(id: string, decisions: ReturnDecision[]): Promise<Reservation>
+  returnItems(id: string, decisions: ReturnDecision[], opts?: ReturnOptions): Promise<Reservation>
   /** Só sem peça com a cliente (`rascunho`, `confirmada`, `pronta_retirada`). Libera blocos e compromissos. */
   cancelReservation(id: string, reason: string): Promise<Reservation>
   /** `confirmada|pronta_retirada` com retirada no passado. */

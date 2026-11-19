@@ -136,27 +136,32 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
         return kit.refresh(r)
       }),
 
-    returnItems: (id, decisions) =>
+    returnItems: (id, decisions, opts) =>
       run(() => {
         const r = ctx.reservation(id)
         kit.ensureState(r, OUT_RESERVATION_STATES)
         const outNow = new Map(r.items.filter((i) => i.itemState === 'retirado').map((i) => [i.id, i]))
         const back = decisions.filter((d) => d.returned && outNow.has(d.itemId))
         if (!back.length) fail([{ code: 'PARAMETRO_INVALIDO', field: 'items' }])
+        // Devolução lançada depois: vale o dia informado (nunca futuro, nunca antes da retirada da peça).
+        const on = opts?.returnedOn || today
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) fail([{ code: 'DATA_OBRIGATORIA', field: 'returnedOn' }])
+        if (on > today) fail([{ code: 'DATA_FUTURA', field: 'returnedOn' }])
+        if (back.some((d) => on < (outNow.get(d.itemId)!.pickedUpAt?.slice(0, 10) ?? ''))) fail([{ code: 'DEVOLUCAO_ANTES_RETIRADA', field: 'returnedOn' }])
 
-        const now = ctx.now()
+        const now = on === today ? ctx.now() : `${on}${ctx.now().slice(10)}`
         for (const d of back) {
           const it = outNow.get(d.itemId)!
           Object.assign(it, { itemState: 'devolvido', returnedAt: now, returnNote: d.note?.trim() || null })
           const g = ctx.garment(it.garmentId)
-          g.blocks = realignOnReturn({ blocks: g.blocks, reservationId: r.id, actualReturn: today, cleaningDays: effectiveCleaningDays(g, db.categories, db.settings) })
+          g.blocks = realignOnReturn({ blocks: g.blocks, reservationId: r.id, actualReturn: on, cleaningDays: effectiveCleaningDays(g, db.categories, db.settings) })
           kit.setGarmentState(g.id, 'inspecao', `Devolução — ${r.code}`)
         }
         const stillOut = r.items.filter((i) => i.itemState === 'retirado')
         const complete = stillOut.length === 0
         const ref = complete ? r.items.map((i) => i.returnedAt?.slice(0, 10) ?? '').sort().at(-1) || today : today
         const late = Math.max(0, diffDays(r.returnDueDate, ref))
-        r.lateFee = lateFee(r.totalNet, lateFeePercent(r, db.settings), late)
+        r.lateFee = opts?.chargeLateFee === false ? 0 : lateFee(r.totalNet, lateFeePercent(r, db.settings), late)
         const notes = `${late} dia(s) de atraso${stillOut.length ? ` · ${stillOut.length} peça(s) ainda na rua` : ''}`
         kit.syncPending(r, { notes, dueAt: today })
 
@@ -168,7 +173,7 @@ export function reservasLifecycle(ctx: MockCtx, kit: ReservaKit): Lifecycle {
             const g = ctx.garment(it.garmentId)
             g.blocks = g.blocks.filter((b) => b.reservationId !== r.id)
           }
-          kit.transition(r, 'em_inspecao', late > 0 ? `Devolvida com ${late} dia(s) de atraso` : 'Devolvida no prazo')
+          kit.transition(r, 'em_inspecao', late > 0 ? `Devolvida com ${late} dia(s) de atraso${r.lateFee > 0 ? '' : ' — multa dispensada'}` : 'Devolvida no prazo')
           for (const a of apptsOf(r, 'devolucao')) Object.assign(a, { state: 'concluido', startsAt: now })
           for (const it of r.items.filter((i) => i.itemState === 'nao_entregue')) kit.rederive(it.garmentId, `Reserva ${r.code} encerrada sem a peça`)
         } else {

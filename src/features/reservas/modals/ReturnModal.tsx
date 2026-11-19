@@ -10,7 +10,8 @@ import { useAppHref } from '@/shell/appPath'
 import { Button, Field, Icon, Modal, useToast } from '@/ui'
 
 /**
- * Registrar devolução (spec §3.6): marca o que voltou; multa por atraso é lançada como cobrança pendente.
+ * Registrar devolução (spec §3.6): marca o que voltou e em que dia (pode ser lançada depois); a multa por atraso
+ * é opcional — se cobrada, vira cobrança pendente.
  * Depois vai para a Operação quando o perfil enxerga essa área.
  */
 export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): void }) {
@@ -24,8 +25,12 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
   const back = r.items.filter((i) => i.itemState === 'devolvido' || i.itemState === 'inspecionado')
   const [picked, setPicked] = useState<Record<string, boolean>>(() => Object.fromEntries(out.map((i) => [i.id, true])))
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [returnedOn, setReturnedOn] = useState(todayISO())
+  const [chargeFee, setChargeFee] = useState(true)
+  const [dateError, setDateError] = useState<string>()
   const pct = lateFeePercent(r, settings.data)
-  const late = Math.max(0, daysLate({ state: 'em_uso', returnDueDate: r.returnDueDate }, todayISO()))
+  const late = Math.max(0, daysLate({ state: 'em_uso', returnDueDate: r.returnDueDate }, returnedOn || todayISO()))
+  const fee = (r.totalNet * pct * late) / 100
 
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -35,8 +40,22 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
       toast({ title: 'Nenhuma peça marcada', description: 'Marque o que a cliente devolveu.', tone: 'error' })
       return
     }
+    const lastPickup = chosen.map((i) => i.pickedUpAt?.slice(0, 10) ?? '').sort().at(-1) ?? ''
+    const problem = !returnedOn
+      ? 'Informe a data da devolução.'
+      : returnedOn > todayISO()
+        ? 'A data não pode ser futura.'
+        : returnedOn < lastPickup
+          ? 'A devolução não pode ser antes da retirada da peça.'
+          : undefined
+    setDateError(problem)
+    if (problem) return
     ret.mutate(
-      out.map((i) => ({ itemId: i.id, returned: !!picked[i.id], note: notes[i.id]?.trim() || undefined })),
+      {
+        decisions: out.map((i) => ({ itemId: i.id, returned: !!picked[i.id], note: notes[i.id]?.trim() || undefined })),
+        returnedOn,
+        chargeLateFee: late > 0 ? chargeFee : true,
+      },
       {
         onSuccess: (res) => {
           const still = res.items.filter((i) => i.itemState === 'retirado').length
@@ -67,13 +86,33 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
       }
     >
       <form id="rd-return" className="rd-form" onSubmit={submit} noValidate>
+        <Field
+          label="Devolvida em"
+          type="date"
+          value={returnedOn}
+          max={todayISO()}
+          onChange={(e) => {
+            setReturnedOn(e.target.value)
+            setDateError(undefined)
+          }}
+          error={dateError}
+          hint="Se esqueceram de lançar na hora, escolha o dia em que a cliente devolveu."
+        />
         {late > 0 ? (
-          <p className="note red">
-            <Icon name="alerta" size={14} />
-            <span>
-              <b>{late} dia(s) de atraso.</b> Multa contratual de {pct}% ao dia: <b>{brl((r.totalNet * pct * late) / 100)}</b>. Lançada como cobrança pendente.
-            </span>
-          </p>
+          <>
+            <p className="note red">
+              <Icon name="alerta" size={14} />
+              <span>
+                <b>{late} dia(s) de atraso.</b> Multa contratual de {pct}% ao dia: <b>{brl(fee)}</b>.
+              </span>
+            </p>
+            <label className="rd-toggle">
+              <input type="checkbox" checked={chargeFee} onChange={(e) => setChargeFee(e.target.checked)} />
+              <span>
+                Cobrar multa por atraso de <b>{brl(fee)}</b> <span className="muted tiny">(lançada como cobrança pendente)</span>
+              </span>
+            </label>
+          </>
         ) : (
           <p className="note green">
             <Icon name="check" size={14} />
@@ -83,7 +122,7 @@ export function ReturnModal({ r, onClose }: { r: ReservationDetail; onClose(): v
         <p className="note info">
           <Icon name="refresh" size={14} />
           <span>
-            Cada peça marcada entra em <b>inspeção</b> e fica indisponível para novas reservas até a Operação liberar. O que ficar desmarcado continua com a cliente e a multa segue correndo.
+            Cada peça marcada entra em <b>inspeção</b> e fica indisponível para novas reservas até a Operação liberar. O que ficar desmarcado continua com a cliente.
           </span>
         </p>
         <p>

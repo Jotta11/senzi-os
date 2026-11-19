@@ -18,6 +18,7 @@ import type {
   ReservationFilter,
   ReservationInput,
   ReturnDecision,
+  ReturnOptions,
   SignalInput,
 } from './types'
 
@@ -157,7 +158,7 @@ export function usePickupItems(id: string) {
 
 export function useReturnItems(id: string) {
   const src = useDataSource()
-  return useWorldMutation((decisions: ReturnDecision[]) => src.returnItems(id, decisions))
+  return useWorldMutation(({ decisions, ...opts }: { decisions: ReturnDecision[] } & ReturnOptions) => src.returnItems(id, decisions, opts))
 }
 
 export function useCancelReservation(id: string) {
