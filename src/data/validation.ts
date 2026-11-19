@@ -228,6 +228,13 @@ export function contractFileIssues(file: { type: string; size: number }): Source
   return CONTRACT_FILE_TYPES[file.type] && file.size > 0 && file.size <= CONTRACT_FILE_MAX_BYTES ? [] : [{ code: 'ARQUIVO_INVALIDO', field: 'file' }]
 }
 
+export const CONTRACT_BODY_MAX = 60_000
+
+/** Texto do contrato editado na tela: não vazio, até 60 mil caracteres. */
+export function contractBodyIssues(body: string): SourceIssue[] {
+  return body.trim() && body.length <= CONTRACT_BODY_MAX ? [] : [{ code: 'CONTRATO_TEXTO_INVALIDO', field: 'body' }]
+}
+
 /** Campos comuns de um lançamento financeiro (conta a pagar ou a receber). */
 export type FinEntryFields = { description?: string; categoryId?: string | null; amount?: number; dueDate?: string }
 

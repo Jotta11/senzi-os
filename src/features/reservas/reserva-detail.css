@@ -12,6 +12,8 @@
 
 /* lateral */
 .rd-side { position: sticky; top: 20px; }
+/* Uma coluna (tablet/celular): o resumo não fica preso por cima do conteúdo ao rolar. */
+@media (max-width: 1024px) { .rd-side { position: static; } }
 .rd-side-b { display: flex; flex-direction: column; gap: 14px; }
 .rd-money { margin: 0; padding-top: 12px; border-top: 1px solid var(--areia); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .rd-money > div { display: flex; justify-content: space-between; gap: 12px; }
@@ -78,3 +80,11 @@
 .rd-conf-h { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .rd-chk { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .rd-wa-text { width: 100%; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--areia); border-radius: var(--r-md); font: inherit; font-size: 13.5px; line-height: 1.5; resize: vertical; }
+.rd-contract-edit { display: flex; flex-direction: column; gap: 10px; }
+.rd-contract-edit textarea { min-height: 420px; font-size: 13px; line-height: 1.5; resize: vertical; }
+.rd-contract-edit > .actions { display: flex; justify-content: flex-end; gap: 8px; }
+/* Cabeçalho do contrato: os botões quebram linha em vez de vazar da tela (celular) ou espremer o título. */
+.rd-ct-card .card-h { flex-wrap: wrap; row-gap: 8px; }
+.rd-ct-card .card-h h3 { white-space: nowrap; }
+.rd-ct-card .card-h .actions { flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) { .rd-ct-card .card-h .actions { flex: 1 0 100%; margin-left: 0; justify-content: flex-start; } }

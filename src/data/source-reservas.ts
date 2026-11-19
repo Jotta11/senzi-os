@@ -51,6 +51,11 @@ export interface ReservasSource {
   markContractSigned(id: string, input: ContractSignInput): Promise<Reservation>
   /** Anexa o contrato assinado digitalizado (PDF/foto) ao contrato vigente (`pdfPath`). Substitui o anterior. */
   attachContractFile(id: string, file: File): Promise<Reservation>
+  /**
+   * Troca o texto do contrato vigente (não assinado; reserva não cancelada) pelo editado na tela; `null` volta ao
+   * texto padrão do modelo. `CONTRATO_TEXTO_INVALIDO` se vazio. Mudar a reserva depois regera o contrato (perde a edição).
+   */
+  editContract(id: string, body: string | null): Promise<Reservation>
   /** Link temporário para abrir o arquivo anexado (`pdfPath`). */
   contractFileUrl(path: string): Promise<string>
   /** Conflito de agenda em qualquer peça → `{ ok: false }` e nada muda. */

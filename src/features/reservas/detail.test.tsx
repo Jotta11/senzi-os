@@ -115,6 +115,70 @@ describe('Reservas — ficha', () => {
     expect((await source.getReservation(row.id))?.contract?.pdfPath).toBeTruthy()
   })
 
+  it('rascunho: "Dar desconto" em % recalcula o total e regera o contrato; depois vira "Alterar desconto"', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, draftOf('Bolonha'))
+    const before = (await source.getReservation(row.id))!
+    renderPreview(`/preview/reservas/${row.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Dar desconto' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dar desconto' })
+    await user.click(within(dialog).getByRole('button', { name: 'Em porcentagem (%)' }))
+    await user.type(within(dialog).getByLabelText('Desconto (%)'), '10')
+    const off = Math.round(before.totalGross * 10) / 100
+    expect(within(dialog).getByText('Novo total').nextSibling?.textContent).toMatch((before.totalGross - off).toFixed(2).replace('.', ','))
+    await user.click(within(dialog).getByRole('button', { name: 'Aplicar desconto' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Dar desconto' })).toBeNull())
+    const after = (await source.getReservation(row.id))!
+    expect(after.discount).toBe(off)
+    expect(after.totalNet).toBe(Math.round((before.totalGross - off) * 100) / 100)
+    expect(after.contract!.version).toBe(before.contract!.version + 1)
+    expect(await screen.findByRole('button', { name: 'Alterar desconto' })).toBeInTheDocument()
+  })
+
+  it('aba Contrato: "Editar texto" salva o texto editado; "Restaurar texto padrão" volta ao modelo', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, draftOf('Bolonha'))
+    const original = (await source.getReservation(row.id))!.contract!.bodyRendered
+    renderPreview(`/preview/reservas/${row.id}?aba=contrato`, source)
+    await user.click(await screen.findByRole('button', { name: 'Editar texto' }))
+    const box = screen.getByRole('textbox', { name: 'Texto do contrato' })
+    expect(box).toHaveValue(original)
+    fireEvent.change(box, { target: { value: `${original}\nCláusula combinada: ajuste da barra incluso.` } })
+    await user.click(screen.getByRole('button', { name: 'Salvar texto' }))
+    const doc = await screen.findByRole('document', { name: 'Texto do contrato' })
+    expect(within(doc).getByText(/ajuste da barra incluso/)).toBeInTheDocument()
+    expect(screen.getByText(/Texto editado na tela em/)).toBeInTheDocument()
+    expect((await source.getReservation(row.id))!.contract!.editedAt).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Restaurar texto padrão' }))
+    await waitFor(() => expect(screen.queryByText(/ajuste da barra incluso/)).toBeNull())
+    const restored = (await source.getReservation(row.id))!.contract!
+    expect(restored.editedAt).toBeNull()
+    expect(restored.bodyRendered).not.toMatch(/ajuste da barra incluso/)
+  })
+
+  it('aba Contrato: texto vazio não salva', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const row = await find(source, draftOf('Bolonha'))
+    renderPreview(`/preview/reservas/${row.id}?aba=contrato`, source)
+    await user.click(await screen.findByRole('button', { name: 'Editar texto' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Texto do contrato' }), { target: { value: '   ' } })
+    await user.click(screen.getByRole('button', { name: 'Salvar texto' }))
+    expect((await screen.findAllByText(/O texto do contrato não pode ficar vazio/)).length).toBeGreaterThan(0)
+    expect(screen.getByRole('textbox', { name: 'Texto do contrato' })).toBeInTheDocument()
+  })
+
+  it('contrato assinado não oferece "Editar texto"', async () => {
+    const source = newSource()
+    const row = await find(source, (r) => r.state === 'confirmada' && has('Verona')(r))
+    renderPreview(`/preview/reservas/${row.id}?aba=contrato`, source)
+    await screen.findByRole('document', { name: 'Texto do contrato' })
+    expect(screen.queryByRole('button', { name: 'Editar texto' })).toBeNull()
+  })
+
   it('arquivo de contrato inválido (texto) não confirma e mostra o erro', async () => {
     const user = userEvent.setup({ applyAccept: false })
     const source = newSource()

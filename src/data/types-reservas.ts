@@ -82,6 +82,8 @@ export type Contract = {
   signatureNotes?: string | null
   /** Contrato assinado digitalizado (PDF/foto), anexado na confirmação. */
   pdfPath: string | null
+  /** Texto editado na tela (`null` = texto padrão do modelo). Mudar a reserva regera o contrato e descarta a edição. */
+  editedAt?: string | null
 }
 
 export type ExceptionAuthorization = {

@@ -6,13 +6,14 @@
 import { discountNeedsException, round2 } from '@/domain/money'
 import type { ReservasSource } from '../source-reservas'
 import { SourceError, type ExceptionAuthorization, type Reservation, type ReservationInput } from '../types'
-import { contractFileIssues, contractSignIssues, reservationDiscountHint, reservationGross, reservationIssues } from '../validation'
+import { contractBodyIssues, contractFileIssues, contractSignIssues, reservationDiscountHint, reservationGross, reservationIssues } from '../validation'
 import type { MockCtx } from './context'
 import { consumeException, usableException } from './exceptions'
+import { renderContract } from './contract'
 import { priceItems, type PriceLine } from './pricing'
 import type { ReservaKit } from './reservas-shared'
 
-type Draft = Pick<ReservasSource, 'createDraft' | 'updateDraft' | 'addDraftItem' | 'removeDraftItem' | 'markContractSigned' | 'attachContractFile' | 'contractFileUrl'>
+type Draft = Pick<ReservasSource, 'createDraft' | 'updateDraft' | 'addDraftItem' | 'removeDraftItem' | 'markContractSigned' | 'attachContractFile' | 'editContract' | 'contractFileUrl'>
 
 const OPEN_FITTING = ['agendada', 'em_curso']
 
@@ -230,6 +231,29 @@ export function reservasDraft(ctx: MockCtx, kit: ReservaKit): Draft {
         const old = r.contract!.pdfPath
         if (old?.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(old)
         r.contract!.pdfPath = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `blob:preview/${ctx.newId('ct')}`
+        return kit.refresh(r)
+      }),
+
+    editContract: (id, body) =>
+      run(() => {
+        const r = ctx.reservation(id)
+        if (r.state === 'cancelada' || r.state === 'no_show' || r.contract?.signedAt) throw new SourceError('ESTADO_INVALIDO')
+        if (body !== null) {
+          const issues = contractBodyIssues(body)
+          if (issues.length) fail(issues)
+        }
+        if (!r.contract) kit.writeContract(r)
+        const c = r.contract!
+        if (body === null) {
+          if (!c.editedAt) return kit.refresh(r)
+          c.bodyRendered = renderContract(db, r, today)
+          c.editedAt = null
+          kit.log(r, null, r.state, `Contrato v${c.version}: texto padrão restaurado`)
+        } else {
+          c.bodyRendered = body.replace(/\r\n?/g, '\n')
+          c.editedAt = ctx.now()
+          kit.log(r, null, r.state, `Contrato v${c.version} editado na tela`)
+        }
         return kit.refresh(r)
       }),
 

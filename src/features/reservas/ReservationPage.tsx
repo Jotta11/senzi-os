@@ -16,6 +16,7 @@ import { CancelModal } from './modals/CancelModal'
 import { ConfirmModal } from './modals/ConfirmModal'
 import { ConflictModal } from './modals/ConflictModal'
 import { DepositModal } from './modals/DepositModal'
+import { DiscountModal } from './modals/DiscountModal'
 import { PaymentModal } from './modals/PaymentModal'
 import { PickupModal } from './modals/PickupModal'
 import { ReturnModal } from './modals/ReturnModal'
@@ -32,7 +33,7 @@ import '../acervo/garment.css'
 import './reservas.css'
 import './reserva-detail.css'
 
-type Dialog = 'edit' | 'confirm' | 'payment' | 'pickup' | 'return' | 'sign' | 'cancel' | 'noshow' | 'whatsapp' | 'add' | 'conflict' | 'refund' | 'deposit' | null
+type Dialog = 'edit' | 'confirm' | 'payment' | 'pickup' | 'return' | 'sign' | 'cancel' | 'noshow' | 'whatsapp' | 'add' | 'conflict' | 'refund' | 'deposit' | 'discount' | null
 type TabKey = 'pagamentos' | 'contrato' | 'historico'
 
 /** Ficha da reserva: cabeçalho com ações por estado e permissão (spec §2.2), faixas, lateral, peças e abas. */
@@ -101,6 +102,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
   const phone = r.customer.phone.replace(/\D/g, '')
   const show = {
     edit: s === 'rascunho' && can('reserva.create'),
+    discount: s === 'rascunho' && can('reserva.create') && can('reserva.discount'),
     confirm: s === 'rascunho' && can('reserva.confirm'),
     pay: (s === 'confirmada' || s === 'pronta_retirada') && due > 0.005 && can('financeiro.payment'),
     pickup: (s === 'confirmada' || s === 'pronta_retirada' || s === 'retirada') && pending && can('reserva.pickup'),
@@ -165,6 +167,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
         </div>
         <div className="ac-actions rd-actions">
           {show.edit && <Button icon="editar" onClick={() => setDialog('edit')}>Editar rascunho</Button>}
+          {show.discount && <Button icon="tag" onClick={() => setDialog('discount')}>{r.discount > 0 ? 'Alterar desconto' : 'Dar desconto'}</Button>}
           {show.confirm && <Button variant="primary" icon="check" onClick={() => setDialog('confirm')}>Confirmar reserva</Button>}
           {show.pay && <Button icon="moeda" onClick={() => launch()}>Registrar pagamento</Button>}
           {show.pickup && (
@@ -206,6 +209,7 @@ function Ficha({ r }: { r: ReservationDetail }) {
       </div>
 
       {dialog === 'edit' && <ReservationForm open onClose={close} draft={r} />}
+      {dialog === 'discount' && <DiscountModal r={r} onClose={close} />}
       {dialog === 'confirm' && (
         <ConfirmModal
           r={r}

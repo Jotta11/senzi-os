@@ -210,6 +210,32 @@ describe('reservas', () => {
       expect(await errOf(asUser(db, atend, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [other])))).not.toBeNull()
     })
 
+    it('contrato editado na tela: grava, restaura, some ao regerar; assinado e sem cliente.edit são recusados', async () => {
+      const r = await draft(input([siena], [70, 71, 72]))
+      const padrao = r.contract!.bodyRendered
+      const edit = (body: string | null, user = atend) => as<Res & { contract: { editedAt: string | null } }>(user, 'public.edit_reservation_contract($1, $2)', [r.id, body])
+      expect((await errOf(edit(' \n ')))?.message).toBe('CONTRATO_TEXTO_INVALIDO')
+      const ed = await edit(`${padrao}\r\nCláusula extra.`)
+      expect(ed.contract!.bodyRendered).toBe(`${padrao}\nCláusula extra.`)
+      expect(ed.contract!.editedAt).toBeTruthy()
+      expect(ed.history.at(-1)?.reason).toBe(`Contrato v${ed.contract!.version} editado na tela`)
+      const back = await edit(null)
+      expect(back.contract!.bodyRendered).toBe(padrao)
+      expect(back.contract!.editedAt).toBeNull()
+
+      await edit(`${padrao}\nCláusula extra.`)
+      const up = await as<Res & { contract: { editedAt: string | null } }>(atend, 'public.update_reservation_draft($1, $2, $3)', [r.id, JSON.stringify(input([siena], [70, 71, 72], { discount: 45 })), null])
+      expect(up.contract!.editedAt).toBeNull()
+      expect(up.contract!.bodyRendered).not.toMatch(/Cláusula extra/)
+
+      const other = await createUser(db, { email: 'cris@senzi.test', full_name: 'Cris Sem Cadastro', role: 'atendimento' })
+      await deny(other, 'cliente.edit')
+      expect((await errOf(edit('x', other)))?.message).toBe('SEM_PERMISSAO')
+
+      await sign(r.id)
+      expect((await errOf(edit('outro texto')))?.message).toBe('ESTADO_INVALIDO')
+    })
+
     it('valida como a fonte em memória: primeiro problema com o campo; desconto maior que o bruto com o texto', async () => {
       const bad = { customerId: '', eventDate: '', pickupDate: D(-5), returnDueDate: D(-7), discount: -1, items: [] }
       expect(await errOf(draft(bad))).toMatchObject({ message: 'RESERVA_SEM_CLIENTE', detail: 'customerId' })

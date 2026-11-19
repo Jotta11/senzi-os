@@ -34,6 +34,7 @@
   body:has(.pr-doc) .sb-top,
   body:has(.pr-doc) .sb-tabs,
   body:has(.pr-doc) .sb-scrim,
+  body:has(.pr-doc) .toasts,
   .no-print { display: none !important; }
   body:has(.pr-doc) { background: var(--surface); }
   body:has(.pr-doc) .sb-app { display: block; min-height: 0; }

@@ -125,6 +125,12 @@ export function useAttachContractFile(id: string) {
   return useWorldMutation((file: File) => src.attachContractFile(id, file))
 }
 
+/** `body: null` restaura o texto padrão do modelo. */
+export function useEditContract(id: string) {
+  const src = useDataSource()
+  return useWorldMutation((body: string | null) => src.editContract(id, body))
+}
+
 /** Resultado `{ ok: false, conflicts }` não é erro: a tela mostra "Confirmação recusada". */
 export function useConfirmReservation(id: string) {
   const src = useDataSource()

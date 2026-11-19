@@ -8,7 +8,8 @@ import './contract.css'
  */
 export function ContractBody({ text, className }: { text: string; className?: string }) {
   const lines = text.split('\n')
-  if (!lines[0]?.endsWith('E ACESSÓRIOS')) return <pre className={['ct-legacy', className].filter(Boolean).join(' ')}>{text}</pre>
+  // Modelo 2: título do modelo; texto editado na tela pode ter mudado o título, então as cláusulas também valem.
+  if (!lines[0]?.endsWith('E ACESSÓRIOS') && !lines.some((l) => /^CLÁUSULA \d+/.test(l))) return <pre className={['ct-legacy', className].filter(Boolean).join(' ')}>{text}</pre>
 
   const out: ReactNode[] = []
   let annex = false

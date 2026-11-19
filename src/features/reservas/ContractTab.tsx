@@ -1,16 +1,22 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
+import { useEditContract } from '@/data/hooks-reservas'
 import type { ReservationDetail } from '@/data/types'
+import { errorMessage } from '@/lib/errorMessages'
 import { dateBR } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
-import { Button, EmptyState, Icon, buttonClass, useToast } from '@/ui'
+import { Button, EmptyState, Field, Icon, buttonClass, useToast } from '@/ui'
 import { ContractBody } from './ContractBody'
 import { ContractUpload } from './ContractFile'
 
 export type ContractTabProps = { r: ReservationDetail; onSign(): void; onWhatsApp(): void }
 
-
-/** Aba Contrato: número, situação da assinatura, ações (copiar, imprimir, assinar), envio do contrato assinado e o texto. */
+/**
+ * Aba Contrato: número, situação da assinatura, ações (copiar, imprimir, editar, assinar), envio do contrato assinado
+ * e o texto. Enquanto não assinado, o texto pode ser editado na tela (precisa de `cliente.edit`: sem ela o CPF chega
+ * mascarado e a máscara iria para o contrato).
+ */
 export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
   const { can } = usePermissions()
   const href = useAppHref()
@@ -18,6 +24,25 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
   const c = r.contract
   const phone = r.customer.phone.replace(/\D/g, '')
   const closed = r.state === 'cancelada' || r.state === 'no_show'
+  const edit = useEditContract(r.id)
+  const [draft, setDraft] = useState<string | null>(null)
+  const [editError, setEditError] = useState<string | undefined>()
+  const canEditText = !!c && !c.signedAt && !closed && can('reserva.create') && can('cliente.edit')
+  const editing = draft !== null
+
+  function saveText(body: string | null) {
+    edit.mutate(body, {
+      onSuccess: () => {
+        toast(body === null ? { title: 'Texto padrão restaurado', description: c?.number ?? r.code } : { title: 'Contrato atualizado', description: `${c?.number ?? r.code} · texto editado na tela.` })
+        setDraft(null)
+        setEditError(undefined)
+      },
+      onError: (err) => {
+        setEditError(errorMessage(err))
+        toast({ title: 'Não foi possível salvar o contrato', description: errorMessage(err), tone: 'error' })
+      },
+    })
+  }
 
   async function copy() {
     if (!c) return
@@ -30,7 +55,7 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
   }
 
   return (
-    <section className="card" aria-labelledby="rd-ct-t">
+    <section className="card rd-ct-card" aria-labelledby="rd-ct-t">
       <div className="card-h">
         <h3 id="rd-ct-t">Contrato de locação</h3>
         {c && (
@@ -39,7 +64,7 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
           </span>
         )}
         <div className="actions">
-          {c && (
+          {c && !editing && (
             <>
               <Button size="sm" icon="copiar" onClick={() => void copy()}>
                 Copiar texto
@@ -47,6 +72,11 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
               <Link to={href(`/reservas/${r.id}/contrato`)} className={buttonClass('secondary', 'sm')}>
                 <Icon name="doc" size={13} /> Imprimir / PDF
               </Link>
+              {canEditText && (
+                <Button size="sm" icon="editar" onClick={() => setDraft(c.bodyRendered)}>
+                  Editar texto
+                </Button>
+              )}
             </>
           )}
           {!c?.signedAt && !closed && can('reserva.confirm') && (
@@ -81,7 +111,48 @@ export function ContractTab({ r, onSign, onWhatsApp }: ContractTabProps) {
             <span>A cliente ainda não tem CPF cadastrado. O contrato sai com o campo em branco — completar cadastro.</span>
           </p>
         )}
-        {c ? (
+        {c?.editedAt && !c.signedAt && (
+          <p className="note amber">
+            <Icon name="editar" size={14} />
+            <span>
+              Texto editado na tela em {dateBR(c.editedAt)}. Se a reserva mudar (peças, datas, desconto), o contrato é regerado e a edição se perde.
+              {canEditText && !editing && (
+                <>
+                  {' '}
+                  <button type="button" className="rs-alt" disabled={edit.isPending} onClick={() => saveText(null)}>
+                    Restaurar texto padrão
+                  </button>
+                </>
+              )}
+            </span>
+          </p>
+        )}
+        {c && editing ? (
+          <div className="rd-contract-edit">
+            <Field
+              as="textarea"
+              full
+              label="Texto do contrato"
+              hint="Cada linha é um parágrafo. Mantenha os títulos (CLÁUSULA 1, ANEXO I…) no começo da linha para a formatação da impressão."
+              rows={22}
+              spellCheck
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value)
+                setEditError(undefined)
+              }}
+              error={editError}
+            />
+            <div className="actions">
+              <Button onClick={() => { setDraft(null); setEditError(undefined) }} disabled={edit.isPending}>
+                Cancelar
+              </Button>
+              <Button variant="primary" icon="check" disabled={edit.isPending || draft === c.bodyRendered} onClick={() => saveText(draft)}>
+                {edit.isPending ? 'Salvando…' : 'Salvar texto'}
+              </Button>
+            </div>
+          </div>
+        ) : c ? (
           <div className="rd-contract-text" tabIndex={0} role="document" aria-label="Texto do contrato">
             <ContractBody text={c.bodyRendered} />
           </div>

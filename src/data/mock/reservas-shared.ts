@@ -107,6 +107,7 @@ export function reservaKit(ctx: MockCtx) {
       signatureKind: null,
       signatureNotes: null,
       pdfPath: null,
+      editedAt: null,
     }
     r.contract.bodyRendered = renderContract(db, r, today)
   }

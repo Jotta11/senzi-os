@@ -44,6 +44,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DESCONTO_MAIOR_QUE_BRUTO: 'O desconto é maior que o valor das peças.',
   DESCONTO_ACIMA_LIMITE: 'Desconto acima do limite da casa — precisa de autorização.',
   CONTRATO_NAO_ASSINADO: 'Marque o contrato como assinado antes de confirmar.',
+  CONTRATO_TEXTO_INVALIDO: 'O texto do contrato não pode ficar vazio (nem passar de 60 mil caracteres).',
   SINAL_INSUFICIENTE: 'Sinal abaixo do mínimo. Só o Administrador pode dispensar.',
   VALOR_INVALIDO: 'O valor do pagamento deve ser maior que zero.',
   VALOR_EXCEDE_SALDO: 'O valor excede o saldo em aberto.',

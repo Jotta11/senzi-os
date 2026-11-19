@@ -120,6 +120,35 @@ describe('reservas — rascunho', () => {
   })
 })
 
+describe('reservas — contrato editado na tela', () => {
+  it('edita o texto, restaura o padrão; mudar o rascunho regera e descarta a edição; assinado não edita', async () => {
+    const { ctx, src } = setup()
+    const r0 = await src.createDraft(input(ctx, ['Capri'], [10, 11, 12]))
+    const padrao = r0.contract!.bodyRendered
+    expect(r0.contract!.editedAt).toBeNull()
+    expect((await errorOf(src.editContract(r0.id, '  \n '))).code).toBe('CONTRATO_TEXTO_INVALIDO')
+
+    const ed = await src.editContract(r0.id, `${padrao}\r\nCláusula extra.`)
+    expect(ed.contract!.bodyRendered).toBe(`${padrao}\nCláusula extra.`)
+    expect(ed.contract!.editedAt).toBeTruthy()
+    expect(ed.contract!.version).toBe(1)
+    expect(ed.history.at(-1)?.reason).toBe('Contrato v1 editado na tela')
+
+    const back = await src.editContract(r0.id, null)
+    expect(back.contract!.bodyRendered).toBe(padrao)
+    expect(back.contract!.editedAt).toBeNull()
+
+    await src.editContract(r0.id, `${padrao}\nCláusula extra.`)
+    const up = await src.updateDraft(r0.id, input(ctx, ['Capri'], [10, 11, 12], { discount: 50 }))
+    expect(up.contract!.version).toBe(2)
+    expect(up.contract!.editedAt).toBeNull()
+    expect(up.contract!.bodyRendered).not.toMatch(/Cláusula extra/)
+
+    await signed(src, ctx, r0.id)
+    expect((await errorOf(src.editContract(r0.id, 'outro texto'))).code).toBe('ESTADO_INVALIDO')
+  })
+})
+
 describe('reservas — confirmação', () => {
   it('sem contrato assinado → CONTRATO_NAO_ASSINADO', async () => {
     const { ctx, src } = setup()

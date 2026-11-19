@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { todayISO } from '@/lib/format'
 import type { ExceptionsSource, ReservasSource } from '../source-reservas'
 import { SourceError, type AvailabilityResult, type ConfirmResult, type Reservation, type ReservationDetail, type ReservationInput } from '../types'
-import { CONTRACT_FILE_TYPES, contractFileIssues, contractSignIssues, reservationDiscountHint, reservationIssues } from '../validation'
+import { CONTRACT_FILE_TYPES, contractBodyIssues, contractFileIssues, contractSignIssues, reservationDiscountHint, reservationIssues } from '../validation'
 import { fail, fromDbError, photoSigner, type PhotoSigner, type RawGarment } from './acervo'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -99,6 +99,14 @@ export function supabaseReservas(client: SupabaseClient, withUrls: PhotoSigner =
         await client.storage.from(CONTRACT_BUCKET).remove([path])
         throw err
       }
+    },
+
+    editContract: async (id, body) => {
+      if (body !== null) {
+        const issues = contractBodyIssues(body)
+        if (issues.length) fail(issues)
+      }
+      return res('edit_reservation_contract', { p_id: id, p_body: body })
     },
 
     contractFileUrl: async (path) => {
