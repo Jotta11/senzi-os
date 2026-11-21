@@ -67,6 +67,14 @@ export const appRoutes: RouteObject[] = [
                 element: <RequirePerm perm={n.perm}>{LIVE[n.path] ?? <NotFound />}</RequirePerm>,
               })),
               {
+                path: '/acervo/bolsas',
+                element: (
+                  <RequirePerm perm="acervo.view">
+                    <AcervoListPage group="bolsas" />
+                  </RequirePerm>
+                ),
+              },
+              {
                 path: '/acervo/:id',
                 element: (
                   <RequirePerm perm="acervo.view">

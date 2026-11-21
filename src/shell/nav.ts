@@ -9,7 +9,16 @@ export const NAV: NavItem[] = [
   { path: '/agenda', icon: 'agenda', label: 'Agenda', perm: 'agenda.view' },
   { path: '/provas', icon: 'prova', label: 'Provas', perm: 'prova.view' },
   { path: '/reservas', icon: 'reservas', label: 'Reservas', perm: 'reserva.view' },
-  { path: '/acervo', icon: 'acervo', label: 'Acervo', perm: 'acervo.view' },
+  {
+    path: '/acervo',
+    icon: 'acervo',
+    label: 'Acervo',
+    perm: 'acervo.view',
+    children: [
+      { path: '/acervo', icon: 'acervo', label: 'Vestidos', perm: 'acervo.view' },
+      { path: '/acervo/bolsas', icon: 'acervo', label: 'Bolsas', perm: 'acervo.view' },
+    ],
+  },
   { path: '/clientes', icon: 'clientes', label: 'Clientes', perm: 'cliente.view' },
   { path: '/operacao', icon: 'operacao', label: 'Operação', perm: 'operacao.view' },
   {

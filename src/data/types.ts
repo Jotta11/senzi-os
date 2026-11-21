@@ -31,7 +31,10 @@ export type PhotoKind = 'frente' | 'costas' | 'lateral' | 'detalhe' | 'editorial
 
 export type BlockKind = 'locacao' | 'higienizacao' | 'inspecao' | 'ajuste' | 'manutencao' | 'bloqueio_manual' | 'editorial'
 
-export type Category = { slug: string; name: string; cleaningDays: number }
+/** Grupo do acervo (submenu Vestidos / Bolsas); cada categoria pertence a um. */
+export type AcervoGroup = 'vestidos' | 'bolsas'
+
+export type Category = { slug: string; name: string; cleaningDays: number; group: AcervoGroup }
 
 export type GarmentMeasurement = {
   bustCm: number | null
@@ -106,6 +109,8 @@ export type GarmentFilters = {
   q?: string
   /** Slug da categoria; vazio/undefined = todas. */
   cat?: string | null
+  /** Grupo do acervo (Vestidos / Bolsas); vazio/undefined = acervo inteiro. */
+  group?: AcervoGroup | null
   /** Sem valor = qualquer estado exceto `baixado`; `todos` inclui as baixadas. */
   stateGroup?: StateGroup
   size?: SizeEquiv | null

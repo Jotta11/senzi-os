@@ -3,9 +3,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { usePermissions } from '@/auth/usePermissions'
 import { useAcervoInvestment, useCategories, useGarmentCounts, useGarmentEconomics, useGarmentSearch } from '@/data/hooks'
 import { GARMENT_STATE, STATE_GROUP_LABEL } from '@/data/labels'
-import type { Garment, GarmentEconomics, GarmentFilters, SizeEquiv, StateGroup } from '@/data/types'
+import type { AcervoGroup, Garment, GarmentEconomics, GarmentFilters, SizeEquiv, StateGroup } from '@/data/types'
 import { brl } from '@/lib/format'
 import { useAppHref } from '@/shell/appPath'
+import { SectionNav } from '@/shell/SectionNav'
 import { Badge, Button, Chips, DataTable, EmptyState, SearchInput, type ChipOption, type Column } from '@/ui'
 import { GarmentCard } from './GarmentCard'
 import { GarmentForm } from './GarmentForm'
@@ -39,6 +40,9 @@ const SIZE_FILTERS: SizeEquiv[] = ['P', 'M', 'G', 'GG']
 const isGroup = (v: string | null): v is Exclude<StateGroup, 'todos'> => !!v && (GROUPS as string[]).includes(v)
 const isSize = (v: string | null): v is SizeEquiv => !!v && (SIZE_FILTERS as string[]).includes(v)
 
+const TITLE: Record<AcervoGroup, string> = { vestidos: 'Vestidos', bolsas: 'Bolsas' }
+const UNIT: Record<AcervoGroup, [string, string]> = { vestidos: ['peça', 'peças'], bolsas: ['bolsa', 'bolsas'] }
+
 const times = (n: number) => `${n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×`
 
 /**
@@ -47,8 +51,11 @@ const times = (n: number) => `${n.toLocaleString('pt-BR', { minimumFractionDigit
  * Custos (investidos, Receita, Payback) só com `acervo.cost` — sem ela a fonte nem é consultada.
  * "Nova peça" (`acervo.create`) põe `?nova=1` na URL, que abre o formulário (fechar tira o parâmetro; cadastrar
  * navega para a ficha da peça nova).
+ * Submenu Vestidos (`/acervo`) / Bolsas (`/acervo/bolsas`): `group` restringe lista, contagens e investido às
+ * categorias do grupo. Em Bolsas (uma categoria só, sem numeração) somem os filtros de Categoria e Tamanho.
  */
-export function AcervoListPage() {
+export function AcervoListPage({ group = 'vestidos' }: { group?: AcervoGroup }) {
+  const isBags = group === 'bolsas'
   const { can } = usePermissions()
   const canCost = can('acervo.cost')
   const href = useAppHref()
@@ -60,9 +67,9 @@ export function AcervoListPage() {
   const stRaw = params.get('st')
   const st = isGroup(stRaw) ? stRaw : undefined
   const tamRaw = params.get('tam')
-  const size = isSize(tamRaw) ? tamRaw : null
+  const size = !isBags && isSize(tamRaw) ? tamRaw : null
 
-  const base = useMemo(() => ({ q: q || undefined, cat, size }), [q, cat, size])
+  const base = useMemo(() => ({ q: q || undefined, cat, size, group }), [q, cat, size, group])
   const filters = useMemo<GarmentFilters>(() => ({ ...base, stateGroup: st }), [base, st])
 
   // "Carregar mais" volta para a 1ª página sempre que os filtros mudam
@@ -76,8 +83,8 @@ export function AcervoListPage() {
 
   const search = useGarmentSearch(filters, { limit: PAGE_SIZE * pages, offset: 0 })
   const counts = useGarmentCounts(base)
-  const summary = useGarmentCounts({})
-  const invested = useAcervoInvestment(canCost)
+  const summary = useGarmentCounts({ group })
+  const invested = useAcervoInvestment(canCost, group)
   const categories = useCategories()
 
   const items = useMemo(() => search.data?.items ?? [], [search.data])
@@ -107,15 +114,17 @@ export function AcervoListPage() {
   // Total do cabeçalho (e "investidos") contam só as peças ativas: exclui `baixado` de propósito,
   // diferente do protótipo (que somava as 28) — peça baixada não infla o acervo.
   const s = summary.data
+  const [one, many] = UNIT[group]
   const subtitle = s
-    ? `${s.ativas} ${s.ativas === 1 ? 'peça' : 'peças'} · ${s.disponivel} ${s.disponivel === 1 ? 'disponível' : 'disponíveis'}` +
+    ? `${s.ativas} ${s.ativas === 1 ? one : many} · ${s.disponivel} ${s.disponivel === 1 ? 'disponível' : 'disponíveis'}` +
       (canCost && invested.data != null ? ` · ${brl(invested.data, { cents: false })} investidos` : '')
     : ' '
 
   const catOptions: ChipOption<string>[] = [
     { value: '', label: 'Todas as categorias' },
-    ...(categories.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
+    ...(categories.data ?? []).filter((c) => c.group === group).map((c) => ({ value: c.slug, label: c.name })),
   ]
+  const groupCats = catOptions.length - 1
   const stateOptions: ChipOption<string>[] = [
     { value: '', label: STATE_GROUP_LABEL.todos, count: counts.data?.ativas },
     ...GROUPS.map((g) => ({ value: g, label: STATE_GROUP_LABEL[g], count: counts.data?.[g] })),
@@ -130,7 +139,7 @@ export function AcervoListPage() {
     <div className="ac-page">
       <header className="ac-head">
         <div className="ac-title">
-          <h1 className="display">Acervo</h1>
+          <h1 className="display">{TITLE[group]}</h1>
           <p className="ac-sub">{subtitle}</p>
         </div>
         <div className="ac-actions">
@@ -143,11 +152,12 @@ export function AcervoListPage() {
           </div>
           {can('acervo.create') && (
             <Button variant="primary" icon="plus" onClick={() => setParam('nova', '1')}>
-              Nova peça
+              {isBags ? 'Nova bolsa' : 'Nova peça'}
             </Button>
           )}
         </div>
       </header>
+      <SectionNav section="/acervo" label="Seções do Acervo" />
 
       <div className="ac-body">
         <section className="card ac-filters" aria-label="Filtros do acervo">
@@ -156,30 +166,34 @@ export function AcervoListPage() {
               value={q}
               onChange={(v) => setParam('q', v.trim() || null, true)}
               label="Buscar peça"
-              placeholder="Buscar por código, nome, cor ou tecido…"
+              placeholder={isBags ? 'Buscar por código, nome, cor ou material…' : 'Buscar por código, nome, cor ou tecido…'}
             />
             <span className="ac-count" aria-live="polite">
               {search.data ? `${total} ${total === 1 ? 'resultado' : 'resultados'}` : ''}
             </span>
           </div>
-          <div className="ac-chip-row">
-            <span className="ac-chip-l" aria-hidden="true">
-              Categoria
-            </span>
-            <Chips label="Categoria" options={catOptions} value={cat ?? ''} onChange={(v) => setParam('cat', v || null, true)} />
-          </div>
+          {groupCats > 1 && (
+            <div className="ac-chip-row">
+              <span className="ac-chip-l" aria-hidden="true">
+                Categoria
+              </span>
+              <Chips label="Categoria" options={catOptions} value={cat ?? ''} onChange={(v) => setParam('cat', v || null, true)} />
+            </div>
+          )}
           <div className="ac-chip-row">
             <span className="ac-chip-l" aria-hidden="true">
               Estado
             </span>
             <Chips label="Estado" options={stateOptions} value={st ?? ''} onChange={(v) => setParam('st', v || null, true)} />
           </div>
-          <div className="ac-chip-row">
-            <span className="ac-chip-l" aria-hidden="true">
-              Tamanho
-            </span>
-            <Chips label="Tamanho" options={sizeOptions} value={size ?? ''} onChange={(v) => setParam('tam', v || null, true)} />
-          </div>
+          {!isBags && (
+            <div className="ac-chip-row">
+              <span className="ac-chip-l" aria-hidden="true">
+                Tamanho
+              </span>
+              <Chips label="Tamanho" options={sizeOptions} value={size ?? ''} onChange={(v) => setParam('tam', v || null, true)} />
+            </div>
+          )}
         </section>
 
         {loading ? (
@@ -197,7 +211,10 @@ export function AcervoListPage() {
           </ul>
         ) : items.length === 0 ? (
           <section className="card">
-            <EmptyState title="Nenhuma peça encontrada" description="Ajuste os filtros ou cadastre uma nova peça." />
+            <EmptyState
+              title={isBags ? 'Nenhuma bolsa encontrada' : 'Nenhuma peça encontrada'}
+              description={isBags ? 'Ajuste os filtros ou cadastre uma nova bolsa.' : 'Ajuste os filtros ou cadastre uma nova peça.'}
+            />
           </section>
         ) : mode === 'galeria' ? (
           <ul className="ac-gallery" aria-label="Peças do acervo">
@@ -231,7 +248,7 @@ export function AcervoListPage() {
         )}
       </div>
 
-      <GarmentForm open={creating} onClose={() => setParam('nova', null, true)} onCreated={(g) => navigate(toGarment(g), { replace: true })} />
+      <GarmentForm open={creating} group={group} onClose={() => setParam('nova', null, true)} onCreated={(g) => navigate(toGarment(g), { replace: true })} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { createContext, createElement, useContext, type ReactNode } from 'react'
 import type {
+  AcervoGroup,
   Category,
   ContactChannel,
   Customer,
@@ -42,7 +43,8 @@ export interface AcervoClientesSource {
   /** Economia das peças pedidas (receita, despesas, payback, última locação; ids inexistentes são ignorados). Só com `acervo.cost`. */
   garmentEconomics(ids: string[]): Promise<GarmentEconomics[]>
   /** Σ custo de aquisição das peças ativas (sem baixadas). Só com `acervo.cost`. */
-  acervoInvestment(): Promise<number>
+  /** Custo de aquisição das peças ativas; `group` restringe a Vestidos ou Bolsas. */
+  acervoInvestment(group?: AcervoGroup | null): Promise<number>
   /** `null` se não existe. */
   getGarment(id: string): Promise<Garment | null>
   createGarment(input: GarmentInput): Promise<Garment>

@@ -9,7 +9,7 @@ import { diffDays } from '@/domain/dates'
 import { round2 } from '@/domain/money'
 import { todayISO } from '@/lib/format'
 import type { AcervoClientesSource } from '../source'
-import { SourceError, type Category, type Garment, type GarmentEconomics, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
+import { SourceError, type AcervoGroup, type Category, type Garment, type GarmentEconomics, type GarmentPhoto, type PhotoKind, type SourceErrorCode, type SourceIssue } from '../types'
 import { fitIssues, garmentIssues, measurementIssues } from '../validation'
 
 export const PHOTO_BUCKET = 'pecas-fotos'
@@ -137,8 +137,8 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
 
   return {
     listCategories: async () => {
-      const rows = await rpc<{ slug: string; name: string; cleaning_days: number }[]>('list_garment_categories')
-      return rows.map((r): Category => ({ slug: r.slug, name: r.name, cleaningDays: r.cleaning_days }))
+      const rows = await rpc<{ slug: string; name: string; cleaning_days: number; grupo: AcervoGroup }[]>('list_garment_categories')
+      return rows.map((r): Category => ({ slug: r.slug, name: r.name, cleaningDays: r.cleaning_days, group: r.grupo }))
     },
 
     listBrands: () => rpc<string[]>('list_brands'),
@@ -151,11 +151,12 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
         p_size: f.size ?? null,
         p_limit: page.limit,
         p_offset: page.offset,
+        p_group: f.group ?? null,
       })
       return { items: await withUrls(r.items), total: r.total }
     },
 
-    garmentCounts: (f) => rpc('garment_counts', { p_q: f.q ?? '', p_cat: f.cat ?? null, p_size: f.size ?? null }),
+    garmentCounts: (f) => rpc('garment_counts', { p_q: f.q ?? '', p_cat: f.cat ?? null, p_size: f.size ?? null, p_group: f.group ?? null }),
 
     // Locações, receita e última locação vêm das reservas; higienização e manutenção, das contas da Operação (garment_costs).
     garmentEconomics: async (ids) => {
@@ -164,7 +165,7 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
       return rows.map((r) => economicsOf(r, todayISO()))
     },
 
-    acervoInvestment: async () => Number(await rpc<number | string>('acervo_investment')),
+    acervoInvestment: async (group) => Number(await rpc<number | string>('acervo_investment', { p_group: group ?? null })),
 
     getGarment: async (id) => {
       const raw = await rpc<RawGarment | null>('get_garment', { p_id: id })

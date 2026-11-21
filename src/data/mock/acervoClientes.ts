@@ -9,6 +9,7 @@ import { dateBR, normalize, onlyDigits } from '@/lib/format'
 import { addPayable } from '../fixture/finance'
 import type { AcervoClientesSource } from '../source'
 import {
+  type AcervoGroup,
   SourceError,
   type Customer,
   type CustomerInput,
@@ -56,10 +57,13 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
     g.state = to
   }
   /** Peças que casam com busca, categoria e tamanho (o estado fica por conta de quem chama). */
+  const inGroup = (g: Garment, group: AcervoGroup | null | undefined) =>
+    !group || db.categories.find((c) => c.slug === g.categorySlug)?.group === group
   const matching = (f: Omit<GarmentFilters, 'stateGroup'>) => {
     const q = normalize(f.q)
     return db.garments
       .filter((g) => !f.cat || g.categorySlug === f.cat)
+      .filter((g) => inGroup(g, f.group))
       .filter((g) => !f.size || g.sizeEquiv === f.size)
       .filter((g) => !q || [g.code, g.name, g.colorPrimary, g.fabric].some((s) => normalize(s).includes(q)))
   }
@@ -142,8 +146,8 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
     garmentEconomics: (ids) => run(() => ids.flatMap((id) => (db.garments.some((g) => g.id === id) ? [garmentEconomics(garment(id), db, today)] : []))),
 
     // Exclui `baixado` de propósito (o protótipo somava todas): peça baixada não conta como investimento do acervo.
-    acervoInvestment: () =>
-      run(() => db.garments.filter((g) => g.state !== 'baixado').reduce((s, g) => s + (g.acquisitionCost ?? 0), 0)),
+    acervoInvestment: (group) =>
+      run(() => db.garments.filter((g) => g.state !== 'baixado' && inGroup(g, group)).reduce((s, g) => s + (g.acquisitionCost ?? 0), 0)),
 
     getGarment: (id) =>
       run(() => {

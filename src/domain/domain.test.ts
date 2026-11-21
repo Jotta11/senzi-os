@@ -11,8 +11,8 @@ import { balance, daysLate, depositSuggestion, discountNeedsException, hasReceiv
 import { DEFAULT_SETTINGS } from './settings'
 
 const categories: Category[] = [
-  { slug: 'vestido-longo', name: 'Vestido longo', cleaningDays: 3 },
-  { slug: 'saia', name: 'Saia', cleaningDays: 1 },
+  { slug: 'vestido-longo', name: 'Vestido longo', cleaningDays: 3, group: 'vestidos' },
+  { slug: 'saia', name: 'Saia', cleaningDays: 1, group: 'vestidos' },
 ]
 const garment = (over: Partial<Garment> = {}): Garment =>
   ({ id: 'g1', code: 'SZ-001', categorySlug: 'vestido-longo', state: 'disponivel', cleaningDays: null, rentalPrice: 800, labelSize: 'M', sizeEquiv: 'M', length: 'longo', colorPrimary: 'Vinho', retailReference: 1000, ...over }) as Garment

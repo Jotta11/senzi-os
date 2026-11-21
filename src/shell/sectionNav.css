@@ -1,0 +1,5 @@
+.sec-nav { display: flex; gap: 2px; margin: 14px 32px 0; border-bottom: 1px solid var(--areia); overflow-x: auto; }
+.sec-nav a { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--nevoa); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.sec-nav a:hover { color: var(--tinta); text-decoration: none; }
+.sec-nav a[aria-current="page"] { color: var(--vivo); border-bottom-color: var(--vivo); }
+@media (max-width: 640px) { .sec-nav { margin: 10px 16px 0; } }

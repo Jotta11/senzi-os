@@ -7,6 +7,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useDataSource } from './source'
 import type {
+  AcervoGroup,
   ContactChannel,
   Customer,
   CustomerInput,
@@ -28,7 +29,7 @@ export const dataKeys = {
   garmentSearch: (f: GarmentFilters, page: PageRequest) => ['garments', f, page] as const,
   garmentCounts: (f: Omit<GarmentFilters, 'stateGroup'>) => ['garments', 'counts', f] as const,
   garmentEconomics: (ids: string[]) => ['garments', 'economics', ids] as const,
-  acervoInvestment: ['garments', 'investment'] as const,
+  acervoInvestment: (group?: AcervoGroup | null) => ['garments', 'investment', group ?? null] as const,
   garment: (id: string) => ['garment', id] as const,
   customers: ['customers'] as const,
   customerSearch: (q: string, sort: CustomerSort, page: PageRequest) => ['customers', q, sort, page] as const,
@@ -80,9 +81,9 @@ export function useGarmentEconomics(ids: string[], enabled: boolean) {
 }
 
 /** Σ custo de aquisição do acervo ativo. Passe `enabled = can('acervo.cost')`. */
-export function useAcervoInvestment(enabled: boolean) {
+export function useAcervoInvestment(enabled: boolean, group?: AcervoGroup | null) {
   const src = useDataSource()
-  return useQuery({ queryKey: dataKeys.acervoInvestment, queryFn: () => src.acervoInvestment(), enabled })
+  return useQuery({ queryKey: dataKeys.acervoInvestment(group), queryFn: () => src.acervoInvestment(group), enabled })
 }
 
 /** `data === null` → não encontrada. */

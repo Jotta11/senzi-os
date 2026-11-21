@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { usePermissions } from '@/auth/usePermissions'
 import { useBrands, useCategories, useCreateGarment, useUpdateGarment } from '@/data/hooks'
 import { LENGTH_LABEL, SIZES } from '@/data/labels'
-import type { Garment, GarmentInput, GarmentLength, SizeEquiv } from '@/data/types'
+import type { AcervoGroup, Garment, GarmentInput, GarmentLength, SizeEquiv } from '@/data/types'
 import { CLEANING_MAX, garmentIssues } from '@/data/validation'
 import { colorHexFor } from '@/domain/colorNames'
 import { Button, Field, Icon, Modal } from '@/ui'
@@ -39,31 +39,34 @@ export type GarmentFormProps = {
   garment?: Garment
   /** Depois de cadastrar (a tela navega para a ficha). */
   onCreated?(g: Garment): void
+  /** Subtela de onde veio o cadastro (Vestidos / Bolsas): a Categoria só oferece as do grupo. Na edição vale o grupo da peça. */
+  group?: AcervoGroup
 }
 
 /**
  * Cadastro e edição da peça (protótipo `garmentForm`, campos gf-*). Validação no cliente igual à da fonte;
  * custos (aquisição e referência) só com `acervo.cost` — sem ela, nem são enviados na edição.
  */
-export function GarmentForm({ open, onClose, garment, onCreated }: GarmentFormProps) {
+export function GarmentForm({ open, onClose, garment, onCreated, group }: GarmentFormProps) {
   const editing = !!garment
+  const noun = !editing && group === 'bolsas' ? 'bolsa' : 'peça'
   return (
     <Modal
       open={open}
       onClose={onClose}
       size="lg"
-      title={editing ? 'Editar peça' : 'Nova peça'}
+      title={editing ? 'Editar peça' : `Nova ${noun}`}
       description={editing ? `${garment.code} · alterações ficam registradas na auditoria` : 'O código é gerado automaticamente na sequência do acervo'}
       footer={
         <>
           <Button onClick={onClose}>Cancelar</Button>
           <Button variant="primary" type="submit" form={FORM_ID}>
-            {editing ? 'Salvar' : 'Cadastrar peça'}
+            {editing ? 'Salvar' : `Cadastrar ${noun}`}
           </Button>
         </>
       }
     >
-      {open && <GarmentFields garment={garment} onDone={onClose} onCreated={onCreated} />}
+      {open && <GarmentFields garment={garment} group={group} onDone={onClose} onCreated={onCreated} />}
     </Modal>
   )
 }
@@ -93,7 +96,7 @@ function initial(g?: Garment) {
 }
 type Values = ReturnType<typeof initial>
 
-function GarmentFields({ garment, onDone, onCreated }: { garment?: Garment; onDone(): void; onCreated?(g: Garment): void }) {
+function GarmentFields({ garment, group, onDone, onCreated }: { garment?: Garment; group?: AcervoGroup; onDone(): void; onCreated?(g: Garment): void }) {
   const { can } = usePermissions()
   const canCost = can('acervo.cost')
   const categories = useCategories()
@@ -105,7 +108,9 @@ function GarmentFields({ garment, onDone, onCreated }: { garment?: Garment; onDo
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS)
   const busy = create.isPending || update.isPending
 
-  const cats = categories.data ?? []
+  const all = categories.data ?? []
+  const ownGroup = garment ? all.find((c) => c.slug === garment.categorySlug)?.group : group
+  const cats = ownGroup ? all.filter((c) => c.group === ownGroup) : all
   const categorySlug = v.categorySlug || cats[0]?.slug || ''
   const catDays = cats.find((c) => c.slug === categorySlug)?.cleaningDays
 

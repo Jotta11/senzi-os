@@ -8,14 +8,14 @@ import { addDays } from '@/lib/format'
 import type { Category, FabricStretch, FitRuns, Garment, GarmentLength, SizeEquiv } from '../types'
 
 export const CATEGORIES: Category[] = [
-  { slug: 'vestido-longo', name: 'Vestido longo', cleaningDays: 3 },
-  { slug: 'vestido-midi', name: 'Vestido midi', cleaningDays: 2 },
-  { slug: 'vestido-curto', name: 'Vestido curto', cleaningDays: 2 },
-  { slug: 'vestido-sereia', name: 'Vestido sereia', cleaningDays: 3 },
-  { slug: 'macacao', name: 'Macacão', cleaningDays: 2 },
-  { slug: 'conjunto', name: 'Conjunto', cleaningDays: 2 },
-  { slug: 'saia', name: 'Saia', cleaningDays: 1 },
-  { slug: 'bolsa-acessorio', name: 'Bolsa & acessório', cleaningDays: 1 },
+  { slug: 'vestido-longo', name: 'Vestido longo', cleaningDays: 3, group: 'vestidos' },
+  { slug: 'vestido-midi', name: 'Vestido midi', cleaningDays: 2, group: 'vestidos' },
+  { slug: 'vestido-curto', name: 'Vestido curto', cleaningDays: 2, group: 'vestidos' },
+  { slug: 'vestido-sereia', name: 'Vestido sereia', cleaningDays: 3, group: 'vestidos' },
+  { slug: 'macacao', name: 'Macacão', cleaningDays: 2, group: 'vestidos' },
+  { slug: 'conjunto', name: 'Conjunto', cleaningDays: 2, group: 'vestidos' },
+  { slug: 'saia', name: 'Saia', cleaningDays: 1, group: 'vestidos' },
+  { slug: 'bolsa-acessorio', name: 'Bolsa', cleaningDays: 1, group: 'bolsas' },
 ]
 
 export const BRANDS: string[] = [

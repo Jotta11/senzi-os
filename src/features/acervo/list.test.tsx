@@ -62,8 +62,8 @@ beforeEach(() => {
 describe('Acervo — lista', () => {
   it('cabeçalho, 24 cards na primeira página e "Carregar mais" traz o resto', async () => {
     renderPreview()
-    expect(await screen.findByRole('heading', { level: 1, name: 'Acervo' })).toBeInTheDocument()
-    expect(await screen.findByText(/27 peças · 7 disponíveis/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vestidos' })).toBeInTheDocument()
+    expect(await screen.findByText(/25 peças · 7 disponíveis/)).toBeInTheDocument()
     await waitFor(async () => expect(await cards()).toHaveLength(24))
     const verona = within(await gallery()).getByRole('link', { name: /Vestido Verona/ })
     expect(verona).toHaveAttribute('href', '/preview/acervo/sz-0107')
@@ -72,7 +72,7 @@ describe('Acervo — lista', () => {
     expect(within(verona).getByText('R$ 890')).toBeInTheDocument()
     expect(within(verona).getByText('Reserv.')).toBeInTheDocument() // locação confirmada daqui a 6 dias
     await userEvent.click(screen.getByRole('button', { name: 'Carregar mais' }))
-    await waitFor(async () => expect(await cards()).toHaveLength(27))
+    await waitFor(async () => expect(await cards()).toHaveLength(25))
     expect(screen.queryByRole('button', { name: 'Carregar mais' })).toBeNull()
   })
 
@@ -90,7 +90,7 @@ describe('Acervo — lista', () => {
     const { router } = renderPreview()
     await waitFor(() => expect(chip('Estado', /^Disponível/)).toHaveTextContent('7'))
     expect(chip('Estado', /^Qualquer estado/)).toHaveAttribute('aria-pressed', 'true')
-    expect(chip('Estado', /^Qualquer estado/)).toHaveTextContent('27')
+    expect(chip('Estado', /^Qualquer estado/)).toHaveTextContent('25')
     await userEvent.click(chip('Estado', /^Em ciclo operacional/))
     await waitFor(async () => expect(await cards()).toHaveLength(6))
     expect(chip('Estado', /^Em ciclo operacional/)).toHaveAttribute('aria-pressed', 'true')
@@ -126,7 +126,7 @@ describe('Acervo — lista', () => {
     renderPage('atendimento', src)
     await userEvent.click(await screen.findByRole('button', { name: 'Lista' }))
     await screen.findByRole('table', { name: 'Peças do acervo' })
-    await screen.findByText(/27 peças/)
+    await screen.findByText(/25 peças/)
     expect(econ).not.toHaveBeenCalled()
     expect(inv).not.toHaveBeenCalled()
 
@@ -181,9 +181,35 @@ describe('Acervo — lista', () => {
       const { unmount } = renderPreview(`/preview/acervo?st=${st}`)
       await waitFor(async () => expect(await cards()).toHaveLength(24))
       expect(chip('Estado', /^Qualquer estado/)).toHaveAttribute('aria-pressed', 'true')
-      expect(screen.getByText('27 resultados')).toBeInTheDocument()
+      expect(screen.getByText('25 resultados')).toBeInTheDocument()
       unmount()
     }
+  })
+
+  it('Vestidos não mostra bolsas nem a categoria de bolsa', async () => {
+    renderPreview()
+    await waitFor(async () => expect(await cards()).toHaveLength(24))
+    expect(within(screen.getByRole('group', { name: 'Categoria' })).queryByRole('button', { name: /Bolsa/ })).toBeNull()
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Buscar peça' }), 'clutch')
+    expect(await screen.findByText('Nenhuma peça encontrada')).toBeInTheDocument()
+  })
+
+  it('Bolsas: só as bolsas, sem filtros de categoria e tamanho, abas Vestidos/Bolsas e "Nova bolsa"', async () => {
+    const { router } = renderPreview('/preview/acervo/bolsas')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bolsas' })).toBeInTheDocument()
+    expect(await screen.findByText(/2 bolsas · 0 disponíveis/)).toBeInTheDocument()
+    await waitFor(async () => expect(await cards()).toHaveLength(2))
+    for (const c of await cards()) expect(c).toHaveTextContent(/Clutch/)
+    expect(screen.queryByRole('group', { name: 'Categoria' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Tamanho' })).toBeNull()
+    const tabs = screen.getByRole('navigation', { name: 'Seções do Acervo' })
+    expect(within(tabs).getByRole('link', { name: 'Bolsas' })).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(screen.getByRole('button', { name: 'Nova bolsa' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nova bolsa' })
+    const cat = within(dialog).getByLabelText('Categoria') as HTMLSelectElement
+    expect([...cat.options].map((o) => o.value)).toEqual(['bolsa-acessorio'])
+    await userEvent.click(within(tabs).getByRole('link', { name: 'Vestidos' }))
+    expect(router.state.location.pathname).toBe('/preview/acervo')
   })
 
   it('sem resultado mostra o vazio', async () => {

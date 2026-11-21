@@ -32,6 +32,7 @@ export const previewRoutes: RouteObject = {
   children: [
     { index: true, element: <DashboardPage /> },
     { path: 'acervo', element: <AcervoListPage /> },
+    { path: 'acervo/bolsas', element: <AcervoListPage group="bolsas" /> },
     { path: 'acervo/:id', element: <GarmentPage /> },
     { path: 'agenda', element: <AgendaPage /> },
     { path: 'clientes', element: <ClientesListPage /> },

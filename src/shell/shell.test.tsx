@@ -105,7 +105,7 @@ describe('shell', () => {
   // (o componente segue em uso e testado na prévia, `preview.test.tsx`).
   it('todo item do menu (e submenu) tem tela real', () => {
     const paths = NAV.flatMap((n) => [n.path, ...(n.children ?? []).map((c) => c.path)])
-    const routed = ['/financeiro/receber', '/financeiro/pagar', '/financeiro/categorias']
+    const routed = ['/acervo/bolsas', '/financeiro/receber', '/financeiro/pagar', '/financeiro/categorias']
     expect(paths.filter((p) => !(p in LIVE) && !routed.includes(p))).toEqual([])
   })
 
@@ -125,7 +125,7 @@ describe('shell', () => {
   it('a prévia abre pelas rotas do app, carregada sob demanda', async () => {
     setup('admin', '/preview/acervo')
     expect(await screen.findByRole('group', { name: 'Ver como' })).toBeInTheDocument()
-    expect(await screen.findByRole('heading', { level: 1, name: 'Acervo' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vestidos' })).toBeInTheDocument()
   })
 
   it('o roteador do app não importa a prévia nem as telas de forma estática', () => {

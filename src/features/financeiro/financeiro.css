@@ -2,10 +2,6 @@
    Financeiro — visão geral, contas a receber/pagar, categorias, gráficos.
    Cards brancos com borda Areia; destaque em Cranberry só na faixa de números.
    ===================================================================== */
-.fx-nav { display: flex; gap: 2px; margin: 14px 32px 0; border-bottom: 1px solid var(--areia); overflow-x: auto; }
-.fx-nav a { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--nevoa); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
-.fx-nav a:hover { color: var(--tinta); text-decoration: none; }
-.fx-nav a[aria-current="page"] { color: var(--vivo); border-bottom-color: var(--vivo); }
 
 /* faixa de números: cada número é um cartão (4 por linha; 2 no tablet; 1 no celular) */
 .fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -97,7 +93,6 @@
 @media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } .fx-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .fx-tiles { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
-  .fx-nav { margin: 10px 16px 0; }
   .fx-fields { grid-template-columns: minmax(0, 1fr); }
   .fx-bars > li { grid-template-columns: minmax(0, 1fr) auto; }
   .fx-bar-t { grid-column: 1 / -1; grid-row: 2; }

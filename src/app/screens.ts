@@ -5,7 +5,7 @@ import { lazy, type ComponentType } from 'react'
  * comuns). O app logado baixa só a moldura (login, menu, permissões) e a tela aberta. `SupabaseDataLayout` dá o
  * `<Suspense>` enquanto o pedaço chega.
  */
-function screen<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
+function screen<K extends string, P extends object>(load: () => Promise<Record<K, ComponentType<P>>>, name: K) {
   return lazy(async () => ({ default: (await load())[name] }))
 }
 
