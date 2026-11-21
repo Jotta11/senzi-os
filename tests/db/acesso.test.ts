@@ -65,6 +65,7 @@ describe('acesso: perfis, permissões e RLS', () => {
     it('atendimento não tem permissões restritas ao admin', async () => {
       for (const p of [
         'acervo.cost',
+        'acervo.delete',
         'financeiro.consolidated',
         'financeiro.geral',
         'inteligencia.view',

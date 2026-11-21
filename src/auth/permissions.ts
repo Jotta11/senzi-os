@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   'acervo.edit': 'Editar ficha da peça',
   'acervo.block': 'Bloquear e liberar peça',
   'acervo.cost': 'Ver custo de aquisição e economia da peça',
+  'acervo.delete': 'Apagar peça do acervo',
 
   'prova.view': 'Ver provas',
   'prova.manage': 'Agendar e conduzir provas',

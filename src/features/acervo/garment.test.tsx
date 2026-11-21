@@ -206,6 +206,37 @@ describe('Ficha da peça', () => {
   })
 })
 
+describe('Apagar peça', () => {
+  it('só o admin vê "Apagar"; peça com reserva mostra o motivo e não sai do acervo', async () => {
+    const user = userEvent.setup()
+    renderPreview('/preview/acervo/sz-0107')
+    await user.click(await screen.findByRole('button', { name: 'Apagar' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Apagar peça' })
+    await user.click(within(dialog).getByRole('button', { name: 'Apagar peça' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('já passou por reserva ou prova')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    await verAtendimento(user)
+    expect(screen.queryByRole('button', { name: 'Apagar' })).toBeNull()
+  })
+
+  it('peça sem histórico é apagada e a tela volta para a lista do grupo', async () => {
+    const user = userEvent.setup()
+    const source = newSource()
+    const bolsa = await source.createGarment({
+      name: 'Clutch Teste', categorySlug: 'bolsa-acessorio', brandName: null, labelSize: 'U', sizeEquiv: 'U', length: 'curto',
+      colorPrimary: 'Preto', colorHex: '#111111', fabric: 'Couro', neckline: '', sleeve: '', style: '', occasions: [],
+      rentalPrice: 200, acquisitionCost: 500, retailReference: null, location: '', fitNotes: '', cleaningDays: null,
+    })
+    const { router } = renderPreview(`/preview/acervo/${bolsa.id}`, source)
+    await user.click(await screen.findByRole('button', { name: 'Apagar' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Apagar peça' })
+    await user.click(within(dialog).getByRole('button', { name: 'Apagar peça' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/preview/acervo/bolsas'))
+    expect(await screen.findByText('Peça apagada')).toBeInTheDocument()
+    expect(await source.getGarment(bolsa.id)).toBeNull()
+  })
+})
+
 describe('Calendário — semana começa na segunda', () => {
   const cells = (c: HTMLElement) => [...c.querySelectorAll('.gp-cal > div')].slice(7)
   it('cabeçalho seg…dom; 1º/10/2026 (quinta) na 4ª coluna; 1º/11/2026 (domingo) na 7ª', () => {

@@ -212,6 +212,21 @@ describe('mockSource — acervo', () => {
     expect(semNome.code).toBe('NOME_OBRIGATORIO')
   })
 
+  it('deleteGarment: peça sem reserva/prova some com a compra no financeiro; com histórico → PECA_COM_HISTORICO', async () => {
+    const src = newSource()
+    const nova = await src.createGarment(garmentInput({ acquisitionCost: 1200 }))
+    const all = { status: 'todas', categoryId: null, recurrence: 'todas', q: '', range: 'tudo' } as const
+    expect((await src.listPayables(all)).rows.some((p) => p.garmentId === nova.id)).toBe(true)
+    await src.deleteGarment(nova.id)
+    expect(await src.getGarment(nova.id)).toBeNull()
+    expect((await src.listPayables(all)).rows.some((p) => p.garmentId === nova.id)).toBe(false)
+    expect((await src.searchGarments({ q: 'Girassol' }, { limit: 10, offset: 0 })).total).toBe(0)
+
+    const verona = (await src.searchGarments({ q: 'Verona' }, { limit: 1, offset: 0 })).items[0]!
+    expect((await errorOf(src.deleteGarment(verona.id))).code).toBe('PECA_COM_HISTORICO')
+    expect(await src.getGarment(verona.id)).not.toBeNull()
+  })
+
   it('blockGarment: sobreposto → CONFLITO_AGENDA; invertido → PERIODO_INVALIDO; hoje → bloqueado; liberar → disponível', async () => {
     const src = newSource()
     const bolonha = await garmentByCode(src, 'SZ-0170') // Bolonha: disponível, com bloqueio manual futuro

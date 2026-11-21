@@ -67,6 +67,7 @@ export type AcervoSource = Pick<
   | 'garmentEconomics'
   | 'acervoInvestment'
   | 'getGarment'
+  | 'deleteGarment'
   | 'createGarment'
   | 'updateGarment'
   | 'updateFit'
@@ -219,6 +220,15 @@ export function supabaseAcervo(client: SupabaseClient, withUrls: PhotoSigner = p
       const g = await rpc<RawGarment | null>('get_garment', { p_id: id })
       if (!g) throw new SourceError('NAO_ENCONTRADO')
       return one(g)
+    },
+
+    deleteGarment: async (id) => {
+      const paths = await rpc<string[]>('delete_garment', { p_garment: id })
+      for (const p of paths) withUrls.forget(p)
+      if (paths.length) {
+        const { error } = await client.storage.from(PHOTO_BUCKET).remove(paths)
+        if (error) console.error('deleteGarment: arquivos não apagados do bucket', { paths, message: error.message })
+      }
     },
 
     setCover: (id, photoId) => garmentRpc('set_cover_photo', { p_garment: id, p_photo: photoId }),

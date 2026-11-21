@@ -14,6 +14,7 @@ import { GarmentFittingsPane } from '../provas/FittingPanes'
 import { ReservationsPane } from '../reservas/ReservationsPane'
 import { BlockModal } from './BlockModal'
 import { CalendarPane } from './CalendarPane'
+import { DeleteGarmentModal } from './DeleteGarmentModal'
 import { STRIP_DAYS, freeDays } from './calendarDays'
 import { FitModal } from './FitModal'
 import { GarmentForm } from './GarmentForm'
@@ -24,7 +25,7 @@ import './acervo.css'
 import './garment.css'
 
 type TabKey = 'calendario' | 'fotos' | 'historico' | 'reservas' | 'provas' | 'manutencoes' | 'financeiro' | 'medidas'
-type Dialog = 'edit' | 'block' | 'fit' | 'measure' | null
+type Dialog = 'edit' | 'block' | 'fit' | 'measure' | 'delete' | null
 
 const cm = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} cm`)
 const times = (n: number) => `${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`
@@ -175,6 +176,11 @@ function Ficha({ garment: g }: { garment: Garment }) {
               Editar
             </Button>
           )}
+          {can('acervo.delete') && (
+            <Button icon="lixo" onClick={() => setDialog('delete')}>
+              Apagar
+            </Button>
+          )}
           {can('reserva.create') && (
             <Link to={href(`/reservas?nova=1&peca=${g.id}`)} className={buttonClass('primary')}>
               <Icon name="plus" size={15} /> Reservar
@@ -197,6 +203,7 @@ function Ficha({ garment: g }: { garment: Garment }) {
       <BlockModal open={dialog === 'block'} onClose={close} garment={g} />
       <FitModal open={dialog === 'fit'} onClose={close} garment={g} />
       <MeasurementsModal open={dialog === 'measure'} onClose={close} garment={g} />
+      <DeleteGarmentModal open={dialog === 'delete'} onClose={close} garment={g} />
     </div>
   )
 }

@@ -270,6 +270,27 @@ export function acervoClientes(ctx: MockCtx): AcervoClientesSource {
         return pg(g)
       }),
 
+    deleteGarment: (id) =>
+      run(() => {
+        const g = garment(id)
+        const used = db.reservations.some((r) => r.items.some((i) => i.garmentId === id)) || db.fittingItems.some((i) => i.garmentId === id)
+        if (used) throw new SourceError('PECA_COM_HISTORICO')
+        const orders = new Set(db.maintenances.filter((m) => m.garmentId === id).map((m) => m.id))
+        db.payables = db.payables
+          .filter((p) => !(p.source !== 'manual' && (p.garmentId === id || (p.maintenanceId && orders.has(p.maintenanceId)))))
+          .map((p) => (p.garmentId === id || (p.maintenanceId && orders.has(p.maintenanceId)) ? { ...p, garmentId: p.garmentId === id ? null : p.garmentId, maintenanceId: p.maintenanceId && orders.has(p.maintenanceId) ? null : p.maintenanceId } : p))
+        db.maintenances = db.maintenances.filter((m) => m.garmentId !== id)
+        db.inspections = db.inspections.filter((i) => i.garmentId !== id)
+        for (const a of db.appointments) if (a.garmentId === id) a.garmentId = null
+        for (const c of db.customers) {
+          c.favorites = c.favorites.filter((f) => f.garmentId !== id)
+          if (c.idealGarmentId === id) c.idealGarmentId = null
+          for (const m of c.measurements) if (m.sourceGarmentId === id) m.sourceGarmentId = null
+        }
+        for (const p of g.photos) if (p.url.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(p.url)
+        db.garments = db.garments.filter((x) => x.id !== g.id)
+      }),
+
     setCover: (id, photoId) =>
       run(() => {
         const g = garment(id)

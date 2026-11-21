@@ -185,6 +185,18 @@ export function useRemovePhoto(id: string) {
   const src = useDataSource()
   return useGarmentMutation((photoId: string) => src.removePhoto(id, photoId))
 }
+/** Peça apagada some de todas as telas (listas, agenda, painel, financeiro, inteligência). */
+export function useDeleteGarment(id: string) {
+  const src = useDataSource()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => src.deleteGarment(id),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: dataKeys.garment(id) })
+      void invalidateWorld(qc)
+    },
+  })
+}
 export function useSetCover(id: string) {
   const src = useDataSource()
   return useGarmentMutation((photoId: string) => src.setCover(id, photoId))

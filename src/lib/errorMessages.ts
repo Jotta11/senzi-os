@@ -56,6 +56,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   VENCIMENTO_OBRIGATORIO: 'Informe o vencimento.',
   DATA_FUTURA: 'A data não pode ser futura.',
   CATEGORIA_DUPLICADA: 'Já existe uma categoria com esse nome.',
+  PECA_COM_HISTORICO: 'Esta peça já passou por reserva ou prova e não pode ser apagada (o histórico dessas reservas depende dela).',
   CATEGORIA_EM_USO: 'Há lançamentos nesta categoria — arquive em vez de excluir.',
   CATEGORIA_SISTEMA: 'Categorias do sistema não podem ser alteradas.',
   RECORRENCIA_FIM_INVALIDO: 'A data final deve ser posterior ao vencimento.',

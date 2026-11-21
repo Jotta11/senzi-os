@@ -54,6 +54,8 @@ export interface AcervoClientesSource {
   /** A primeira foto vira capa. */
   addPhoto(id: string, file: Blob, kind: PhotoKind): Promise<Garment>
   removePhoto(id: string, photoId: string): Promise<Garment>
+  /** Apaga a peça (só sem reserva nem prova → senão PECA_COM_HISTORICO), com fotos, ordens e despesas automáticas dela. */
+  deleteGarment(id: string): Promise<void>
   setCover(id: string, photoId: string): Promise<Garment>
   /** `from`/`to` em `aaaa-mm-dd`, inclusivos. `PERIODO_INVALIDO` / `CONFLITO_AGENDA` (com `hint`). */
   blockGarment(id: string, from: string, to: string, note: string): Promise<Garment>
